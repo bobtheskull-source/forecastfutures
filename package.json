@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "demo": "node src/index.js --demo"
+    "demo": "node src/index.js --demo",
+    "build": "node src/index.js --demo"
   }
 }
