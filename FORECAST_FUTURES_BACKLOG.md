@@ -234,5 +234,35 @@ AC:
 2) Render tests assert the safe-area / sticky spacing styles are present.
 3) Tests cover the non-blocking overlay behavior introduced by the layout fix.
 
+CARD-076 | Backlog | Show last snapshot refresh time and snapshot age in the backend card
+AC:
+1) Backend readiness surfaces the last successful refresh timestamp.
+2) Snapshot age is visible and updates after refresh.
+3) Missing/unknown refresh state falls back to clear copy instead of a blank field.
+
+CARD-077 | Backlog | Make snapshot refresh stateful and prevent duplicate reload taps
+AC:
+1) Refresh action records a local refresh marker before reload.
+2) Refresh button briefly reflects that a refresh is in flight or has just run.
+3) Repeated taps do not produce duplicate state writes or broken UI.
+
+CARD-078 | Backlog | Surface backend env and deployment notes in a compact settings drawer
+AC:
+1) Settings drawer shows API host and auth boundary notes in plain language.
+2) Read-only client guidance is visible without opening the source.
+3) Sensitive secret values are never rendered, only environment names and policy text.
+
+CARD-079 | Backlog | Harden ultra-narrow viewport spacing around sticky trade and nav controls
+AC:
+1) Sticky trade and nav controls keep clear of the safe area on very small screens.
+2) Content remains visible above fixed controls when browser chrome changes height.
+3) No primary content is hidden behind the bottom controls at mobile zoom levels.
+
+CARD-080 | Backlog | Add regression tests for snapshot metadata and safe-area layout behavior
+AC:
+1) Tests assert the backend card shows refresh metadata and env guidance.
+2) Tests assert refresh state is persisted and rendered.
+3) Tests assert the safe-area layout styles remain in place after edits.
+
 Suggested execution order:
-CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075
+CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075 -> 076 -> 077 -> 078 -> 079 -> 080

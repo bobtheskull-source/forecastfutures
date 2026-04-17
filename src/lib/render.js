@@ -134,11 +134,12 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       <div class="row"><strong>Backend readiness</strong><span class="pill">${infrastructure.ready ? 'ready' : 'needs secrets'}</span></div>
       <p class="muted">${infrastructure.ready ? 'Server auth is ready for read-only market data.' : `Missing: ${escapeHtml((Array.isArray(infrastructure.missing) ? infrastructure.missing : []).join(', ') || 'none')}`}</p>
       <p class="muted">Client mode: read-only GitHub Pages UI. Auth stays on the server.</p>
+      <p id="snapshotRefreshMeta" class="muted">Last refresh: never</p>
       <div class="actions"><button class="btn" id="refreshSnapshotBtn">Refresh snapshot</button></div>
       <details class="drawer">
         <summary>API host vs GitHub Pages</summary>
         <p class="muted">The Pages client only renders market data and trade links. Credentials stay on the API host or local server, never in the browser.</p>
-        <ul class="muted">${(Array.isArray(infrastructure.deploymentNotes) ? infrastructure.deploymentNotes : []).map((note) => `<li>${escapeHtml(note)}</li>`).join('')}</ul>
+        <ul class="muted"><li>Environment: ${escapeHtml('KALSHI_BASE_URL')}</li><li>Auth secret: ${escapeHtml('KALSHI_API_KEY')}</li><li>Private key path: ${escapeHtml('KALSHI_PRIVATE_KEY_PATH')}</li>${(Array.isArray(infrastructure.deploymentNotes) ? infrastructure.deploymentNotes : []).map((note) => `<li>${escapeHtml(note)}</li>`).join('')}</ul>
       </details>
     </div>
     <div id="listState" class="state" hidden></div>
@@ -241,6 +242,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var watchlistKey = 'ff_watchlist_v1';
   var funnelKey = 'ff_funnel_events_v1';
   var paywallSeenKey = 'ff_paywall_seen_v1';
+  var snapshotRefreshKey = 'ff_snapshot_refreshed_at_v1';
   var halfLifeMs = 6 * 60 * 60 * 1000;
   var defaultPrefs = { minEdgePercent: 4, confidenceFloor: 'medium', quietHoursStart: 22, quietHoursEnd: 7, cooldownMinutes: 30 };
   var confRank = { low: 1, medium: 2, high: 3 };
@@ -275,6 +277,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var stickyTradeCta = document.getElementById('stickyTradeCta');
   var activeModalTrigger = null;
 
+  function refreshSnapshotMetaText(){
+    if(snapshotRefreshMetaEl) snapshotRefreshMetaEl.textContent = snapshotRefreshMeta();
+  }
+
   function esc(v){return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
 
   function visitorId(){
@@ -304,6 +310,21 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var now = Date.now();
     var entries = payload[marketId] || [];
     return entries.reduce(function(acc,e){return acc + Math.exp(-(now-e.ts)/halfLifeMs);},0);
+  }
+
+  function loadSnapshotRefresh(){
+    try { return localStorage.getItem(snapshotRefreshKey) || ''; } catch { return ''; }
+  }
+  function saveSnapshotRefresh(value){
+    try { localStorage.setItem(snapshotRefreshKey, value); } catch {}
+  }
+  function snapshotRefreshMeta(){
+    var stamp = loadSnapshotRefresh();
+    if(!stamp) return 'Last refresh: never';
+    var then = new Date(stamp);
+    if(Number.isNaN(then.getTime())) return 'Last refresh: unknown';
+    var ageMinutes = Math.max(0, Math.round((Date.now() - then.getTime()) / 60000));
+    return 'Last refresh: ' + then.toLocaleString() + ' · age ' + ageMinutes + 'm';
   }
 
   function loadWatchlist(){ try { return JSON.parse(localStorage.getItem(watchlistKey) || '[]'); } catch { return []; } }
@@ -980,6 +1001,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   document.getElementById('alertControlsBtn').addEventListener('click', openAlertPrefsModal);
   if(refreshSnapshotBtn){
     refreshSnapshotBtn.addEventListener('click', function(){
+      this.disabled = true;
+      this.textContent = 'Refreshing...';
+      saveSnapshotRefresh(new Date().toISOString());
+      refreshSnapshotMetaText();
       window.location.reload();
     });
   }
@@ -1131,6 +1156,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   });
 
   state.tradeClicks = totalTradeClicks();
+  refreshSnapshotMetaText();
   Object.assign(state, readListStateFromUrl());
   renderList();
   renderMorningBrief();

@@ -46,7 +46,11 @@ test('renderApp surfaces backend readiness and Pages guidance', () => {
 
   assert.match(html, /Backend readiness/);
   assert.match(html, /needs secrets/);
+  assert.match(html, /snapshotRefreshMeta/);
+  assert.match(html, /Last refresh: never/);
+  assert.match(html, /KALSHI_BASE_URL/);
   assert.match(html, /KALSHI_API_KEY/);
+  assert.match(html, /KALSHI_PRIVATE_KEY_PATH/);
   assert.match(html, /API host vs GitHub Pages/);
   assert.match(html, /read-only GitHub Pages UI/);
   assert.match(html, /Refresh snapshot/);
