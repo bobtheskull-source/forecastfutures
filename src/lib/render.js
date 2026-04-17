@@ -1,7 +1,12 @@
 import { archiveSummary } from './archive-view.js';
+import { executionQualityScore } from './execution-quality.js';
+import { buildMorningBrief } from './digest.js';
+import { buildCalibrationReport } from './calibration-report.js';
 
 export function renderApp({ markets, outliers, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails }) {
   const summary = archiveSummary(archive);
+  const morningBrief = buildMorningBrief(outliers);
+  const calibrationReport = buildCalibrationReport(archive);
   const signalData = outliers.map((s) => ({
     ...s,
     marketProb: Number((s.marketProb ?? (s.price / 100)).toFixed(4)),
@@ -12,6 +17,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       Number(Math.min(1, (s.modelProb ?? s.price / 100) + 0.12).toFixed(4)),
     ],
     lastUpdated: s.updatedAt,
+    executionQuality: executionQualityScore(s),
   }));
 
   return `<!doctype html>
@@ -79,6 +85,8 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       </div>
       <p class="muted" id="alertsSummary" style="margin-top:8px"></p>
     </div>
+    <div class="card" style="margin-top:12px"><strong>Morning brief</strong><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
     <div id="listState" class="state" hidden></div>
     <div id="listResults" class="grid" style="margin-top:10px"></div>
     <div class="card" style="margin-top:12px"><strong>Most clicked (time-decay)</strong><div id="mostClicked" class="grid" style="margin-top:8px"></div></div>
@@ -153,6 +161,8 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
 <script>
 (function(){
   var data = ${JSON.stringify(signalData)};
+  var morningBriefData = ${JSON.stringify(morningBrief)};
+  var calibrationData = ${JSON.stringify(calibrationReport)};
   var telemetryKey = 'ff_clicks_v1';
   var visitorKey = 'ff_visitor_id';
   var alertKey = 'ff_alert_prefs_v1';
@@ -169,6 +179,8 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   var searchInput = document.getElementById('marketSearch');
   var listResults = document.getElementById('listResults');
   var listState = document.getElementById('listState');
+  var morningBriefEl = document.getElementById('morningBrief');
+  var calibrationSnapshotEl = document.getElementById('calibrationSnapshot');
   var detailPanel = document.getElementById('detailPanel');
   var detailState = document.getElementById('detailState');
   var mostClickedEl = document.getElementById('mostClicked');
@@ -247,6 +259,20 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     var ctr = counts.impressions ? (counts.trade / counts.impressions) : 0;
     var cvr = counts.paywall ? (counts.trial / counts.paywall) : 0;
     funnelStatsEl.textContent = 'impressions ' + counts.impressions + ' · pretrade ' + counts.pretrade + ' · trade ' + counts.trade + ' · paywall ' + counts.paywall + ' · trial ' + counts.trial + ' · CTR ' + (ctr * 100).toFixed(1) + '% · CVR ' + (cvr * 100).toFixed(1) + '%';
+  }
+
+  function renderMorningBrief(){
+    if(!morningBriefData.length){
+      morningBriefEl.innerHTML = '<div class="muted">No brief items yet.</div>';
+      return;
+    }
+    morningBriefEl.innerHTML = morningBriefData.map(function(item){
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.quality)+'</span></div><p class="muted">Edge '+Number(item.edgePct).toFixed(2)+'% · confidence '+esc(item.confidence)+'</p></article>';
+    }).join('');
+  }
+
+  function renderCalibrationSnapshot(){
+    calibrationSnapshotEl.textContent = 'Historical outcomes: ' + calibrationData.wins + ' wins, ' + calibrationData.misses + ' misses (win rate ' + (Number(calibrationData.winRate || 0) * 100).toFixed(1) + '%).';
   }
 
   function risingInterestScore(marketId){
@@ -394,7 +420,9 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     }
 
     risingInterestEl.innerHTML = ranked.map(function(item){
-      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.risingScore.toFixed(2)+'</span></div><p class="muted">Velocity score (30m vs 2h baseline)</p></article>';
+      var edgePct = (Math.abs(Number(item.edge || 0)) * 100).toFixed(2);
+      var attentionLabel = Number(item.risingScore || 0) >= 1.5 && Number(edgePct) < 4 ? 'Attention > Alpha' : (Number(item.risingScore || 0) >= 1.5 ? 'Attention + Alpha' : 'Low attention');
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.risingScore.toFixed(2)+'</span></div><p class="muted">Velocity score (30m vs 2h baseline)</p><p class="muted">Attention label: '+attentionLabel+' · model edge '+edgePct+'% (attention is not alpha)</p></article>';
     }).join('');
   }
 
@@ -440,7 +468,10 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   }
 
   function preTradeChecklist(item){
+    var eq = item.executionQuality || { score: 0, expectedSlippageBps: 0, guidance: [] };
     var checks = [
+      { label: 'Execution quality score >= 60 ('+Number(eq.score || 0).toFixed(1)+')', ok: Number(eq.score || 0) >= 60 },
+      { label: 'Expected slippage <= 35 bps ('+Number(eq.expectedSlippageBps || 0).toFixed(1)+' bps)', ok: Number(eq.expectedSlippageBps || 0) <= 35 },
       { label: 'Execution quality passed', ok: !!item.isTradeable },
       { label: 'Spread <= 6%', ok: Number(item.spread||1) <= 0.06 },
       { label: 'Depth >= 250', ok: Number(item.depth||0) >= 250 },
@@ -452,11 +483,13 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
 
   function openPreTradeSheet(item){
     var checks = preTradeChecklist(item);
+    var eq = item.executionQuality || { guidance: [] };
     preTradeBody.innerHTML = '<div class="row"><strong>Pre-Trade Opportunity Check</strong><button class="btn" data-close="preTradeModal">Close</button></div>'
       + '<p class="muted">'+esc(item.title)+' · one-tap trade path</p>'
       + '<div class="grid">'
       + checks.map(function(c){return '<div class="card"><div class="row"><span>'+esc(c.label)+'</span><strong class="'+(c.ok?'ok':'warn')+'">'+(c.ok?'PASS':'REVIEW')+'</strong></div></div>';}).join('')
       + '</div>'
+      + '<p class="muted" style="margin-top:8px">Execution guidance: '+esc((eq.guidance || []).join(' · '))+'</p>'
       + '<div class="actions">'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div>';
@@ -469,6 +502,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     paywallBody.innerHTML = '<div class="row"><strong>'+esc(offer.headline)+'</strong><button class="btn" data-close="paywallModal">Close</button></div>'
       + '<p class="muted">Plan: '+esc(offer.tier)+' · Variant '+esc(offer.variant)+'</p>'
       + '<p class="muted">'+esc(offer.body)+'</p>'
+      + '<div class="card"><strong>Proof panel</strong><p class="muted">Historical outcomes: '+calibrationData.wins+' wins / '+calibrationData.misses+' misses (win rate '+(Number(calibrationData.winRate || 0) * 100).toFixed(1)+'%).</p><ul class="muted">'+(calibrationData.methodology || []).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul><p class="muted">Forecasts are probabilistic and not financial advice.</p></div>'
       + '<div class="card"><strong>Onboarding to trial</strong><ol class="muted">'+offer.steps.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ol></div>'
       + '<div class="actions"><button class="btn primary" data-action="startTrial">'+esc(offer.cta)+'</button></div>';
     paywallModal.classList.add('show');
@@ -616,6 +650,8 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
 
   state.tradeClicks = totalTradeClicks();
   renderList();
+  renderMorningBrief();
+  renderCalibrationSnapshot();
   renderMostClicked();
   renderRisingInterest();
   renderDetail();
