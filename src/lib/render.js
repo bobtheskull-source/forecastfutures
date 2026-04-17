@@ -2,6 +2,7 @@ import { archiveSummary } from './archive-view.js';
 import { executionQualityScore } from './execution-quality.js';
 import { buildMorningBrief } from './digest.js';
 import { buildCalibrationReport } from './calibration-report.js';
+import { attentionVsAlpha } from './attention.js';
 
 export function renderApp({ markets, outliers, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails }) {
   const summary = archiveSummary(archive);
@@ -421,8 +422,8 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
 
     risingInterestEl.innerHTML = ranked.map(function(item){
       var edgePct = (Math.abs(Number(item.edge || 0)) * 100).toFixed(2);
-      var attentionLabel = Number(item.risingScore || 0) >= 1.5 && Number(edgePct) < 4 ? 'Attention > Alpha' : (Number(item.risingScore || 0) >= 1.5 ? 'Attention + Alpha' : 'Low attention');
-      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.risingScore.toFixed(2)+'</span></div><p class="muted">Velocity score (30m vs 2h baseline)</p><p class="muted">Attention label: '+attentionLabel+' · model edge '+edgePct+'% (attention is not alpha)</p></article>';
+      var attention = attentionVsAlpha({ edge: item.edge, risingScore: item.risingScore });
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.risingScore.toFixed(2)+'</span></div><p class="muted">Velocity score (30m vs 2h baseline)</p><p class="muted">Attention label: '+attention.label+' · model edge '+edgePct+'% (attention is not alpha)</p></article>';
     }).join('');
   }
 
