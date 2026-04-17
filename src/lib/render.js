@@ -73,6 +73,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     .onboarding-banner{border-color:rgba(96,165,250,.24);background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(7,12,24,.95))}.onboarding-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
     @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}.modal{align-items:flex-start}.sticky-trade{bottom:calc(118px + env(safe-area-inset-bottom))}.app{padding-bottom:calc(248px + env(safe-area-inset-bottom))}}
 
+</style>
 </head>
 <body>
 <a class="skip-link" href="#mainContent">Skip to content</a>

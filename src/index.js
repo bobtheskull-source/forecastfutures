@@ -43,6 +43,7 @@ const html = renderApp({
 const distDir = new URL('../dist/', import.meta.url);
 mkdirSync(distDir, { recursive: true });
 writeFileSync(new URL('../dist/index.html', import.meta.url), html);
+writeFileSync(new URL('../index.html', import.meta.url), html);
 
 console.log('# Forecast Futures');
 console.log('Mode:', demo ? 'demo' : 'local');
