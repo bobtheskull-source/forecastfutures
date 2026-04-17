@@ -13,7 +13,8 @@ import { archiveAlertHistoryItem, markAlertHistoryItem, summarizeAlertHistory, u
 import { morningBriefToCsv } from './brief-export.js';
 import { forecastReviewToCsv } from './review-export.js';
 
-export function renderApp({ markets, outliers, review = {}, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails }) {
+export function renderApp({ markets, outliers, review = {}, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails, infra = {} }) {
+  const infrastructure = infra || {};
   const summary = archiveSummary(archive);
   const morningBrief = buildMorningBrief(outliers);
   const calibrationReport = buildCalibrationReport(archive);
@@ -53,7 +54,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     .hero{padding:18px;margin-bottom:14px}.grid{display:grid;gap:12px}.section{margin:14px 0}.section h2{margin:0 0 10px;font-size:1rem;color:#c7d2fe}
     .card{padding:14px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill,.chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:#172554;color:#bfdbfe;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border:1px solid rgba(148,163,184,.14)}
     .chip{cursor:pointer}.muted{color:var(--muted);font-size:.88rem}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.stat{padding:12px;border-radius:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15)}
-    .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20;backdrop-filter:blur(10px)}
+    .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20;backdrop-filter:blur(10px)}
     .nav button{background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:12px 10px}.nav button.active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}
     .view[hidden]{display:none}.state{padding:12px;border-radius:12px;border:1px dashed rgba(148,163,184,.35)}.drivers{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
     .driver{background:#0b2447;border:1px solid rgba(148,163,184,.2);border-radius:999px;padding:4px 8px;font-size:.75rem;color:#bfdbfe}.chart{width:100%;height:72px}
@@ -66,11 +67,11 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     .modal-card{width:100%;max-width:980px;margin:0 auto;background:#0f172a;border:1px solid rgba(148,163,184,.25);border-radius:16px;padding:14px;max-height:82vh;overflow:auto}
     .inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inputs label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:#cbd5e1}
     .inputs input,.inputs select{padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb}
-    .list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}.seg{display:flex;gap:8px;flex-wrap:wrap}.seg .active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}.sticky-trade{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;z-index:30;width:min(980px,calc(100% - 24px));display:flex;justify-content:center;pointer-events:none}.sticky-trade .btn{pointer-events:auto}.fresh-badge{display:inline-flex;align-items:center;gap:4px}.fresh-badge[data-freshness="fresh"]{background:#0f3b27;color:#bbf7d0}.fresh-badge[data-freshness="warm"]{background:#4a2c0a;color:#fde68a}.fresh-badge[data-freshness="stale"]{background:#3b0b0b;color:#fecaca}
+    .list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}.seg{display:flex;gap:8px;flex-wrap:wrap}.seg .active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}.sticky-trade{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));z-index:30;width:min(980px,calc(100% - 24px));display:flex;justify-content:center;pointer-events:none}.sticky-trade .btn{pointer-events:auto}.fresh-badge{display:inline-flex;align-items:center;gap:4px}.fresh-badge[data-freshness="fresh"]{background:#0f3b27;color:#bbf7d0}.fresh-badge[data-freshness="warm"]{background:#4a2c0a;color:#fde68a}.fresh-badge[data-freshness="stale"]{background:#3b0b0b;color:#fecaca}
     .skip-link{position:absolute;left:-9999px;top:10px;z-index:80;background:#0f172a;color:#eef2ff;padding:10px 12px;border:1px solid rgba(148,163,184,.3);border-radius:10px}.skip-link:focus{left:12px}
     button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
     .onboarding-banner{border-color:rgba(96,165,250,.24);background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(7,12,24,.95))}.onboarding-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-    @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}.modal{align-items:flex-start}.sticky-trade{bottom:98px}.app{padding-bottom:206px}}
+    @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}.modal{align-items:flex-start}.sticky-trade{bottom:calc(98px + env(safe-area-inset-bottom))}.app{padding-bottom:calc(206px + env(safe-area-inset-bottom))}}
 
 </head>
 <body>
@@ -100,6 +101,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
         <button class="chip" id="saveWatchlistBtn">Save watchlist</button>
         <button class="chip" id="restoreWatchlistBtn">Restore watchlist</button>
         <button class="chip" id="alertControlsBtn">Alert controls</button>
+        <button class="chip" id="refreshSnapshotBtn">Refresh snapshot</button>
       </div>
       <div class="seg" style="margin-top:8px">
         <button class="chip active" id="feedNowBtn">Feed: Now</button>
@@ -116,6 +118,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       <p class="muted" id="alertsSummary" style="margin-top:8px"></p>
     </div>
     <div class="card" style="margin-top:12px"><strong>Alert history</strong><p class="muted">Recently surfaced alerts, dismissals, and archives are stored locally and do not change ranking.</p><div id="alertHistoryPanel" class="grid" style="margin-top:8px"></div></div>
+    <div class="drawer" style="margin-top:12px"><strong>Settings guide</strong><p class="muted">Use the API host for auth and market reads. Keep the Pages client read-only, and use the refresh snapshot button when you want the current rendered state to reload.</p></div>
     <div id="onboardingBanner" class="card onboarding-banner" hidden>
       <div class="row"><strong>Quick start</strong><button class="btn" id="dismissOnboardingBtn">Dismiss</button></div>
       <p class="muted">Use the list to scan opportunities, open detail for compare and history, then trade when the pre-trade check is green.</p>
@@ -127,6 +130,17 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     </div>
     <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><strong>Backend readiness</strong><span class="pill">${infrastructure.ready ? 'ready' : 'needs secrets'}</span></div>
+      <p class="muted">${infrastructure.ready ? 'Server auth is ready for read-only market data.' : `Missing: ${escapeHtml((Array.isArray(infrastructure.missing) ? infrastructure.missing : []).join(', ') || 'none')}`}</p>
+      <p class="muted">Client mode: read-only GitHub Pages UI. Auth stays on the server.</p>
+      <div class="actions"><button class="btn" id="refreshSnapshotBtn">Refresh snapshot</button></div>
+      <details class="drawer">
+        <summary>API host vs GitHub Pages</summary>
+        <p class="muted">The Pages client only renders market data and trade links. Credentials stay on the API host or local server, never in the browser.</p>
+        <ul class="muted">${(Array.isArray(infrastructure.deploymentNotes) ? infrastructure.deploymentNotes : []).map((note) => `<li>${escapeHtml(note)}</li>`).join('')}</ul>
+      </details>
+    </div>
     <div id="listState" class="state" hidden></div>
     <div id="listResults" class="grid" style="margin-top:10px"></div>
     <div class="card" style="margin-top:12px"><strong>Most clicked (time-decay)</strong><div id="mostClicked" class="grid" style="margin-top:8px"></div></div>
@@ -250,6 +264,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var alertHistoryPanel = document.getElementById('alertHistoryPanel');
   var onboardingBanner = document.getElementById('onboardingBanner');
   var dismissOnboardingBtn = document.getElementById('dismissOnboardingBtn');
+  var refreshSnapshotBtn = document.getElementById('refreshSnapshotBtn');
   var sortChips = Array.from(document.querySelectorAll('[data-sort]'));
 
   var preTradeModal = document.getElementById('preTradeModal');
@@ -963,6 +978,11 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   sortChips.forEach(function(chip){chip.addEventListener('click', function(){state.sort = chip.dataset.sort || 'score'; renderList();});});
 
   document.getElementById('alertControlsBtn').addEventListener('click', openAlertPrefsModal);
+  if(refreshSnapshotBtn){
+    refreshSnapshotBtn.addEventListener('click', function(){
+      window.location.reload();
+    });
+  }
   if(dismissOnboardingBtn){
     dismissOnboardingBtn.addEventListener('click', function(){
       dismissOnboarding();

@@ -204,5 +204,35 @@ AC:
 2) Safe-area padding prevents content from sitting under fixed controls.
 3) Horizontal scrolling is not introduced on the primary views.
 
+CARD-071 | Backlog | Surface backend readiness panel and missing credential status in the app
+AC:
+1) List or hero surfaces a visible backend readiness card with ready/missing state from the server report.
+2) Missing credentials and private-key issues are visible without opening code or logs.
+3) Deployment notes reinforce that auth stays server-side and the client remains read-only.
+
+CARD-072 | Backlog | Add refresh snapshot affordance for stateful UI screens
+AC:
+1) A refresh action is visible from the list surface and reloads the current snapshot/state.
+2) Refresh does not clear saved watchlists, alert history, or onboarding dismissal state.
+3) The control is labeled clearly so it reads as a snapshot/status refresh, not a destructive reset.
+
+CARD-073 | Backlog | Add backend split guidance for Pages client and API host
+AC:
+1) Onboarding or settings surfaces explain the API host vs GitHub Pages split in plain language.
+2) Guidance includes where credentials live and why the client stays read-only.
+3) The guidance is dismissible and does not cover or block primary controls.
+
+CARD-074 | Backlog | Prevent fixed trade/nav controls from covering content on small screens
+AC:
+1) Sticky trade and nav controls never cover list rows, detail panels, or archive cards.
+2) Safe-area spacing is applied so notched devices keep actions reachable.
+3) Narrow viewport layout remains scrollable without hidden sections.
+
+CARD-075 | Backlog | Add UI tests for readiness, guidance, refresh, and safe-area behavior
+AC:
+1) Render tests assert the readiness card, backend guidance, and refresh label appear.
+2) Render tests assert the safe-area / sticky spacing styles are present.
+3) Tests cover the non-blocking overlay behavior introduced by the layout fix.
+
 Suggested execution order:
-CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070
+CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075
