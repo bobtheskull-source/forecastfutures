@@ -19,12 +19,13 @@ Prediction forecasting app for Kalshi market moves and post-facto accuracy revie
 ## Safety
 - Keep secrets out of git
 - Use server-side auth only
-- Load `KALSHI_API_KEY` from env or `./secrets/kalshi_private_key.pem`
+- Load `KALSHI_API_KEY` from env and the private key from `KALSHI_PRIVATE_KEY_PATH`
+- If unset, the app auto-detects `/home/adminhermes/.config/kalshi/private-api-key` on this machine, then falls back to `./secrets/kalshi_private_key.pem`
 - Treat API keys as sensitive and rotate if exposed
 
 ## Local secret setup
 1. Create `secrets/kalshi_private_key.pem`
-2. Paste the private key into that file
+2. Paste the private key into that file, or point `KALSHI_PRIVATE_KEY_PATH` at an existing key file
 3. Export `KALSHI_API_KEY` in your shell, or add it to a local `.env`
 4. Run with:
 

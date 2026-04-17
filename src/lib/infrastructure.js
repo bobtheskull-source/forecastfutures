@@ -1,15 +1,12 @@
-import fs from 'node:fs';
-import path from 'node:path';
+import { readKalshiPrivateKey } from './kalshi-path.js';
 
 export function loadServerSecrets() {
   const env = {
     apiKey: process.env.KALSHI_API_KEY || '',
-    privateKeyPath: process.env.KALSHI_PRIVATE_KEY_PATH || './secrets/kalshi_private_key.pem',
     baseUrl: process.env.KALSHI_BASE_URL || 'https://api.kalshi.com',
   };
 
-  const resolvedKeyPath = path.resolve(process.cwd(), env.privateKeyPath);
-  const privateKey = fs.existsSync(resolvedKeyPath) ? fs.readFileSync(resolvedKeyPath, 'utf8').trim() : '';
+  const { resolvedPath: resolvedKeyPath, privateKey } = readKalshiPrivateKey();
 
   return {
     ...env,
