@@ -264,5 +264,35 @@ AC:
 2) Tests assert refresh state is persisted and rendered.
 3) Tests assert the safe-area layout styles remain in place after edits.
 
+CARD-081 | Ready to Deploy | Add snapshot provenance card for backend/import source and safe refresh copy
+AC:
+1) Hero/list surfaces show where the current markets snapshot came from.
+2) Refresh copy explains that saved state is preserved on reload.
+3) Missing or bundled-source states fall back to clear copy instead of a blank field.
+
+CARD-082 | Ready to Deploy | Add review export and share summary card that stays tied to backend review data
+AC:
+1) Review/export actions are grouped in one visible surface.
+2) CSV and share summary remain aligned with the same review/archive data.
+3) Mobile copy stays concise enough to share or copy manually.
+
+CARD-083 | Ready to Deploy | Connect morning brief, calibration, and archive review surfaces to one backend summary flow
+AC:
+1) Morning brief and review summary reference the same backend-derived story.
+2) Calibration and archive text make the data linkage obvious.
+3) The summary does not block the list, detail, or archive sections.
+
+CARD-084 | Ready to Deploy | Harden sticky trade and nav spacing so buttons do not block content sections
+AC:
+1) Sticky controls and nav stay clear of the main content on small screens.
+2) Safe-area padding keeps cards reachable on mobile browsers and zoomed layouts.
+3) Modal padding prevents action buttons from covering the underlying sheet content.
+
+CARD-085 | Ready to Deploy | Verify backend-linked surfaces and layout fixes with regression tests
+AC:
+1) Tests assert snapshot provenance and review/export card labels appear.
+2) Tests assert safe-area and sticky spacing remain in the generated markup.
+3) Tests cover the new summary/card copy so future UI changes do not break the backend bridge.
+
 Suggested execution order:
 CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075 -> 076 -> 077 -> 078 -> 079 -> 080

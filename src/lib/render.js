@@ -50,11 +50,11 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111a2e;--text:#eef2ff;--muted:#94a3b8;--accent:#60a5fa;--ok:#22c55e;--warn:#f59e0b}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#08111f,#050814);color:var(--text)}
-.app{max-width:980px;margin:0 auto;padding:16px;padding-bottom:178px}.hero,.card,.nav{background:rgba(17,26,46,.92);border:1px solid rgba(96,165,250,.16);border-radius:18px}
+.app{max-width:980px;margin:0 auto;padding:16px;padding-bottom:220px}.hero,.card,.nav{background:rgba(17,26,46,.92);border:1px solid rgba(96,165,250,.16);border-radius:18px}
     .hero{padding:18px;margin-bottom:14px}.grid{display:grid;gap:12px}.section{margin:14px 0}.section h2{margin:0 0 10px;font-size:1rem;color:#c7d2fe}
     .card{padding:14px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill,.chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:#172554;color:#bfdbfe;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border:1px solid rgba(148,163,184,.14)}
     .chip{cursor:pointer}.muted{color:var(--muted);font-size:.88rem}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.stat{padding:12px;border-radius:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15)}
-    .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20;backdrop-filter:blur(10px)}
+    .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20;backdrop-filter:blur(10px)}
     .nav button{background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:12px 10px}.nav button.active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}
     .view[hidden]{display:none}.state{padding:12px;border-radius:12px;border:1px dashed rgba(148,163,184,.35)}.drivers{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
     .driver{background:#0b2447;border:1px solid rgba(148,163,184,.2);border-radius:999px;padding:4px 8px;font-size:.75rem;color:#bfdbfe}.chart{width:100%;height:72px}
@@ -63,15 +63,15 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     .drawer{margin-top:10px;border:1px dashed rgba(148,163,184,.35);border-radius:12px;padding:10px;background:#0b1222}
     .drawer summary{cursor:pointer;color:#bfdbfe}
     .kv{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}.kv span:last-child{color:#c7d2fe}
-    .modal{position:fixed;inset:0;display:none;z-index:70;background:rgba(2,6,23,.78);padding:18px;align-items:flex-end}.modal.show{display:flex}
+    .modal{position:fixed;inset:0;display:none;z-index:70;background:rgba(2,6,23,.78);padding:18px;padding-bottom:calc(22px + env(safe-area-inset-bottom));align-items:flex-end}.modal.show{display:flex}
     .modal-card{width:100%;max-width:980px;margin:0 auto;background:#0f172a;border:1px solid rgba(148,163,184,.25);border-radius:16px;padding:14px;max-height:82vh;overflow:auto}
     .inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inputs label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:#cbd5e1}
     .inputs input,.inputs select{padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb}
-    .list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}.seg{display:flex;gap:8px;flex-wrap:wrap}.seg .active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}.sticky-trade{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom));z-index:30;width:min(980px,calc(100% - 24px));display:flex;justify-content:center;pointer-events:none}.sticky-trade .btn{pointer-events:auto}.fresh-badge{display:inline-flex;align-items:center;gap:4px}.fresh-badge[data-freshness="fresh"]{background:#0f3b27;color:#bbf7d0}.fresh-badge[data-freshness="warm"]{background:#4a2c0a;color:#fde68a}.fresh-badge[data-freshness="stale"]{background:#3b0b0b;color:#fecaca}
+    .list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}.seg{display:flex;gap:8px;flex-wrap:wrap}.seg .active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}.sticky-trade{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(112px + env(safe-area-inset-bottom));z-index:30;width:min(980px,calc(100% - 24px));display:flex;justify-content:center;pointer-events:none}.sticky-trade .btn{pointer-events:auto}.fresh-badge{display:inline-flex;align-items:center;gap:4px}.fresh-badge[data-freshness="fresh"]{background:#0f3b27;color:#bbf7d0}.fresh-badge[data-freshness="warm"]{background:#4a2c0a;color:#fde68a}.fresh-badge[data-freshness="stale"]{background:#3b0b0b;color:#fecaca}
     .skip-link{position:absolute;left:-9999px;top:10px;z-index:80;background:#0f172a;color:#eef2ff;padding:10px 12px;border:1px solid rgba(148,163,184,.3);border-radius:10px}.skip-link:focus{left:12px}
     button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
     .onboarding-banner{border-color:rgba(96,165,250,.24);background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(7,12,24,.95))}.onboarding-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-    @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}.modal{align-items:flex-start}.sticky-trade{bottom:calc(98px + env(safe-area-inset-bottom))}.app{padding-bottom:calc(206px + env(safe-area-inset-bottom))}}
+    @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}.modal{align-items:flex-start}.sticky-trade{bottom:calc(118px + env(safe-area-inset-bottom))}.app{padding-bottom:calc(248px + env(safe-area-inset-bottom))}}
 
 </head>
 <body>
@@ -88,6 +88,9 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       <div class="stat"><strong>${guardrails?.metrics?.p95LatencyMs ?? 0}ms</strong><div class="muted">signal p95 latency</div></div>
     </div>
   </section>
+
+  <div class="card" style="margin-bottom:12px"><strong>Snapshot provenance</strong><p class="muted">Current source: ${escapeHtml(snapshotSource)}</p><p class="muted">Refresh snapshot to reload the rendered state without clearing saved watchlists, alert history, or onboarding dismissal.</p></div>
+  <div class="card" style="margin-bottom:12px"><strong>Review export and share</strong><p class="muted">Morning brief, review CSV, and review summary stay tied to the same backend data so the list, detail, and archive surfaces do not drift.</p></div>
 
   <section class="view section" data-view="list">
     <h2>Opportunity score list</h2>
