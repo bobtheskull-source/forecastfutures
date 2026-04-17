@@ -7,7 +7,7 @@ function confidenceToScore(confidence = 'low') {
 }
 
 function recencyScore(freshnessSeconds) {
-  return clamp(1 - (freshnessSeconds / 3600));
+  return clamp(1 - (Number(freshnessSeconds || 0) / 3600));
 }
 
 function liquidityScore(volume, depth) {
@@ -18,6 +18,11 @@ function liquidityScore(volume, depth) {
 
 function spreadQualityScore(spread) {
   return clamp(1 - (Number(spread) / 0.08));
+}
+
+function volumeAnomalyScore(volume, baselineVolume = 450) {
+  const ratio = Number(volume || 0) / Math.max(1, Number(baselineVolume || 1));
+  return clamp((ratio - 1) / 2.5);
 }
 
 function deriveModelProb(marketProb, move, volume) {
@@ -38,11 +43,18 @@ export function scoreOpportunity(signal) {
   const liquidity = liquidityScore(signal.volume, signal.depth);
   const spreadQuality = spreadQualityScore(signal.spread);
   const recency = recencyScore(signal.freshnessSeconds);
+  const volumeAnomaly = volumeAnomalyScore(signal.volume, signal.avgVolume24h ?? signal.volumeBaseline ?? 450);
 
-  const isTradeable = Number(signal.spread) <= 0.06 && Number(signal.depth) >= 250 && Number(signal.freshnessSeconds) <= 900;
+  const isTradeable = Number(signal.spread) <= 0.06 && Number(signal.depth) >= 250 && Number(signal.volume) >= 200 && Number(signal.freshnessSeconds) <= 900;
   const tradeabilityPenalty = isTradeable ? 0 : 12;
 
-  const weighted = (edgeScore * 40) + (confidenceScore * 20) + (liquidity * 20) + (spreadQuality * 10) + (recency * 10);
+  const weighted =
+    (edgeScore * 30) +
+    (volumeAnomaly * 15) +
+    (confidenceScore * 15) +
+    (liquidity * 20) +
+    (spreadQuality * 10) +
+    (recency * 10);
   const rankScore = Math.max(0, weighted - tradeabilityPenalty);
 
   return {
@@ -53,11 +65,13 @@ export function scoreOpportunity(signal) {
     rankScore,
     isTradeable,
     scoreBreakdown: {
-      edge: Number((edgeScore * 40).toFixed(2)),
-      confidence: Number((confidenceScore * 20).toFixed(2)),
+      move: Number(Math.min(15, Math.abs(Number(signal.move || 0)) * 0.9).toFixed(2)),
+      volumeAnomaly: Number((volumeAnomaly * 15).toFixed(2)),
+      modelEdge: Number((edgeScore * 30).toFixed(2)),
       liquidity: Number((liquidity * 20).toFixed(2)),
-      spreadQuality: Number((spreadQuality * 10).toFixed(2)),
       recency: Number((recency * 10).toFixed(2)),
+      confidence: Number((confidenceScore * 15).toFixed(2)),
+      spreadQuality: Number((spreadQuality * 10).toFixed(2)),
       tradeabilityPenalty,
     },
   };

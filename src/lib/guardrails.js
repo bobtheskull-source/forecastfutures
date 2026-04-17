@@ -13,21 +13,48 @@ function syntheticLatencyMs(signal) {
   return Number((base + freshnessPenalty + complexity - liquidityBonus).toFixed(2));
 }
 
+export function executionQualityReport(signal, options = {}) {
+  const minDepth = Number(options.minDepth ?? 250);
+  const minVolume = Number(options.minVolume ?? 200);
+  const maxSpread = Number(options.maxSpread ?? 0.06);
+  const freshnessThresholdSeconds = Number(options.freshnessThresholdSeconds ?? 900);
+
+  const reasons = [];
+  if (Number(signal.depth || 0) < minDepth) reasons.push('low_liquidity_depth');
+  if (Number(signal.volume || 0) < minVolume) reasons.push('low_liquidity_volume');
+  if (Number(signal.spread || 0) > maxSpread) reasons.push('wide_spread');
+  if (Number(signal.freshnessSeconds || 0) > freshnessThresholdSeconds) reasons.push('stale_quote');
+
+  return {
+    pass: reasons.length === 0,
+    reasons,
+  };
+}
+
 export function applyLatencyAndStaleGuardrails(signals = [], options = {}) {
   const freshnessThresholdSeconds = Number(options.freshnessThresholdSeconds ?? 900);
 
   const accepted = [];
   const dropped = [];
   const latencies = [];
+  const reasonCounts = {
+    low_liquidity_depth: 0,
+    low_liquidity_volume: 0,
+    wide_spread: 0,
+    stale_quote: 0,
+  };
 
   for (const signal of signals) {
     const processingLatencyMs = syntheticLatencyMs(signal);
-    const stale = Number(signal.freshnessSeconds || 0) > freshnessThresholdSeconds;
+    const quality = executionQualityReport(signal, options);
 
-    if (stale) {
+    if (!quality.pass) {
+      for (const reason of quality.reasons) {
+        if (Object.hasOwn(reasonCounts, reason)) reasonCounts[reason] += 1;
+      }
       dropped.push({
         marketId: signal.id,
-        reason: 'stale_signal',
+        reasons: quality.reasons,
         freshnessSeconds: Number(signal.freshnessSeconds || 0),
       });
       continue;
@@ -43,9 +70,16 @@ export function applyLatencyAndStaleGuardrails(signals = [], options = {}) {
     metrics: {
       acceptedCount: accepted.length,
       droppedCount: dropped.length,
-      staleDropCount: dropped.length,
+      staleDropCount: reasonCounts.stale_quote,
       p50LatencyMs: Number(percentile(latencies, 0.5).toFixed(2)),
       p95LatencyMs: Number(percentile(latencies, 0.95).toFixed(2)),
+      reasonCounts,
+      executionQualityGate: {
+        minDepth: Number(options.minDepth ?? 250),
+        minVolume: Number(options.minVolume ?? 200),
+        maxSpread: Number(options.maxSpread ?? 0.06),
+        freshnessThresholdSeconds,
+      },
     },
   };
 }

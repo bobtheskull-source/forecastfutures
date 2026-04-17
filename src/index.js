@@ -17,7 +17,12 @@ const config = loadConfig();
 const markets = snapshotPath ? loadMarketSnapshots(snapshotPath) : loadSampleMarkets();
 
 const rankedSignals = detectOutliers(markets);
-const guardrails = applyLatencyAndStaleGuardrails(rankedSignals, { freshnessThresholdSeconds: 900 });
+const guardrails = applyLatencyAndStaleGuardrails(rankedSignals, {
+  freshnessThresholdSeconds: 900,
+  minDepth: 250,
+  minVolume: 200,
+  maxSpread: 0.06,
+});
 const outliers = guardrails.acceptedSignals;
 
 const review = buildForecastReview(outliers);
