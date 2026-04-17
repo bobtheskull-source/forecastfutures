@@ -1031,7 +1031,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   });
   document.getElementById('restoreWatchlistBtn').addEventListener('click', function(){
     var names = listSavedWatchlistNames();
-    var choice = window.prompt('Restore watchlist name\n' + (names.length ? names.join(', ') : 'No saved watchlists yet.'));
+    var choice = window.prompt('Restore watchlist name: ' + (names.length ? names.join(', ') : 'No saved watchlists yet.'));
     var saved = loadNamedWatchlist(choice);
     if(saved){
       saveWatchlist(Array.isArray(saved.ids) ? saved.ids : []);
