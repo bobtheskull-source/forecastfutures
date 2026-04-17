@@ -1,0 +1,1137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Forecast Futures</title>
+<style>
+:root{color-scheme:dark;--bg:#08111f;--panel:#111a2e;--text:#eef2ff;--muted:#94a3b8;--accent:#60a5fa;--ok:#22c55e;--warn:#f59e0b}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#08111f,#050814);color:var(--text)}
+.app{max-width:980px;margin:0 auto;padding:16px;padding-bottom:220px}.hero,.card,.nav{background:rgba(17,26,46,.92);border:1px solid rgba(96,165,250,.16);border-radius:18px}
+    .hero{padding:18px;margin-bottom:14px}.grid{display:grid;gap:12px}.section{margin:14px 0}.section h2{margin:0 0 10px;font-size:1rem;color:#c7d2fe}
+    .card{padding:14px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill,.chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:#172554;color:#bfdbfe;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border:1px solid rgba(148,163,184,.14)}
+    .chip{cursor:pointer}.muted{color:var(--muted);font-size:.88rem}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.stat{padding:12px;border-radius:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15)}
+    .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20;backdrop-filter:blur(10px)}
+    .nav button{background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:12px 10px}.nav button.active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}
+    .view[hidden]{display:none}.state{padding:12px;border-radius:12px;border:1px dashed rgba(148,163,184,.35)}.drivers{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .driver{background:#0b2447;border:1px solid rgba(148,163,184,.2);border-radius:999px;padding:4px 8px;font-size:.75rem;color:#bfdbfe}.chart{width:100%;height:72px}
+    .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.btn{border:1px solid rgba(148,163,184,.22);border-radius:10px;padding:10px 12px;background:#0f172a;color:#e2e8f0;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+    .btn.primary{border-color:rgba(34,197,94,.45);background:#052e1f;color:#bbf7d0}.btn.warn{border-color:rgba(245,158,11,.5);background:#3a2404;color:#fde68a}
+    .drawer{margin-top:10px;border:1px dashed rgba(148,163,184,.35);border-radius:12px;padding:10px;background:#0b1222}
+    .drawer summary{cursor:pointer;color:#bfdbfe}
+    .kv{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}.kv span:last-child{color:#c7d2fe}
+    .modal{position:fixed;inset:0;display:none;z-index:70;background:rgba(2,6,23,.78);padding:18px;padding-bottom:calc(22px + env(safe-area-inset-bottom));align-items:flex-end}.modal.show{display:flex}
+    .modal-card{width:100%;max-width:980px;margin:0 auto;background:#0f172a;border:1px solid rgba(148,163,184,.25);border-radius:16px;padding:14px;max-height:82vh;overflow:auto}
+    .inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inputs label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:#cbd5e1}
+    .inputs input,.inputs select{padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb}
+    .list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}.seg{display:flex;gap:8px;flex-wrap:wrap}.seg .active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}.sticky-trade{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(112px + env(safe-area-inset-bottom));z-index:30;width:min(980px,calc(100% - 24px));display:flex;justify-content:center;pointer-events:none}.sticky-trade .btn{pointer-events:auto}.fresh-badge{display:inline-flex;align-items:center;gap:4px}.fresh-badge[data-freshness="fresh"]{background:#0f3b27;color:#bbf7d0}.fresh-badge[data-freshness="warm"]{background:#4a2c0a;color:#fde68a}.fresh-badge[data-freshness="stale"]{background:#3b0b0b;color:#fecaca}
+    .skip-link{position:absolute;left:-9999px;top:10px;z-index:80;background:#0f172a;color:#eef2ff;padding:10px 12px;border:1px solid rgba(148,163,184,.3);border-radius:10px}.skip-link:focus{left:12px}
+    button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+    .onboarding-banner{border-color:rgba(96,165,250,.24);background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(7,12,24,.95))}.onboarding-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}.modal{align-items:flex-start}.sticky-trade{bottom:calc(118px + env(safe-area-inset-bottom))}.app{padding-bottom:calc(248px + env(safe-area-inset-bottom))}}
+
+</head>
+<body>
+<a class="skip-link" href="#mainContent">Skip to content</a>
+<main class="app" id="mainContent">
+  <section class="hero">
+    <div class="row"><div><div class="pill">Kalshi market radar</div><h1>Forecast Futures</h1></div><div class="pill">mobile-ready</div></div>
+    <p class="muted">Flag big market moves, rank by edge and tradeability, inspect forecast confidence, and jump into trades fast.</p>
+    <p class="muted">Snapshot: using bundled sample markets</p>
+    <div class="stats">
+      <div class="stat"><strong>5</strong><div class="muted">markets loaded</div></div>
+      <div class="stat"><strong>3</strong><div class="muted">ranked opportunities</div></div>
+      <div class="stat"><strong>1</strong><div class="muted">execution-gated</div></div>
+      <div class="stat"><strong>107.07ms</strong><div class="muted">signal p95 latency</div></div>
+    </div>
+  </section>
+
+  <div class="card" style="margin-bottom:12px"><strong>Snapshot provenance</strong><p class="muted">Current source: using bundled sample markets</p><p class="muted">Refresh snapshot to reload the rendered state without clearing saved watchlists, alert history, or onboarding dismissal.</p></div>
+  <div class="card" style="margin-bottom:12px"><strong>Review export and share</strong><p class="muted">Morning brief, review CSV, and review summary stay tied to the same backend data so the list, detail, and archive surfaces do not drift.</p></div>
+
+  <section class="view section" data-view="list">
+    <h2>Opportunity score list</h2>
+    <div class="card">
+      <div class="row" style="flex-wrap:wrap;gap:8px">
+        <input id="marketSearch" aria-label="Search markets" placeholder="Search markets/events" style="flex:1;min-width:220px;padding:10px;border-radius:12px;border:1px solid rgba(148,163,184,.2);background:#0f172a;color:#eef2ff" />
+        <button class="chip" data-sort="score">Sort: score</button>
+        <button class="chip" data-sort="recency">Sort: recency</button>
+        <button class="chip" data-sort="mostClicked">Sort: most clicked</button>
+        <button class="chip" id="watchlistBtn">Watchlist only: off</button>
+        <button class="chip" id="saveWatchlistBtn">Save watchlist</button>
+        <button class="chip" id="restoreWatchlistBtn">Restore watchlist</button>
+        <button class="chip" id="alertControlsBtn">Alert controls</button>
+        <button class="chip" id="refreshSnapshotBtn">Refresh snapshot</button>
+      </div>
+      <div class="seg" style="margin-top:8px">
+        <button class="chip active" id="feedNowBtn">Feed: Now</button>
+        <button class="chip" id="feedDiscoverBtn">Feed: Discover</button>
+        <button class="chip" id="presetHighEdgeBtn">Preset: edge > 5%</button>
+        <button class="chip" id="presetBreakoutBtn">Preset: breakout</button>
+        <button class="chip" id="presetWatchlistBtn">Preset: watchlist</button>
+        <button class="chip" id="savePresetBtn">Save preset</button>
+        <button class="chip" id="restorePresetBtn">Restore preset</button>
+        <button class="chip" id="presetExpiringBtn">Preset: resolves < 7d</button>
+        <button class="chip" id="resetPresetBtn">Preset: clear</button>
+        <button class="chip" id="exportCsvBtn">Export CSV</button>
+      </div>
+      <p class="muted" id="alertsSummary" style="margin-top:8px"></p>
+    </div>
+    <div class="card" style="margin-top:12px"><strong>Alert history</strong><p class="muted">Recently surfaced alerts, dismissals, and archives are stored locally and do not change ranking.</p><div id="alertHistoryPanel" class="grid" style="margin-top:8px"></div></div>
+    <div class="drawer" style="margin-top:12px"><strong>Settings guide</strong><p class="muted">Use the API host for auth and market reads. Keep the Pages client read-only, and use the refresh snapshot button when you want the current rendered state to reload.</p></div>
+    <div id="onboardingBanner" class="card onboarding-banner" hidden>
+      <div class="row"><strong>Quick start</strong><button class="btn" id="dismissOnboardingBtn">Dismiss</button></div>
+      <p class="muted">Use the list to scan opportunities, open detail for compare and history, then trade when the pre-trade check is green.</p>
+      <div class="onboarding-steps">
+        <span class="pill">1. Search or sort the list</span>
+        <span class="pill">2. Open detail for compare</span>
+        <span class="pill">3. Pre-trade check then open Kalshi</span>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><strong>Backend readiness</strong><span class="pill">needs secrets</span></div>
+      <p class="muted">Missing: KALSHI_API_KEY, private key file</p>
+      <p class="muted">Client mode: read-only GitHub Pages UI. Auth stays on the server.</p>
+      <p id="snapshotRefreshMeta" class="muted">Last refresh: never</p>
+      <div class="actions"><button class="btn" id="refreshSnapshotBtn">Refresh snapshot</button></div>
+      <details class="drawer">
+        <summary>API host vs GitHub Pages</summary>
+        <p class="muted">The Pages client only renders market data and trade links. Credentials stay on the API host or local server, never in the browser.</p>
+        <ul class="muted"><li>Environment: KALSHI_BASE_URL</li><li>Auth secret: KALSHI_API_KEY</li><li>Private key path: KALSHI_PRIVATE_KEY_PATH</li><li>Keep Kalshi auth on the server side only.</li><li>Rotate any exposed key before production use.</li><li>Expose read-only market data to the mobile client.</li><li>Use simple retry handling and rate limits on the server edge.</li><li>Document the mobile/frontend Pages target separately from the API host.</li></ul>
+      </details>
+    </div>
+    <div id="listState" class="state" hidden></div>
+    <div id="listResults" class="grid" style="margin-top:10px"></div>
+    <div class="card" style="margin-top:12px"><strong>Most clicked (time-decay)</strong><div id="mostClicked" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><strong>Most executed (24h trades)</strong><div id="mostExecuted" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><strong>Rising interest (velocity)</strong><div id="risingInterest" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><strong>Funnel analytics</strong><p id="funnelStats" class="muted" style="margin-top:8px"></p></div>
+  </section>
+
+  <section class="view section" data-view="detail" hidden>
+    <h2>Forecast detail</h2>
+    <div id="detailState" class="state" hidden></div>
+    <div id="detailPanel" class="card"></div>
+  </section>
+
+  <section class="view section" data-view="trends" hidden>
+    <h2>Trend & execution guardrails</h2>
+    <div class="grid">
+      <article class="card"><strong>Latency metrics</strong><p class="muted">p50: 76.68ms · p95: 107.07ms</p></article>
+      <article class="card"><strong>Quality gate</strong><p class="muted">Depth ≥ 250, Volume ≥ 200, Spread ≤ 0.06, Freshness ≤ 900s</p></article>
+      <article class="card"><strong>Watchlist health</strong><p id="watchlistHealth" class="muted" style="margin-top:8px"></p></article>
+      <article class="card"><strong>Gate reason counts</strong><p class="muted">low depth: 1 · low volume: 0 · wide spread: 1 · stale: 0</p></article>
+    </div>
+    <div class="card" style="margin-top:12px"><strong>Move rules</strong><ul class="muted"><li>breakout candidate: move >= 12, volume >= 400, score floor 22</li><li>liquid mover: move >= 8, volume >= 700, score floor 18</li><li>watchlist drift: move >= 5, volume >= 1000, score floor 15</li></ul></div>
+    <div class="card" style="margin-top:12px"><strong>Edge cases</strong><ul class="muted"><li>Tiny move plus huge volume can still be filtered out if the score stays below the floor.</li><li>Big move on thin volume is flagged, but the label should note lower confidence.</li><li>Zero or missing volume should never crash the detector, it should just score conservatively.</li></ul></div>
+  </section>
+
+  <section class="view section" data-view="archive" hidden>
+    <h2>Archive</h2>
+    <div class="card">
+      <div class="row"><strong>Review summary</strong><span class="pill">3 wins · 0 misses</span></div>
+      <p class="muted">Top win: CPI surprise next print · Top miss: n/a</p>
+      <div class="actions">
+        <button class="btn" id="exportReviewCsvBtn">Export review CSV</button>
+        <button class="btn" id="shareReviewSummaryBtn">Share review</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <strong>Forecast theses</strong>
+      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>1. CPI surprise next print</strong><span class="pill">score 79.48</span></div><p class="muted">BLS CPI release · up</p><p class="muted">Thesis: Large up move with market/model edge 28.33% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>2. Fed cuts at next meeting</strong><span class="pill">score 71.35</span></div><p class="muted">FOMC decision · down</p><p class="muted">Thesis: Large down move with market/model edge -18.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>3. Major storm makes landfall</strong><span class="pill">score 64.56</span></div><p class="muted">Weather event · up</p><p class="muted">Thesis: Large up move with market/model edge 30.00% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article>
+
+    </div>
+    <div class="card" style="margin-top:12px">
+      <strong>Resolved archive</strong>
+      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>CPI surprise next print</strong><span class="pill">correct</span></div><p>Real world confirmed the move</p><p class="muted">Forecast direction: up · Outcome: up</p><p class="muted">Score 79.48 · accuracy correct</p></article><article class="card"><div class="row"><strong>Fed cuts at next meeting</strong><span class="pill">correct</span></div><p>Signal overshot and reversed</p><p class="muted">Forecast direction: down · Outcome: down</p><p class="muted">Score 71.35 · accuracy correct</p></article><article class="card"><div class="row"><strong>Major storm makes landfall</strong><span class="pill">correct</span></div><p>Event pressure kept building</p><p class="muted">Forecast direction: up · Outcome: up</p><p class="muted">Score 64.56 · accuracy correct</p></article></div>
+    </div>
+    <div class="card" style="margin-top:12px"><p class="muted">Correct: 3 · Missed: 0</p></div>
+  </section>
+</main>
+
+<div class="modal" id="preTradeModal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-card" id="preTradeBody"></div>
+</div>
+
+<div class="modal" id="alertModal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="row"><strong>Personalized alert controls</strong><button class="btn" data-close="alertModal">Close</button></div>
+    <div class="inputs" style="margin-top:10px">
+      <label>Edge threshold %<input id="prefMinEdge" type="number" min="0" max="50" step="0.5" /></label>
+      <label>Confidence floor
+        <select id="prefConfidence">
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+      </label>
+      <label>Quiet hours start (0-23)<input id="prefQuietStart" type="number" min="0" max="23" step="1" /></label>
+      <label>Quiet hours end (0-23)<input id="prefQuietEnd" type="number" min="0" max="23" step="1" /></label>
+      <label>Cooldown minutes<input id="prefCooldown" type="number" min="5" max="720" step="5" /></label>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="saveAlertPrefs">Save controls</button>
+      <button class="btn" id="resetAlertPrefs">Reset defaults</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="paywallModal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-card" id="paywallBody"></div>
+</div>
+
+<div class="sticky-trade"><a id="stickyTradeCta" class="btn primary" href="#" target="_blank" rel="noopener" data-action="trade">Trade selected on Kalshi</a></div>
+
+<nav class="nav" aria-label="Primary">
+  <button class="active" data-tab="list">List</button>
+  <button data-tab="detail">Detail</button>
+  <button data-tab="trends">Trends</button>
+  <button data-tab="archive">Archive</button>
+</nav>
+
+<script>
+(function(){
+  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-17T05:37:56.799Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":79.48471541130587,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-17T05:37:56.799Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Elevated","direction":"up","driftPp":11,"amplitudePp":11,"reliability":0.911},"trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 28.33% edge · quality B · execution 82","reason":"28.33% edge · quality B · execution 82","edgePct":28.33,"execScore":81.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-17T05:39:56.799Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":71.35157967159027,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-17T05:39:56.799Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":-16,"amplitudePp":16,"reliability":0.675},"trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 18.00% edge · quality A · execution 69","reason":"18.00% edge · quality A · execution 69","edgePct":18,"execScore":69.1,"quality":"A"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-17T05:32:56.799Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":64.55656080200019,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-17T05:32:56.799Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":16,"amplitudePp":16,"reliability":0.378},"trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 30.00% edge · quality C · execution 39","reason":"30.00% edge · quality C · execution 39","edgePct":30,"execScore":38.6,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel"}];
+  var morningBriefData = [{"id":"inflation-cpi","title":"CPI surprise next print","event":"BLS CPI release","tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","edgePct":28.33,"confidence":"medium","quality":"B","trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"fed-cut","title":"Fed cuts at next meeting","event":"FOMC decision","tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","edgePct":18,"confidence":"high","quality":"A","trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"storm-track","title":"Major storm makes landfall","event":"Weather event","tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","edgePct":30,"confidence":"medium","quality":"C","trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"}}];
+  var calibrationData = {"total":3,"wins":3,"misses":0,"winRate":1,"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"]};
+  var telemetryKey = 'ff_clicks_v1';
+  var visitorKey = 'ff_visitor_id';
+  var alertKey = 'ff_alert_prefs_v1';
+  var watchlistKey = 'ff_watchlist_v1';
+  var funnelKey = 'ff_funnel_events_v1';
+  var paywallSeenKey = 'ff_paywall_seen_v1';
+  var snapshotRefreshKey = 'ff_snapshot_refreshed_at_v1';
+  var halfLifeMs = 6 * 60 * 60 * 1000;
+  var defaultPrefs = { minEdgePercent: 4, confidenceFloor: 'medium', quietHoursStart: 22, quietHoursEnd: 7, cooldownMinutes: 30 };
+  var confRank = { low: 1, medium: 2, high: 3 };
+  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null, breakoutOnly: false, executionReadyOnly: false };
+
+  var buttons = Array.from(document.querySelectorAll('.nav button'));
+  var views = Array.from(document.querySelectorAll('.view'));
+  var searchInput = document.getElementById('marketSearch');
+  var listResults = document.getElementById('listResults');
+  var listState = document.getElementById('listState');
+  var morningBriefEl = document.getElementById('morningBrief');
+  var calibrationSnapshotEl = document.getElementById('calibrationSnapshot');
+  var detailPanel = document.getElementById('detailPanel');
+  var detailState = document.getElementById('detailState');
+  var mostClickedEl = document.getElementById('mostClicked');
+  var mostExecutedEl = document.getElementById('mostExecuted');
+  var risingInterestEl = document.getElementById('risingInterest');
+  var funnelStatsEl = document.getElementById('funnelStats');
+  var watchlistHealthEl = document.getElementById('watchlistHealth');
+  var alertsSummaryEl = document.getElementById('alertsSummary');
+  var alertHistoryPanel = document.getElementById('alertHistoryPanel');
+  var onboardingBanner = document.getElementById('onboardingBanner');
+  var dismissOnboardingBtn = document.getElementById('dismissOnboardingBtn');
+  var refreshSnapshotBtn = document.getElementById('refreshSnapshotBtn');
+  var sortChips = Array.from(document.querySelectorAll('[data-sort]'));
+
+  var preTradeModal = document.getElementById('preTradeModal');
+  var preTradeBody = document.getElementById('preTradeBody');
+  var alertModal = document.getElementById('alertModal');
+  var paywallModal = document.getElementById('paywallModal');
+  var paywallBody = document.getElementById('paywallBody');
+  var stickyTradeCta = document.getElementById('stickyTradeCta');
+  var activeModalTrigger = null;
+
+  function refreshSnapshotMetaText(){
+    if(snapshotRefreshMetaEl) snapshotRefreshMetaEl.textContent = snapshotRefreshMeta();
+  }
+
+  function esc(v){return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
+
+  function visitorId(){
+    var id = localStorage.getItem(visitorKey);
+    if(!id){id = Math.random().toString(36).slice(2) + Date.now().toString(36); localStorage.setItem(visitorKey,id);} 
+    return id;
+  }
+  function loadTelemetry(){try{return JSON.parse(localStorage.getItem(telemetryKey)||'{}');}catch{return {};}}
+  function saveTelemetry(x){localStorage.setItem(telemetryKey, JSON.stringify(x));}
+  function totalTradeClicks(){
+    var payload = loadTelemetry();
+    return Object.values(payload).reduce(function(acc, entries){ return acc + (Array.isArray(entries) ? entries.length : 0); }, 0);
+  }
+  function recordClick(marketId){
+    var payload = loadTelemetry();
+    var id = visitorId();
+    var now = Date.now();
+    payload[marketId] = payload[marketId] || [];
+    var hasRecent = payload[marketId].some(function(e){return e.visitor===id && (now-e.ts)<30*60*1000;});
+    if(!hasRecent){ payload[marketId].push({ts:now, visitor:id}); }
+    Object.keys(payload).forEach(function(k){payload[k]=payload[k].filter(function(e){return (now-e.ts)<7*24*60*60*1000;});});
+    saveTelemetry(payload);
+    state.tradeClicks = totalTradeClicks();
+  }
+  function decayScore(marketId){
+    var payload = loadTelemetry();
+    var now = Date.now();
+    var entries = payload[marketId] || [];
+    return entries.reduce(function(acc,e){return acc + Math.exp(-(now-e.ts)/halfLifeMs);},0);
+  }
+
+  function loadSnapshotRefresh(){
+    try { return localStorage.getItem(snapshotRefreshKey) || ''; } catch { return ''; }
+  }
+  function saveSnapshotRefresh(value){
+    try { localStorage.setItem(snapshotRefreshKey, value); } catch {}
+  }
+  function snapshotRefreshMeta(){
+    var stamp = loadSnapshotRefresh();
+    if(!stamp) return 'Last refresh: never';
+    var then = new Date(stamp);
+    if(Number.isNaN(then.getTime())) return 'Last refresh: unknown';
+    var ageMinutes = Math.max(0, Math.round((Date.now() - then.getTime()) / 60000));
+    return 'Last refresh: ' + then.toLocaleString() + ' · age ' + ageMinutes + 'm';
+  }
+
+  function loadWatchlist(){ try { return JSON.parse(localStorage.getItem(watchlistKey) || '[]'); } catch { return []; } }
+  function saveWatchlist(list){ localStorage.setItem(watchlistKey, JSON.stringify(list)); }
+  function toggleWatchlist(id){
+    var list = loadWatchlist();
+    var key = String(id);
+    if(list.includes(key)) list = list.filter(function(x){ return x !== key; });
+    else list.push(key);
+    saveWatchlist(list);
+    return list;
+  }
+  function isWatchlisted(id){ return loadWatchlist().includes(String(id)); }
+
+  function loadSavedWatchlists(){
+    try { return JSON.parse(localStorage.getItem('ff_saved_watchlists_v1') || '{}'); } catch { return {}; }
+  }
+  function saveSavedWatchlists(value){ localStorage.setItem('ff_saved_watchlists_v1', JSON.stringify(value)); }
+  function saveNamedWatchlist(name){
+    var key = String(name || '').trim();
+    if(!key) return null;
+    var store = loadSavedWatchlists();
+    store[key] = { ids: loadWatchlist().slice().sort(), updatedAt: new Date().toISOString() };
+    saveSavedWatchlists(store);
+    return store[key];
+  }
+  function loadNamedWatchlist(name){
+    var store = loadSavedWatchlists();
+    return store[String(name || '').trim()] || null;
+  }
+  function listSavedWatchlistNames(){
+    return Object.keys(loadSavedWatchlists()).sort(function(a, b){ return a.localeCompare(b); });
+  }
+  function watchlistSummary(){
+    var saved = listSavedWatchlistNames();
+    if(!saved.length) return 'No saved watchlists yet.';
+    return 'Saved watchlists: ' + saved.join(', ');
+  }
+  function freshnessMeta(freshnessSeconds){
+    var value = Number(freshnessSeconds || 0);
+    if(value <= 600) return { label: 'Fresh', tone: 'fresh' };
+    if(value <= 1800) return { label: 'Warm', tone: 'warm' };
+    return { label: 'Stale', tone: 'stale' };
+  }
+  function freshnessBadge(freshnessSeconds){
+    var meta = freshnessMeta(freshnessSeconds);
+    return '<span class="pill fresh-badge" data-freshness="'+meta.tone+'">'+meta.label+' · '+Number(freshnessSeconds || 0).toFixed(0)+'s</span>';
+  }
+
+  function readListStateFromUrl(){
+    var params = new URLSearchParams(window.location.search || '');
+    return {
+      query: params.get('q') || '',
+      sort: params.get('sort') || 'score',
+      selectedId: params.get('selected') || null,
+      watchlistOnly: params.get('watchlist') === '1',
+      feedMode: params.get('feed') === 'discover' ? 'discover' : 'now',
+      minEdgePreset: params.get('edge') != null && params.get('edge') !== '' ? Number(params.get('edge')) : null,
+      maxResolveHours: params.get('resolve') != null && params.get('resolve') !== '' ? Number(params.get('resolve')) : null,
+      breakoutOnly: params.get('breakout') === '1',
+      executionReadyOnly: params.get('exec') === '1',
+    };
+  }
+  function syncListStateToUrl(tab){
+    var params = new URLSearchParams();
+    if(state.query) params.set('q', state.query);
+    if(state.sort && state.sort !== 'score') params.set('sort', state.sort);
+    if(state.selectedId) params.set('selected', state.selectedId);
+    if(state.watchlistOnly) params.set('watchlist', '1');
+    if(state.feedMode && state.feedMode !== 'now') params.set('feed', state.feedMode);
+    if(state.minEdgePreset != null) params.set('edge', String(state.minEdgePreset));
+    if(state.maxResolveHours != null) params.set('resolve', String(state.maxResolveHours));
+    if(state.breakoutOnly) params.set('breakout', '1');
+    if(state.executionReadyOnly) params.set('exec', '1');
+    var search = params.toString();
+    var hash = tab || (location.hash || '').replace('#', '') || 'list';
+    var next = location.pathname + (search ? '?' + search : '') + '#' + hash;
+    history.replaceState(null, '', next);
+  }
+
+  function loadFunnel(){ try { return JSON.parse(localStorage.getItem(funnelKey) || '[]'); } catch { return []; } }
+  function saveFunnel(events){ localStorage.setItem(funnelKey, JSON.stringify(events.slice(-500))); }
+  function recordFunnel(type, marketId){
+    var events = loadFunnel();
+    events.push({ type: type, marketId: marketId || null, ts: Date.now() });
+    saveFunnel(events);
+  }
+  function renderFunnel(){
+    var events = loadFunnel();
+    var counts = { impressions: 0, pretrade: 0, trade: 0, paywall: 0, trial: 0 };
+    events.forEach(function(e){
+      if(e.type==='impression') counts.impressions += 1;
+      if(e.type==='pretrade') counts.pretrade += 1;
+      if(e.type==='trade') counts.trade += 1;
+      if(e.type==='paywall') counts.paywall += 1;
+      if(e.type==='trial') counts.trial += 1;
+    });
+    var ctr = counts.impressions ? (counts.trade / counts.impressions) : 0;
+    var cvr = counts.paywall ? (counts.trial / counts.paywall) : 0;
+    funnelStatsEl.textContent = 'impressions ' + counts.impressions + ' · pretrade ' + counts.pretrade + ' · trade ' + counts.trade + ' · paywall ' + counts.paywall + ' · trial ' + counts.trial + ' · CTR ' + (ctr * 100).toFixed(1) + '% · CVR ' + (cvr * 100).toFixed(1) + '%';
+  }
+
+  function renderMorningBrief(){
+    if(!morningBriefData.length){
+      morningBriefEl.innerHTML = '<div class="muted">No brief items yet.</div>';
+      return;
+    }
+    morningBriefEl.innerHTML = morningBriefData.map(function(item){
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.quality)+' · '+esc(item.trendSummary?.badge || '0.00pp')+'</span></div><p class="muted">Edge '+Number(item.edgePct).toFixed(2)+'% · confidence '+esc(item.confidence)+' · '+esc(item.trendSummary?.summary || 'No 24h history yet')+'</p></article>';
+    }).join('');
+  }
+
+
+  function renderCalibrationSnapshot(){
+    calibrationSnapshotEl.textContent = 'Historical outcomes: ' + calibrationData.wins + ' wins, ' + calibrationData.misses + ' misses (win rate ' + (Number(calibrationData.winRate || 0) * 100).toFixed(1) + '%).';
+  }
+
+  function renderWatchlistHealth(){
+    if(!watchlistHealthEl) return;
+    var watch = loadWatchlist();
+    if(!watch.length){
+      watchlistHealthEl.innerHTML = '<div class="muted">No saved markets yet. Watch a few ideas to see watchlist health.</div>';
+      return;
+    }
+    var saved = data.filter(function(item){ return watch.includes(String(item.id)); });
+    if(!saved.length){
+      watchlistHealthEl.innerHTML = '<div class="muted">Saved markets are not in the current feed.</div>';
+      return;
+    }
+    var median = function(values){
+      var list = values.map(function(value){ return Number(value); }).filter(Number.isFinite).sort(function(a, b){ return a - b; });
+      if(!list.length) return 0;
+      var mid = Math.floor(list.length / 2);
+      return list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2;
+    };
+    var medEdge = median(saved.map(function(item){ return Math.abs(Number(item.edge || 0)) * 100; }));
+    var medDepth = median(saved.map(function(item){ return Number(item.depth || 0); }));
+    var medFresh = median(saved.map(function(item){ return Number(item.freshnessSeconds || 0); }));
+    var tradeable = saved.filter(function(item){ return item.isTradeable !== false; }).length;
+    var label = medEdge >= 5 && medDepth >= 500 && medFresh <= 900 ? 'healthy' : medEdge >= 3 ? 'watch' : 'thin';
+    watchlistHealthEl.innerHTML = '<div class="row"><span>'+saved.length+' saved markets</span><span class="pill">'+label+'</span></div><p class="muted">Median edge '+medEdge.toFixed(2)+'% · depth '+medDepth.toFixed(0)+' · freshness '+medFresh.toFixed(0)+'s · tradeable '+tradeable+'/'+saved.length+'</p>';
+  }
+
+  function risingInterestScore(marketId){
+    var payload = loadTelemetry();
+    var now = Date.now();
+    var entries = payload[marketId] || [];
+    var recent = entries.filter(function(e){ return (now - e.ts) <= 30 * 60 * 1000; });
+    var prior = entries.filter(function(e){ return (now - e.ts) > 30 * 60 * 1000 && (now - e.ts) <= 2 * 60 * 60 * 1000; });
+    var uniqRecent = new Set(recent.map(function(e){ return e.visitor; })).size;
+    var velocity = recent.length * 2 + uniqRecent * 1.5;
+    var baseline = Math.max(1, prior.length / 3);
+    return velocity / baseline;
+  }
+
+  function loadAlertPrefs(){
+    try{
+      return Object.assign({}, defaultPrefs, JSON.parse(localStorage.getItem(alertKey)||'{}'));
+    }catch{
+      return Object.assign({}, defaultPrefs);
+    }
+  }
+  function saveAlertPrefs(prefs){ localStorage.setItem(alertKey, JSON.stringify(prefs)); }
+  function inQuietHours(hour, start, end){
+    if(start===end) return false;
+    if(start<end) return hour>=start && hour<end;
+    return hour>=start || hour<end;
+  }
+  function isAlertEligible(item, prefs){
+    var now = new Date();
+    var hour = now.getHours();
+    if(inQuietHours(hour, Number(prefs.quietHoursStart), Number(prefs.quietHoursEnd))) return false;
+    var edgePct = Math.abs(Number(item.edge || 0)) * 100;
+    if(edgePct < Number(prefs.minEdgePercent)) return false;
+    var required = confRank[prefs.confidenceFloor] || 2;
+    var got = confRank[item.confidence] || 1;
+    return got >= required;
+  }
+  function alertEligibleCount(items){
+    var prefs = loadAlertPrefs();
+    return items.filter(function(item){ return isAlertEligible(item, prefs); }).length;
+  }
+
+  function loadAlertHistory(){
+    try { return JSON.parse(localStorage.getItem('ff_alert_history_v1') || '[]'); } catch { return []; }
+  }
+  function saveAlertHistory(history){
+    localStorage.setItem('ff_alert_history_v1', JSON.stringify((history || []).slice(0, 50)));
+  }
+  function alertHistoryEntryFor(id){
+    return loadAlertHistory().find(function(entry){ return String(entry.marketId) === String(id); }) || null;
+  }
+  function recordSurfacedAlert(item, reason){
+    var history = loadAlertHistory();
+    var existing = history.find(function(entry){ return String(entry.marketId) === String(item.id); });
+    if(existing && existing.status && existing.status !== 'surfaced') return history;
+    var next = upsertAlertHistoryItem(history, Object.assign({}, item, { alertReason: reason }), 'surfaced', new Date());
+    saveAlertHistory(next);
+    return next;
+  }
+  function updateAlertHistoryStatus(id, status){
+    var history = loadAlertHistory();
+    var next = status === 'archived' ? archiveAlertHistoryItem(history, id, new Date()) : markAlertHistoryItem(history, id, status, new Date());
+    saveAlertHistory(next);
+    return next;
+  }
+  function renderAlertHistory(){
+    if(!alertHistoryPanel) return;
+    var history = loadAlertHistory();
+    var summary = summarizeAlertHistory(history);
+    if(!history.length){
+      alertHistoryPanel.innerHTML = '<div class="muted">No alert history yet. Surfaced opportunities will appear here with dismiss/archive controls.</div>';
+      return;
+    }
+    alertHistoryPanel.innerHTML = '<div class="row"><span>'+summary.total+' tracked alerts</span><span class="pill">surfaced '+summary.surfaced+' · dismissed '+summary.dismissed+' · archived '+summary.archived+'</span></div>' + history.slice(0, 5).map(function(item){
+      return '<article class="card"><div class="row"><strong>'+esc(item.title || item.marketId)+'</strong><span class="pill">'+esc(item.status || 'surfaced')+'</span></div><p class="muted">'+esc(item.event || 'No event')+' · '+esc(item.reason || 'No reason recorded')+'</p><p class="muted">Surfaced: '+esc(item.surfacedAt || item.updatedAt || '')+' · Updated: '+esc(item.updatedAt || '')+'</p><div class="actions"><button class="btn" data-action="dismiss-alert" data-id="'+esc(item.marketId)+'">Dismiss</button><button class="btn warn" data-action="archive-alert" data-id="'+esc(item.marketId)+'">Archive</button></div></article>';
+    }).join('');
+  }
+
+  function onboardingSeen(){
+    try { return localStorage.getItem('ff_onboarding_seen_v1') === '1'; } catch { return false; }
+  }
+  function setOnboardingSeen(value){
+    localStorage.setItem('ff_onboarding_seen_v1', value ? '1' : '0');
+  }
+  function renderOnboardingBanner(){
+    if(!onboardingBanner) return;
+    onboardingBanner.hidden = onboardingSeen();
+  }
+  function dismissOnboarding(){
+    setOnboardingSeen(true);
+    renderOnboardingBanner();
+  }
+
+  function compliantCopy(text){
+    var cleaned = String(text||'')
+      .replace(/guaranteed/gi,'')
+      .replace(/risk[- ]?free/gi,'')
+      .replace(/can[']?t lose/gi,'')
+      .replace(/sure thing/gi,'')
+      .replace(/s+/g,' ')
+      .trim();
+    var disclaimer = 'Forecasts are probabilistic and not financial advice. Trade responsibly.';
+    if(!cleaned.endsWith(disclaimer)) cleaned = (cleaned + ' ' + disclaimer).trim();
+    return cleaned;
+  }
+  function computeIntent(item){
+    var rank = Math.min(1, Number(item && item.rankScore || 0) / 100);
+    var edgeLift = Math.min(1, Math.abs(Number(item && item.edge || 0)) / 0.12);
+    var rising = Math.min(1, Number(risingInterestScore(item && item.id)) / 3.5);
+    var clickLift = Math.min(1, Number(decayScore(item && item.id)) / 3);
+    var clicks = Math.min(1, Number(state.tradeClicks || 0) / 4);
+    var score = (clicks * 0.25) + (rank * 0.25) + (edgeLift * 0.2) + (rising * 0.15) + (clickLift * 0.15);
+    var tier = score >= 0.75 ? 'hot' : score >= 0.5 ? 'warm' : 'cold';
+    return { score: Number(score.toFixed(4)), tier: tier };
+  }
+
+  function shouldShowPaywall(selected){
+    var seenAt = Number(localStorage.getItem(paywallSeenKey) || 0);
+    var cooloffOver = !seenAt || (Date.now() - seenAt) > 12 * 60 * 60 * 1000;
+    var intent = computeIntent(selected || {});
+    return cooloffOver && (intent.score >= 0.5 || state.tradeClicks >= 2);
+  }
+  function paywallOffer(selected){
+    var rank = Number(selected && selected.rankScore || 0);
+    var tier = rank >= 80 ? 'pro' : rank >= 60 ? 'plus' : 'starter';
+    var variant = (visitorId().charCodeAt(0) % 2 === 0) ? 'A' : 'B';
+    var intent = computeIntent(selected || {});
+    var headline = selected && selected.paywallHeadlineHint ? selected.paywallHeadlineHint : 'Start your trial for advanced market intel';
+    if(intent.tier === 'hot') headline = 'Hot market momentum detected — unlock pro execution intel';
+    if(intent.tier === 'warm') headline = 'Strong opportunities detected — unlock deeper trade timing intel';
+    return {
+      tier: tier,
+      variant: variant,
+      intentScore: intent.score,
+      intentTier: intent.tier,
+      headline: headline,
+      body: compliantCopy('Get explainability, personalized alerts, and execution-quality filters tuned for ' + (selected && selected.title ? selected.title : 'your watchlist') + '.'),
+      steps: ['Choose focus markets', 'Set your alert thresholds', 'Activate trial + trade links'],
+      cta: 'Start 7-day trial',
+    };
+  }
+
+  function sortSignals(items){
+    var list = items.slice();
+    if(state.sort==='recency'){ return list.sort(function(a,b){return (a.freshnessSeconds||0)-(b.freshnessSeconds||0);}); }
+    if(state.sort==='mostClicked'){ return list.sort(function(a,b){return decayScore(b.id)-decayScore(a.id);}); }
+    return list.sort(function(a,b){return (b.rankScore||0)-(a.rankScore||0);});
+  }
+
+  function sparkline(points){
+    if(!points || !points.length){ return '<div class="muted">No probability history.</div>'; }
+    var min = Math.min.apply(null, points);
+    var max = Math.max.apply(null, points);
+    var span = Math.max(0.0001, max-min);
+    var coords = points.map(function(p,i){
+      var x = (i / ((points.length - 1) || 1)) * 100;
+      var y = 100 - (((p-min)/span) * 100);
+      return x.toFixed(2) + ',' + y.toFixed(2);
+    }).join(' ');
+    return '<svg class="chart" viewBox="0 0 100 100" preserveAspectRatio="none"><polyline fill="none" stroke="#60a5fa" stroke-width="2" points="'+coords+'" /></svg>';
+  }
+
+  function explainabilityDrawer(item){
+    var b = item.scoreBreakdown || {};
+    return '<details class="drawer"><summary>Explain score</summary>'
+      + '<div class="kv"><span>Move</span><span>'+Number(b.move||0).toFixed(2)+'</span></div>'
+      + '<div class="kv"><span>Volume anomaly</span><span>'+Number(b.volumeAnomaly||0).toFixed(2)+'</span></div>'
+      + '<div class="kv"><span>Model edge</span><span>'+Number(b.modelEdge||0).toFixed(2)+'</span></div>'
+      + '<div class="kv"><span>Liquidity</span><span>'+Number(b.liquidity||0).toFixed(2)+'</span></div>'
+      + '<div class="kv"><span>Recency</span><span>'+Number(b.recency||0).toFixed(2)+'</span></div>'
+      + '<div class="kv"><span>Tradeability penalty</span><span>-'+Number(b.tradeabilityPenalty||0).toFixed(2)+'</span></div>'
+      + '</details>';
+  }
+
+  function groupSignalsByEvent(items){
+    var groups = [];
+    items.forEach(function(item){
+      var key = item.event || 'Uncategorized event';
+      var group = groups.find(function(entry){ return entry.event === key; });
+      if(!group){
+        group = { event: key, items: [] };
+        groups.push(group);
+      }
+      group.items.push(item);
+    });
+    return groups;
+  }
+
+
+  function signalCard(item, prefs, alertEntryMap){
+    var edgePct = (item.edge * 100).toFixed(2);
+    var eligible = isAlertEligible(item, prefs || loadAlertPrefs());
+    var alertEntry = alertEntryMap ? alertEntryMap[String(item.id)] : alertHistoryEntryFor(item.id);
+    var watchlisted = isWatchlisted(item.id);
+    var movement = item.movementFlag || { label: 'Normal', driftPp: 0, reliability: 0 };
+    var trend = sparkline((item.probabilityHistory || []).slice(-5));
+    var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
+    var alertStatus = alertEntry ? alertEntry.status : (eligible ? 'surfaced' : 'quiet');
+    return '<article class="card" data-id="'+esc(item.id)+'">'
+      + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+' · '+esc(movement.label)+' · '+esc(trendSummary.badge)+'</span></div>'
+      + '<p class="muted">'+esc(item.event)+'</p>'
+      + '<div class="row" style="margin-top:6px;flex-wrap:wrap"><span class="muted">Move '+(item.move>0?'+':'')+item.move+' · Edge '+edgePct+'% · CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</span>'+freshnessBadge(item.freshnessSeconds)+'</div>'
+      + '<p class="muted">Movement drift '+(Number(movement.driftPp || 0) > 0 ? '+' : '')+Number(movement.driftPp || 0).toFixed(2)+'pp · reliability '+(Number(movement.reliability || 0)*100).toFixed(0)+'%</p>'
+      + '<div style="margin-top:8px">'+trend+'</div>'
+      + '<p class="muted">Score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+' · history '+esc(alertStatus)+'</p>'
+      + explainabilityDrawer(item)
+      + '<div class="actions">'
+      + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">View detail</button>'
+      + '<button class="btn" data-action="watch" data-id="'+esc(item.id)+'">'+(watchlisted ? 'Unwatch' : 'Watch')+'</button>'
+      + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
+      + '<button class="btn" data-action="dismiss-alert" data-id="'+esc(item.id)+'">Dismiss alert</button>'
+      + '<button class="btn warn" data-action="archive-alert" data-id="'+esc(item.id)+'">Archive alert</button>'
+      + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
+      + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
+      + '</div></article>';
+  }
+
+
+
+  function renderMostClicked(){
+    var payload = loadTelemetry();
+    var ranked = data.map(function(d){
+      var entries = payload[d.id] || [];
+      return Object.assign({}, d, {
+        clickScore: decayScore(d.id),
+        clickCount: entries.length,
+        uniqueVisitors: new Set(entries.map(function(e){ return e.visitor; })).size,
+      });
+    }).sort(function(a,b){return b.clickScore-a.clickScore;}).slice(0,5);
+
+    if(!ranked.some(function(r){return r.clickScore>0;})){
+      mostClickedEl.innerHTML = '<div class="muted">No clicks yet. Open a few trades and this will populate.</div>';
+      return;
+    }
+
+    mostClickedEl.innerHTML = ranked.map(function(item){
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.clickScore.toFixed(2)+'</span></div><p class="muted">Clicks '+Number(item.clickCount||0)+' · unique visitors '+Number(item.uniqueVisitors||0)+' · decay score '+item.clickScore.toFixed(2)+'</p><div class="actions"><a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a></div></article>';
+    }).join('');
+  }
+
+  function downloadTextFile(filename, content, mimeType){
+    var blob = new Blob([String(content || '')], { type: mimeType || 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+  }
+
+
+  function renderMostExecuted(){
+    var events = loadFunnel();
+    var now = Date.now();
+    var counts = {};
+    events.forEach(function(e){
+      if(e.type !== 'trade') return;
+      if((now - Number(e.ts || 0)) > 24 * 60 * 60 * 1000) return;
+      var key = String(e.marketId || '');
+      if(!key) return;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    var ranked = Object.keys(counts).map(function(id){
+      var item = data.find(function(x){ return String(x.id) === id; }) || { id:id, title:id, tradeUrl:'#' };
+      return Object.assign({}, item, { tradeCount: counts[id] });
+    }).sort(function(a,b){ return b.tradeCount - a.tradeCount; }).slice(0,5);
+
+    if(!ranked.length){
+      mostExecutedEl.innerHTML = '<div class="muted">No trade executions recorded in last 24h.</div>';
+      return;
+    }
+
+    mostExecutedEl.innerHTML = ranked.map(function(item){
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+Number(item.tradeCount||0)+' trades</span></div><div class="actions"><a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a></div></article>';
+    }).join('');
+  }
+
+  function renderRisingInterest(){
+    var ranked = data.map(function(d){ return Object.assign({}, d, { risingScore: risingInterestScore(d.id) }); })
+      .sort(function(a,b){ return b.risingScore - a.risingScore; })
+      .slice(0,5);
+
+    if(!ranked.some(function(item){ return item.risingScore > 0; })){
+      risingInterestEl.innerHTML = '<div class="muted">No rising-interest signal yet.</div>';
+      return;
+    }
+
+    risingInterestEl.innerHTML = ranked.map(function(item){
+      var edgePct = (Math.abs(Number(item.edge || 0)) * 100).toFixed(2);
+      var attention = attentionVsAlpha({ edge: item.edge, risingScore: item.risingScore });
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.risingScore.toFixed(2)+'</span></div><p class="muted">Velocity score (30m vs 2h baseline)</p><p class="muted">Attention label: '+attention.label+' · model edge '+edgePct+'% (attention is not alpha)</p></article>';
+    }).join('');
+  }
+
+  function renderAlertsSummary(){
+    var prefs = loadAlertPrefs();
+    var eligible = alertEligibleCount(data);
+    alertsSummaryEl.textContent = 'Alert prefs: edge ≥ '+prefs.minEdgePercent+'%, confidence ≥ '+prefs.confidenceFloor+', quiet '+prefs.quietHoursStart+':00-'+prefs.quietHoursEnd+':00, cooldown '+prefs.cooldownMinutes+'m · eligible now: '+eligible+' · '+watchlistSummary();
+  }
+
+  function renderList(){
+    var q = String(state.query||'').toLowerCase();
+    var filtered = data.filter(function(item){return !q || (item.title+' '+item.event).toLowerCase().includes(q);});
+
+    var watchBtn = document.getElementById('watchlistBtn');
+    if(watchBtn) watchBtn.textContent = 'Watchlist only: ' + (state.watchlistOnly ? 'on' : 'off');
+
+    if(state.feedMode === 'now') {
+      filtered = filtered.filter(function(item){
+        return Number(item.rankScore || 0) >= 65 || Math.abs(Number(item.edge || 0)) >= 0.05;
+      });
+    }
+
+    if(state.watchlistOnly) {
+      var watch = loadWatchlist();
+      filtered = filtered.filter(function(item){ return watch.includes(String(item.id)); });
+    }
+
+    if(state.minEdgePreset != null) {
+      filtered = filtered.filter(function(item){ return Math.abs(Number(item.edge || 0)) * 100 >= state.minEdgePreset; });
+    }
+
+    if(state.maxResolveHours != null) {
+      filtered = filtered.filter(function(item){ return Number(item.hoursToResolve || 48) <= state.maxResolveHours; });
+    }
+
+    if(state.breakoutOnly) {
+      filtered = filtered.filter(function(item){ return (item.movementFlag && item.movementFlag.label === 'Breakout') || Math.abs(Number(item.move || 0)) >= 12; });
+    }
+
+    if(state.executionReadyOnly) {
+      filtered = filtered.filter(function(item){ return item.isTradeable; });
+    }
+
+    var sorted = sortSignals(filtered);
+
+    if(!data.length){ listState.hidden=false; listState.textContent='Loading opportunities...'; listResults.innerHTML=''; return; }
+    if(!sorted.length){ listState.hidden=false; listState.textContent='No results match this search/filter.'; listResults.innerHTML=''; return; }
+
+    listState.hidden = true;
+    var alertPrefs = loadAlertPrefs();
+    var alertHistory = loadAlertHistory();
+    var alertEntryMap = alertHistory.reduce(function(map, entry){ map[String(entry.marketId)] = entry; return map; }, {});
+    listResults.innerHTML = groupSignalsByEvent(sorted).map(function(group){
+      return '<section class="card"><div class="row"><strong>'+esc(group.event)+'</strong><span class="pill">'+group.items.length+' markets</span></div><div class="grid" style="margin-top:10px">'+group.items.map(function(item){ return signalCard(item, alertPrefs, alertEntryMap); }).join('')+'</div></section>';
+    }).join('');
+    sorted.forEach(function(item){
+      recordFunnel('impression', item.id);
+      if(isAlertEligible(item, alertPrefs) && !alertEntryMap[String(item.id)]){
+        recordSurfacedAlert(item, 'eligible opportunity');
+      }
+    });
+    renderAlertsSummary();
+    renderAlertHistory();
+    renderOnboardingBanner();
+    renderWatchlistHealth();
+    renderFunnel();
+    syncListStateToUrl('list');
+  }
+
+
+  function preTradeChecklist(item){
+    var eq = item.executionQuality || { score: 0, expectedSlippageBps: 0, guidance: [] };
+    var sizing = item.riskSizing || computeRiskSizingGuidance(item, eq);
+    var checks = [
+      { label: 'Execution quality score >= 60 ('+Number(eq.score || 0).toFixed(1)+')', ok: Number(eq.score || 0) >= 60 },
+      { label: 'Expected slippage <= 35 bps ('+Number(eq.expectedSlippageBps || 0).toFixed(1)+' bps)', ok: Number(eq.expectedSlippageBps || 0) <= 35 },
+      { label: 'Execution quality passed', ok: !!item.isTradeable },
+      { label: 'Spread <= 6%', ok: Number(item.spread||1) <= 0.06 },
+      { label: 'Depth >= 250', ok: Number(item.depth||0) >= 250 },
+      { label: 'Fresh quote <= 900s', ok: Number(item.freshnessSeconds||9999) <= 900 },
+      { label: 'Model edge >= 4%', ok: Math.abs(Number(item.edge||0))*100 >= 4 },
+      { label: 'Risk sizing '+sizing.label+' ('+Number(sizing.multiplier).toFixed(2)+'x)', ok: sizing.tier !== 'watch' },
+    ];
+    return { checks: checks, sizing: sizing };
+  }
+
+  function openPreTradeSheet(item){
+    var checklist = preTradeChecklist(item);
+    var checks = checklist.checks;
+    var sizing = checklist.sizing;
+    var eq = item.executionQuality || { guidance: [] };
+    preTradeBody.innerHTML = '<div class="row"><strong>Pre-Trade Opportunity Check</strong><button class="btn" data-close="preTradeModal">Close</button></div>'
+      + '<p class="muted">'+esc(item.title)+' · one-tap trade path</p>'
+      + '<div class="grid">'
+      + checks.map(function(c){return '<div class="card"><div class="row"><span>'+esc(c.label)+'</span><strong class="'+(c.ok?'ok':'warn')+'">'+(c.ok?'PASS':'REVIEW')+'</strong></div></div>';}).join('')
+      + '</div>'
+      + '<div class="card" style="margin-top:10px"><strong>Risk sizing</strong><p class="muted">Suggested '+esc(sizing.label)+' position · '+esc(sizing.summary)+'</p></div>'
+      + '<p class="muted" style="margin-top:8px">Execution guidance: '+esc((eq.guidance || []).join(' · '))+'</p>'
+      + '<div class="actions">'
+      + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
+      + '</div>';
+    openModal(preTradeModal, document.activeElement);
+  }
+
+
+  function openPaywall(selected){
+    var offer = paywallOffer(selected);
+    paywallBody.innerHTML = '<div class="row"><strong>'+esc(offer.headline)+'</strong><button class="btn" data-close="paywallModal">Close</button></div>'
+      + '<p class="muted">Plan: '+esc(offer.tier)+' · Variant '+esc(offer.variant)+' · intent '+Number(offer.intentScore || 0).toFixed(2)+' ('+esc(offer.intentTier || 'cold')+')</p>'
+      + '<p class="muted">'+esc(offer.body)+'</p>'
+      + '<div class="card"><strong>Proof panel</strong><p class="muted">Historical outcomes: '+calibrationData.wins+' wins / '+calibrationData.misses+' misses (win rate '+(Number(calibrationData.winRate || 0) * 100).toFixed(1)+'%).</p><ul class="muted">'+(calibrationData.methodology || []).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul><p class="muted">Forecasts are probabilistic and not financial advice.</p></div>'
+      + '<div class="card"><strong>Onboarding to trial</strong><ol class="muted">'+offer.steps.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ol></div>'
+      + '<div class="actions"><button class="btn primary" data-action="startTrial">'+esc(offer.cta)+'</button></div>';
+    openModal(paywallModal, document.activeElement);
+  }
+
+  function renderDetail(){
+    var item = data.find(function(x){return x.id===state.selectedId;});
+    if(!item){ detailState.hidden=false; detailState.textContent='Error: selected market not found.'; detailPanel.innerHTML=''; return; }
+    detailState.hidden=true;
+    var lo = item.confidenceInterval ? item.confidenceInterval[0] : 0;
+    var hi = item.confidenceInterval ? item.confidenceInterval[1] : 0;
+    var drivers = (item.scenarioDrivers||[]).map(function(d){return '<span class="driver">'+esc(d)+'</span>';}).join('');
+    var compare = compareMarketToEventMedian(data, state.selectedId);
+    var selectedDepth = Number(item.depth || 0);
+    var selectedFreshness = Number(item.freshnessSeconds || 0);
+    var selectedEdge = Math.abs(Number(item.edge || 0)) * 100;
+    var selectedRecency = Math.max(0, 100 - selectedFreshness);
+    var medianEdge = Number(compare.median.edge || 0).toFixed(2);
+    var medianDepth = Number(compare.median.depth || 0).toFixed(0);
+    var medianFreshness = Number(compare.median.freshnessSeconds || 0).toFixed(0);
+    var edgeDelta = compare.deltas ? Number(compare.deltas.edge || 0).toFixed(2) : '0.00';
+    var depthDelta = compare.deltas ? Number(compare.deltas.depth || 0).toFixed(0) : '0';
+    var freshnessDelta = compare.deltas ? Number(compare.deltas.freshnessSeconds || 0).toFixed(0) : '0';
+    var shareText = buildShareText(item);
+    var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
+    detailPanel.innerHTML = '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
+      + '<p class="muted">'+esc(item.event)+' · last updated '+esc(item.lastUpdated)+'</p>'
+      + '<div class="row" style="margin-top:8px;flex-wrap:wrap"><div>Market prob: <strong>'+(item.marketProb*100).toFixed(2)+'%</strong></div><div>Model prob: <strong>'+(item.modelProb*100).toFixed(2)+'%</strong></div>'+freshnessBadge(item.freshnessSeconds)+'</div>'
+      + '<p class="muted">Confidence interval: '+(lo*100).toFixed(2)+'% to '+(hi*100).toFixed(2)+'%</p>'
+      + '<div class="card" style="margin-top:10px"><strong>24h probability delta</strong><p class="muted">'+esc(trendSummary.summary)+' · acceleration '+esc(trendSummary.accelerationLabel)+'</p></div>'
+      + sparkline(item.probabilityHistory || [])
+      + '<div class="drivers">'+drivers+'</div>'
+      + explainabilityDrawer(item)
+      + '<div class="card" style="margin-top:10px"><strong>Compare vs event median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median (Δ '+edgeDelta+'pp) · Depth '+selectedDepth+' vs '+medianDepth+' median (Δ '+depthDelta+') · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median (Δ '+freshnessDelta+'s)</p></div>'
+      + '<div class="actions">'
+      + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
+      + '<button class="btn" data-action="share-summary" data-id="'+esc(item.id)+'">Share summary</button>'
+      + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
+      + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
+      + '</div>';
+
+    stickyTradeCta.setAttribute('href', item.tradeUrl || '#');
+    stickyTradeCta.setAttribute('data-id', item.id || '');
+    stickyTradeCta.textContent = 'Trade ' + item.title + ' on Kalshi';
+    syncListStateToUrl('detail');
+  }
+
+
+  function show(tab){
+    views.forEach(function(v){v.hidden = v.dataset.view !== tab;});
+    buttons.forEach(function(b){b.classList.toggle('active', b.dataset.tab===tab);});
+    history.replaceState(null,'','#'+tab);
+    syncListStateToUrl(tab);
+  }
+
+  function openAlertPrefsModal(){
+    var prefs = loadAlertPrefs();
+    document.getElementById('prefMinEdge').value = prefs.minEdgePercent;
+    document.getElementById('prefConfidence').value = prefs.confidenceFloor;
+    document.getElementById('prefQuietStart').value = prefs.quietHoursStart;
+    document.getElementById('prefQuietEnd').value = prefs.quietHoursEnd;
+    document.getElementById('prefCooldown').value = prefs.cooldownMinutes;
+    openModal(alertModal, document.activeElement);
+  }
+
+  function openModal(modal, trigger){
+    if(!modal) return;
+    activeModalTrigger = trigger || document.activeElement || null;
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden','false');
+    var focusTarget = modal.querySelector('[data-close], .btn, button, a, input, select, textarea');
+    setTimeout(function(){ if(focusTarget && focusTarget.focus) focusTarget.focus(); }, 0);
+  }
+
+  function closeModal(id){
+    var modal = document.getElementById(id);
+    if(!modal) return;
+    modal.classList.remove('show');
+    modal.setAttribute('aria-hidden','true');
+    if(activeModalTrigger && activeModalTrigger.focus){
+      setTimeout(function(){ try { activeModalTrigger.focus(); } catch {} }, 0);
+    }
+    activeModalTrigger = null;
+  }
+
+  function currentOpenModal(){
+    return [preTradeModal, alertModal, paywallModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
+  }
+
+  function trapModalTabKey(event){
+    var modal = currentOpenModal();
+    if(!modal || event.key !== 'Tab') return;
+    var nodes = Array.from(modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(function(node){ return !node.hasAttribute('disabled'); });
+    if(!nodes.length) return;
+    var first = nodes[0];
+    var last = nodes[nodes.length - 1];
+    if(event.shiftKey && document.activeElement === first){
+      event.preventDefault();
+      last.focus();
+    } else if(!event.shiftKey && document.activeElement === last){
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  window.addEventListener('keydown', function(event){
+    if(event.key === 'Escape'){
+      if(paywallModal.classList.contains('show')){ closeModal('paywallModal'); return; }
+      if(alertModal.classList.contains('show')){ closeModal('alertModal'); return; }
+      if(preTradeModal.classList.contains('show')){ closeModal('preTradeModal'); return; }
+    }
+    trapModalTabKey(event);
+  });
+
+  document.addEventListener('focusin', function(event){
+    var modal = currentOpenModal();
+    if(!modal) return;
+    if(!modal.contains(event.target)){
+      var target = modal.querySelector('[data-close], .btn, button, a, input, select, textarea');
+      if(target && target.focus) target.focus();
+    }
+  });
+
+  buttons.forEach(function(button){button.addEventListener('click', function(){show(button.dataset.tab); if(button.dataset.tab==='detail') renderDetail();});});
+  searchInput.addEventListener('input', function(e){state.query=e.target.value||''; renderList();});
+  sortChips.forEach(function(chip){chip.addEventListener('click', function(){state.sort = chip.dataset.sort || 'score'; renderList();});});
+
+  document.getElementById('alertControlsBtn').addEventListener('click', openAlertPrefsModal);
+  if(refreshSnapshotBtn){
+    refreshSnapshotBtn.addEventListener('click', function(){
+      this.disabled = true;
+      this.textContent = 'Refreshing...';
+      saveSnapshotRefresh(new Date().toISOString());
+      refreshSnapshotMetaText();
+      window.location.reload();
+    });
+  }
+  if(dismissOnboardingBtn){
+    dismissOnboardingBtn.addEventListener('click', function(){
+      dismissOnboarding();
+    });
+  }
+  document.getElementById('watchlistBtn').addEventListener('click', function(){
+    state.watchlistOnly = !state.watchlistOnly;
+    this.textContent = 'Watchlist only: ' + (state.watchlistOnly ? 'on' : 'off');
+    renderList();
+  });
+  document.getElementById('saveWatchlistBtn').addEventListener('click', function(){
+    var name = window.prompt('Save current watchlist as');
+    if(saveNamedWatchlist(name)){
+      this.textContent = 'Saved';
+      setTimeout(() => { this.textContent = 'Save watchlist'; }, 1200);
+      renderWatchlistHealth();
+    }
+  });
+  document.getElementById('restoreWatchlistBtn').addEventListener('click', function(){
+    var names = listSavedWatchlistNames();
+    var choice = window.prompt('Restore watchlist name
+' + (names.length ? names.join(', ') : 'No saved watchlists yet.'));
+    var saved = loadNamedWatchlist(choice);
+    if(saved){
+      saveWatchlist(Array.isArray(saved.ids) ? saved.ids : []);
+      state.watchlistOnly = true;
+      document.getElementById('watchlistBtn').textContent = 'Watchlist only: on';
+      renderList();
+      renderWatchlistHealth();
+      this.textContent = 'Restored';
+      setTimeout(() => { this.textContent = 'Restore watchlist'; }, 1200);
+    }
+  });
+  document.getElementById('feedNowBtn').addEventListener('click', function(){
+    state.feedMode = 'now';
+    document.getElementById('feedNowBtn').classList.add('active');
+    document.getElementById('feedDiscoverBtn').classList.remove('active');
+    renderList();
+  });
+  document.getElementById('feedDiscoverBtn').addEventListener('click', function(){
+    state.feedMode = 'discover';
+    document.getElementById('feedDiscoverBtn').classList.add('active');
+    document.getElementById('feedNowBtn').classList.remove('active');
+    renderList();
+  });
+  document.getElementById('presetHighEdgeBtn').addEventListener('click', function(){ state.minEdgePreset = 5; state.breakoutOnly = false; state.executionReadyOnly = false; renderList(); });
+  document.getElementById('presetBreakoutBtn').addEventListener('click', function(){ state = applyScanPreset(state, 'breakout'); renderList(); });
+  document.getElementById('presetWatchlistBtn').addEventListener('click', function(){ state = applyScanPreset(state, 'watchlist'); renderList(); });
+  document.getElementById('savePresetBtn').addEventListener('click', function(){ saveScanPreset(window.localStorage, 'last', state); this.textContent = 'Preset saved'; setTimeout(() => { this.textContent = 'Save preset'; }, 1200); });
+  document.getElementById('restorePresetBtn').addEventListener('click', function(){ var preset = loadScanPreset(window.localStorage, 'last'); if(preset){ state = Object.assign(state, preset); renderList(); this.textContent = 'Preset restored'; setTimeout(() => { this.textContent = 'Restore preset'; }, 1200); } });
+  document.getElementById('presetExpiringBtn').addEventListener('click', function(){ state.maxResolveHours = 168; state.breakoutOnly = false; state.executionReadyOnly = false; renderList(); });
+  document.getElementById('resetPresetBtn').addEventListener('click', function(){ state.minEdgePreset = null; state.maxResolveHours = null; state.breakoutOnly = false; state.executionReadyOnly = false; state.watchlistOnly = false; state.feedMode = 'now'; renderList(); });
+  document.getElementById('exportCsvBtn').addEventListener('click', function(){
+    downloadTextFile('forecast-opportunities.csv', buildOpportunityCsv(sortSignals(data)), 'text/csv;charset=utf-8');
+  });
+  document.getElementById('exportBriefCsvBtn').addEventListener('click', function(){
+    downloadTextFile('forecast-futures-morning-brief.csv', morningBriefToCsv(morningBriefData), 'text/csv;charset=utf-8');
+  });
+  document.getElementById('shareBriefSummaryBtn').addEventListener('click', function(){
+    var selected = data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null;
+    var payload = buildSummaryShareText({ briefItems: morningBriefData, selectedItem: selected, compare: compareMarketToMedian(data, state.selectedId) });
+    Promise.resolve(copyShareText(payload)).then(function(done){
+      if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(payload); }
+      if(!done){ window.prompt('Copy summary', payload); }
+    });
+  });
+
+  document.getElementById('exportReviewCsvBtn').addEventListener('click', function(){
+    downloadTextFile('forecast-futures-review.csv', reviewCsvText, 'text/csv;charset=utf-8');
+  });
+  document.getElementById('shareReviewSummaryBtn').addEventListener('click', function(){
+    Promise.resolve(copyShareText(reviewShareText)).then(function(done){
+      if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(reviewShareText); }
+      if(!done){ window.prompt('Copy review summary', reviewShareText); }
+    });
+  });
+
+  document.getElementById('saveAlertPrefs').addEventListener('click', function(){
+    var prefs = {
+      minEdgePercent: Number(document.getElementById('prefMinEdge').value || defaultPrefs.minEdgePercent),
+      confidenceFloor: document.getElementById('prefConfidence').value || defaultPrefs.confidenceFloor,
+      quietHoursStart: Number(document.getElementById('prefQuietStart').value || defaultPrefs.quietHoursStart),
+      quietHoursEnd: Number(document.getElementById('prefQuietEnd').value || defaultPrefs.quietHoursEnd),
+      cooldownMinutes: Number(document.getElementById('prefCooldown').value || defaultPrefs.cooldownMinutes),
+    };
+    saveAlertPrefs(prefs);
+    closeModal('alertModal');
+    renderList();
+  });
+  document.getElementById('resetAlertPrefs').addEventListener('click', function(){
+    saveAlertPrefs(defaultPrefs);
+    closeModal('alertModal');
+    renderList();
+  });
+
+  document.body.addEventListener('click', function(e){
+    var closeEl = e.target.closest('[data-close]');
+    if(closeEl){ closeModal(closeEl.getAttribute('data-close')); return; }
+
+    var target = e.target.closest('[data-action]');
+    if(!target) return;
+    var action = target.getAttribute('data-action');
+    var id = target.getAttribute('data-id');
+    var item = data.find(function(x){ return x.id === id; });
+
+    if(action==='view'){ state.selectedId = id; show('detail'); renderDetail(); }
+    if(action==='watch' && item){ toggleWatchlist(id); renderList(); }
+    if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet(item); renderFunnel(); }
+    if(action==='dismiss-alert' && item){ updateAlertHistoryStatus(id, 'dismissed'); renderAlertHistory(); renderList(); }
+    if(action==='archive-alert' && item){ updateAlertHistoryStatus(id, 'archived'); renderAlertHistory(); renderList(); }
+    if(action==='trade'){
+      recordClick(id);
+      recordFunnel('trade', id);
+      renderMostClicked();
+      renderMostExecuted();
+      renderRisingInterest();
+      renderFunnel();
+      if(item && shouldShowPaywall(item)) {
+        recordFunnel('paywall', id);
+        localStorage.setItem(paywallSeenKey, String(Date.now()));
+        openPaywall(item);
+      }
+    }
+    if(action==='share' && item){
+      var payload = buildShareText(item);
+      Promise.resolve(copyShareText(payload)).then(function(done){
+        if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(payload); }
+        if(!done){ window.prompt('Copy trade link', payload); }
+      });
+    }
+    if(action==='share-summary'){
+      var summaryItem = item || data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null;
+      var summaryPayload = buildSummaryShareText({ briefItems: morningBriefData, selectedItem: summaryItem, compare: compareMarketToMedian(data, state.selectedId) });
+      Promise.resolve(copyShareText(summaryPayload)).then(function(done){
+        if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(summaryPayload); }
+        if(!done){ window.prompt('Copy summary', summaryPayload); }
+      });
+    }
+
+    if(action==='startTrial'){
+      recordFunnel('trial', id);
+      renderFunnel();
+      paywallBody.innerHTML = '<div class="row"><strong>Trial activated</strong><button class="btn" data-close="paywallModal">Close</button></div>'
+        + '<p class="muted">Your onboarding is complete. Alerts + pro opportunity panel unlocked for 7 days.</p>'
+        + '<p class="muted">Forecasts are probabilistic and not financial advice. Trade responsibly.</p>';
+    }
+  });
+
+  state.tradeClicks = totalTradeClicks();
+  refreshSnapshotMetaText();
+  Object.assign(state, readListStateFromUrl());
+  renderList();
+  renderMorningBrief();
+  renderCalibrationSnapshot();
+  renderWatchlistHealth();
+  renderAlertHistory();
+  renderMostClicked();
+  renderMostExecuted();
+  renderRisingInterest();
+  renderDetail();
+  renderFunnel();
+  var tab = location.hash.replace('#','');
+  show(['list','detail','trends','archive'].includes(tab) ? tab : 'list');
+})();
+</script>
+</body>
+</html>
