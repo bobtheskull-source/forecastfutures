@@ -68,6 +68,7 @@
     <div id="listState" class="state" hidden></div>
     <div id="listResults" class="grid" style="margin-top:10px"></div>
     <div class="card" style="margin-top:12px"><strong>Most clicked (time-decay)</strong><div id="mostClicked" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><strong>Most executed (24h trades)</strong><div id="mostExecuted" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Rising interest (velocity)</strong><div id="risingInterest" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Funnel analytics</strong><p id="funnelStats" class="muted" style="margin-top:8px"></p></div>
   </section>
@@ -138,7 +139,7 @@
 
 <script>
 (function(){
-  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-17T02:21:37.933Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":79.48471541130587,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-17T02:21:37.933Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]}},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-17T02:23:37.933Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":71.35157967159027,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-17T02:23:37.933Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]}},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-17T02:16:37.933Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":64.55656080200019,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-17T02:16:37.933Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]}}];
+  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-17T02:31:09.054Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":79.48471541130587,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-17T02:31:09.054Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Elevated","direction":"up","driftPp":11,"amplitudePp":11,"reliability":0.911},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-17T02:33:09.054Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":71.35157967159027,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-17T02:33:09.054Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":-16,"amplitudePp":16,"reliability":0.675},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-17T02:26:09.054Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":64.55656080200019,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-17T02:26:09.054Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":16,"amplitudePp":16,"reliability":0.378},"paywallHeadlineHint":"Start your trial for advanced market intel"}];
   var morningBriefData = [{"id":"inflation-cpi","title":"CPI surprise next print","edgePct":28.33,"confidence":"medium","quality":"B"},{"id":"fed-cut","title":"Fed cuts at next meeting","edgePct":18,"confidence":"high","quality":"A"},{"id":"storm-track","title":"Major storm makes landfall","edgePct":30,"confidence":"medium","quality":"C"}];
   var calibrationData = {"total":3,"wins":3,"misses":0,"winRate":1,"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"]};
   var telemetryKey = 'ff_clicks_v1';
@@ -162,6 +163,7 @@
   var detailPanel = document.getElementById('detailPanel');
   var detailState = document.getElementById('detailState');
   var mostClickedEl = document.getElementById('mostClicked');
+  var mostExecutedEl = document.getElementById('mostExecuted');
   var risingInterestEl = document.getElementById('risingInterest');
   var funnelStatsEl = document.getElementById('funnelStats');
   var alertsSummaryEl = document.getElementById('alertsSummary');
@@ -305,20 +307,37 @@
     if(!cleaned.endsWith(disclaimer)) cleaned = (cleaned + ' ' + disclaimer).trim();
     return cleaned;
   }
+  function computeIntent(item){
+    var rank = Math.min(1, Number(item && item.rankScore || 0) / 100);
+    var edgeLift = Math.min(1, Math.abs(Number(item && item.edge || 0)) / 0.12);
+    var rising = Math.min(1, Number(risingInterestScore(item && item.id)) / 3.5);
+    var clickLift = Math.min(1, Number(decayScore(item && item.id)) / 3);
+    var clicks = Math.min(1, Number(state.tradeClicks || 0) / 4);
+    var score = (clicks * 0.25) + (rank * 0.25) + (edgeLift * 0.2) + (rising * 0.15) + (clickLift * 0.15);
+    var tier = score >= 0.75 ? 'hot' : score >= 0.5 ? 'warm' : 'cold';
+    return { score: Number(score.toFixed(4)), tier: tier };
+  }
+
   function shouldShowPaywall(selected){
     var seenAt = Number(localStorage.getItem(paywallSeenKey) || 0);
     var cooloffOver = !seenAt || (Date.now() - seenAt) > 12 * 60 * 60 * 1000;
-    var highIntent = state.tradeClicks >= 2 || Number(selected && selected.rankScore || 0) >= 65;
-    return highIntent && cooloffOver;
+    var intent = computeIntent(selected || {});
+    return cooloffOver && (intent.score >= 0.5 || state.tradeClicks >= 2);
   }
   function paywallOffer(selected){
     var rank = Number(selected && selected.rankScore || 0);
     var tier = rank >= 80 ? 'pro' : rank >= 60 ? 'plus' : 'starter';
     var variant = (visitorId().charCodeAt(0) % 2 === 0) ? 'A' : 'B';
+    var intent = computeIntent(selected || {});
+    var headline = selected && selected.paywallHeadlineHint ? selected.paywallHeadlineHint : 'Start your trial for advanced market intel';
+    if(intent.tier === 'hot') headline = 'Hot market momentum detected — unlock pro execution intel';
+    if(intent.tier === 'warm') headline = 'Strong opportunities detected — unlock deeper trade timing intel';
     return {
       tier: tier,
       variant: variant,
-      headline: shouldShowPaywall(selected) ? 'Unlock pro opportunities + faster execution intel' : 'Start your trial for advanced market intel',
+      intentScore: intent.score,
+      intentTier: intent.tier,
+      headline: headline,
       body: compliantCopy('Get explainability, personalized alerts, and execution-quality filters tuned for ' + (selected && selected.title ? selected.title : 'your watchlist') + '.'),
       steps: ['Choose focus markets', 'Set your alert thresholds', 'Activate trial + trade links'],
       cta: 'Start 7-day trial',
@@ -361,10 +380,12 @@
     var edgePct = (item.edge * 100).toFixed(2);
     var eligible = isAlertEligible(item, loadAlertPrefs());
     var watchlisted = isWatchlisted(item.id);
+    var movement = item.movementFlag || { label: 'Normal', driftPp: 0, reliability: 0 };
     return '<article class="card" data-id="'+esc(item.id)+'">'
-      + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
+      + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+' · '+esc(movement.label)+'</span></div>'
       + '<p class="muted">'+esc(item.event)+'</p>'
       + '<p class="muted">Move '+(item.move>0?'+':'')+item.move+' · Edge '+edgePct+'% · Freshness '+item.freshnessSeconds+'s · CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</p>'
+      + '<p class="muted">Movement drift '+(Number(movement.driftPp || 0) > 0 ? '+' : '')+Number(movement.driftPp || 0).toFixed(2)+'pp · reliability '+(Number(movement.reliability || 0)*100).toFixed(0)+'%</p>'
       + '<p class="muted">Score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+'</p>'
       + explainabilityDrawer(item)
       + '<div class="actions">'
@@ -376,14 +397,50 @@
   }
 
   function renderMostClicked(){
-    var ranked = data.map(function(d){return Object.assign({}, d, {clickScore: decayScore(d.id)});})
-      .sort(function(a,b){return b.clickScore-a.clickScore;}).slice(0,5);
+    var payload = loadTelemetry();
+    var ranked = data.map(function(d){
+      var entries = payload[d.id] || [];
+      return Object.assign({}, d, {
+        clickScore: decayScore(d.id),
+        clickCount: entries.length,
+        uniqueVisitors: new Set(entries.map(function(e){ return e.visitor; })).size,
+      });
+    }).sort(function(a,b){return b.clickScore-a.clickScore;}).slice(0,5);
+
     if(!ranked.some(function(r){return r.clickScore>0;})){
       mostClickedEl.innerHTML = '<div class="muted">No clicks yet. Open a few trades and this will populate.</div>';
       return;
     }
+
     mostClickedEl.innerHTML = ranked.map(function(item){
-      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.clickScore.toFixed(2)+'</span></div><p class="muted">Decay score (6h half-life): '+item.clickScore.toFixed(2)+'</p></article>';
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.clickScore.toFixed(2)+'</span></div><p class="muted">Clicks '+Number(item.clickCount||0)+' · unique visitors '+Number(item.uniqueVisitors||0)+' · decay score '+item.clickScore.toFixed(2)+'</p><div class="actions"><a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a></div></article>';
+    }).join('');
+  }
+
+  function renderMostExecuted(){
+    var events = loadFunnel();
+    var now = Date.now();
+    var counts = {};
+    events.forEach(function(e){
+      if(e.type !== 'trade') return;
+      if((now - Number(e.ts || 0)) > 24 * 60 * 60 * 1000) return;
+      var key = String(e.marketId || '');
+      if(!key) return;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+
+    var ranked = Object.keys(counts).map(function(id){
+      var item = data.find(function(x){ return String(x.id) === id; }) || { id:id, title:id, tradeUrl:'#' };
+      return Object.assign({}, item, { tradeCount: counts[id] });
+    }).sort(function(a,b){ return b.tradeCount - a.tradeCount; }).slice(0,5);
+
+    if(!ranked.length){
+      mostExecutedEl.innerHTML = '<div class="muted">No trade executions recorded in last 24h.</div>';
+      return;
+    }
+
+    mostExecutedEl.innerHTML = ranked.map(function(item){
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+Number(item.tradeCount||0)+' trades</span></div><div class="actions"><a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a></div></article>';
     }).join('');
   }
 
@@ -478,7 +535,7 @@
   function openPaywall(selected){
     var offer = paywallOffer(selected);
     paywallBody.innerHTML = '<div class="row"><strong>'+esc(offer.headline)+'</strong><button class="btn" data-close="paywallModal">Close</button></div>'
-      + '<p class="muted">Plan: '+esc(offer.tier)+' · Variant '+esc(offer.variant)+'</p>'
+      + '<p class="muted">Plan: '+esc(offer.tier)+' · Variant '+esc(offer.variant)+' · intent '+Number(offer.intentScore || 0).toFixed(2)+' ('+esc(offer.intentTier || 'cold')+')</p>'
       + '<p class="muted">'+esc(offer.body)+'</p>'
       + '<div class="card"><strong>Proof panel</strong><p class="muted">Historical outcomes: '+calibrationData.wins+' wins / '+calibrationData.misses+' misses (win rate '+(Number(calibrationData.winRate || 0) * 100).toFixed(1)+'%).</p><ul class="muted">'+(calibrationData.methodology || []).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul><p class="muted">Forecasts are probabilistic and not financial advice.</p></div>'
       + '<div class="card"><strong>Onboarding to trial</strong><ol class="muted">'+offer.steps.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ol></div>'
@@ -611,6 +668,7 @@
       recordClick(id);
       recordFunnel('trade', id);
       renderMostClicked();
+      renderMostExecuted();
       renderRisingInterest();
       renderFunnel();
       if(item && shouldShowPaywall(item)) {
@@ -633,6 +691,7 @@
   renderMorningBrief();
   renderCalibrationSnapshot();
   renderMostClicked();
+  renderMostExecuted();
   renderRisingInterest();
   renderDetail();
   renderFunnel();
