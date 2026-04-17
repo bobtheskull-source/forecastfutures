@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { applyScanPreset, compareMarketToMedian, loadScanPreset, saveScanPreset } from '../scan-presets.js';
+import { applyScanPreset, compareMarketToMedian, compareMarketToEventMedian, loadScanPreset, saveScanPreset } from '../scan-presets.js';
 
 function makeStorage() {
   const store = new Map();
@@ -35,4 +35,17 @@ test('compareMarketToMedian returns selected item and median metrics', () => {
   assert.equal(result.selected.id, 'b');
   assert.equal(result.median.depth, 700);
   assert.equal(result.median.edge, 9.5);
+});
+
+test('compareMarketToEventMedian returns event-specific deltas', () => {
+  const result = compareMarketToEventMedian([
+    { id: 'a', event: 'E1', edge: 0.08, depth: 800, freshnessSeconds: 100 },
+    { id: 'b', event: 'E1', edge: 0.02, depth: 200, freshnessSeconds: 400 },
+    { id: 'c', event: 'E2', edge: 0.11, depth: 600, freshnessSeconds: 200 },
+  ], 'a');
+  assert.equal(result.selected.id, 'a');
+  assert.equal(result.event, 'E1');
+  assert.equal(result.median.edge, 5);
+  assert.equal(result.deltas.edge, 3);
+  assert.equal(result.deltas.depth, 300);
 });

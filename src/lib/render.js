@@ -7,8 +7,9 @@ import { classifyMovement } from './movement-flags.js';
 import { summarizeProbabilityTrend } from './trend.js';
 import { computeRiskSizingGuidance } from './risk-sizing.js';
 import { computePaywallIntent, paywallHeadlineByIntent } from './paywall-intent.js';
-import { applyScanPreset, compareMarketToMedian, loadScanPreset, saveScanPreset } from './scan-presets.js';
-import { buildShareText, buildSummaryShareText, buildReviewShareText, copyShareText } from './share.js';
+import { applyScanPreset, compareMarketToEventMedian, compareMarketToMedian, loadScanPreset, saveScanPreset } from './scan-presets.js';
+import { buildShareText, buildSummaryShareText, buildReviewShareText, buildOpportunityCsv, copyShareText } from './share.js';
+import { archiveAlertHistoryItem, markAlertHistoryItem, summarizeAlertHistory, upsertAlertHistoryItem } from './alerts.js';
 import { morningBriefToCsv } from './brief-export.js';
 import { forecastReviewToCsv } from './review-export.js';
 
@@ -48,29 +49,33 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 <style>
 :root{color-scheme:dark;--bg:#08111f;--panel:#111a2e;--text:#eef2ff;--muted:#94a3b8;--accent:#60a5fa;--ok:#22c55e;--warn:#f59e0b}
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#08111f,#050814);color:var(--text)}
-.app{max-width:980px;margin:0 auto;padding:16px;padding-bottom:92px}.hero,.card,.nav{background:rgba(17,26,46,.92);border:1px solid rgba(96,165,250,.16);border-radius:18px}
-.hero{padding:18px;margin-bottom:14px}.grid{display:grid;gap:12px}.section{margin:14px 0}.section h2{margin:0 0 10px;font-size:1rem;color:#c7d2fe}
-.card{padding:14px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill,.chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:#172554;color:#bfdbfe;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border:1px solid rgba(148,163,184,.14)}
-.chip{cursor:pointer}.muted{color:var(--muted);font-size:.88rem}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.stat{padding:12px;border-radius:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15)}
-.nav{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20}
-.nav button{background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:12px 10px}.nav button.active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}
-.view[hidden]{display:none}.state{padding:12px;border-radius:12px;border:1px dashed rgba(148,163,184,.35)}.drivers{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-.driver{background:#0b2447;border:1px solid rgba(148,163,184,.2);border-radius:999px;padding:4px 8px;font-size:.75rem;color:#bfdbfe}.chart{width:100%;height:72px}
-.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.btn{border:1px solid rgba(148,163,184,.22);border-radius:10px;padding:10px 12px;background:#0f172a;color:#e2e8f0;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
-.btn.primary{border-color:rgba(34,197,94,.45);background:#052e1f;color:#bbf7d0}.btn.warn{border-color:rgba(245,158,11,.5);background:#3a2404;color:#fde68a}
-.drawer{margin-top:10px;border:1px dashed rgba(148,163,184,.35);border-radius:12px;padding:10px;background:#0b1222}
-.drawer summary{cursor:pointer;color:#bfdbfe}
-.kv{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}.kv span:last-child{color:#c7d2fe}
-.modal{position:fixed;inset:0;display:none;z-index:70;background:rgba(2,6,23,.78);padding:18px;align-items:flex-end}.modal.show{display:flex}
-.modal-card{width:100%;max-width:980px;margin:0 auto;background:#0f172a;border:1px solid rgba(148,163,184,.25);border-radius:16px;padding:14px;max-height:82vh;overflow:auto}
-.inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inputs label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:#cbd5e1}
-.inputs input,.inputs select{padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb}
-.list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}.seg{display:flex;gap:8px;flex-wrap:wrap}.seg .active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}.sticky-trade{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;z-index:30;width:min(980px,calc(100% - 24px));display:flex;justify-content:center}
-@media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}}
-</style>
+.app{max-width:980px;margin:0 auto;padding:16px;padding-bottom:178px}.hero,.card,.nav{background:rgba(17,26,46,.92);border:1px solid rgba(96,165,250,.16);border-radius:18px}
+    .hero{padding:18px;margin-bottom:14px}.grid{display:grid;gap:12px}.section{margin:14px 0}.section h2{margin:0 0 10px;font-size:1rem;color:#c7d2fe}
+    .card{padding:14px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill,.chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:#172554;color:#bfdbfe;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border:1px solid rgba(148,163,184,.14)}
+    .chip{cursor:pointer}.muted{color:var(--muted);font-size:.88rem}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.stat{padding:12px;border-radius:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15)}
+    .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20;backdrop-filter:blur(10px)}
+    .nav button{background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:12px 10px}.nav button.active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}
+    .view[hidden]{display:none}.state{padding:12px;border-radius:12px;border:1px dashed rgba(148,163,184,.35)}.drivers{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .driver{background:#0b2447;border:1px solid rgba(148,163,184,.2);border-radius:999px;padding:4px 8px;font-size:.75rem;color:#bfdbfe}.chart{width:100%;height:72px}
+    .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.btn{border:1px solid rgba(148,163,184,.22);border-radius:10px;padding:10px 12px;background:#0f172a;color:#e2e8f0;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
+    .btn.primary{border-color:rgba(34,197,94,.45);background:#052e1f;color:#bbf7d0}.btn.warn{border-color:rgba(245,158,11,.5);background:#3a2404;color:#fde68a}
+    .drawer{margin-top:10px;border:1px dashed rgba(148,163,184,.35);border-radius:12px;padding:10px;background:#0b1222}
+    .drawer summary{cursor:pointer;color:#bfdbfe}
+    .kv{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px}.kv span:last-child{color:#c7d2fe}
+    .modal{position:fixed;inset:0;display:none;z-index:70;background:rgba(2,6,23,.78);padding:18px;align-items:flex-end}.modal.show{display:flex}
+    .modal-card{width:100%;max-width:980px;margin:0 auto;background:#0f172a;border:1px solid rgba(148,163,184,.25);border-radius:16px;padding:14px;max-height:82vh;overflow:auto}
+    .inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inputs label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:#cbd5e1}
+    .inputs input,.inputs select{padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb}
+    .list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}.seg{display:flex;gap:8px;flex-wrap:wrap}.seg .active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}.sticky-trade{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;z-index:30;width:min(980px,calc(100% - 24px));display:flex;justify-content:center;pointer-events:none}.sticky-trade .btn{pointer-events:auto}.fresh-badge{display:inline-flex;align-items:center;gap:4px}.fresh-badge[data-freshness="fresh"]{background:#0f3b27;color:#bbf7d0}.fresh-badge[data-freshness="warm"]{background:#4a2c0a;color:#fde68a}.fresh-badge[data-freshness="stale"]{background:#3b0b0b;color:#fecaca}
+    .skip-link{position:absolute;left:-9999px;top:10px;z-index:80;background:#0f172a;color:#eef2ff;padding:10px 12px;border:1px solid rgba(148,163,184,.3);border-radius:10px}.skip-link:focus{left:12px}
+    button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
+    .onboarding-banner{border-color:rgba(96,165,250,.24);background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(7,12,24,.95))}.onboarding-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}.modal{align-items:flex-start}.sticky-trade{bottom:98px}.app{padding-bottom:206px}}
+
 </head>
 <body>
-<main class="app">
+<a class="skip-link" href="#mainContent">Skip to content</a>
+<main class="app" id="mainContent">
   <section class="hero">
     <div class="row"><div><div class="pill">Kalshi market radar</div><h1>Forecast Futures</h1></div><div class="pill">mobile-ready</div></div>
     <p class="muted">Flag big market moves, rank by edge and tradeability, inspect forecast confidence, and jump into trades fast.</p>
@@ -92,6 +97,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
         <button class="chip" data-sort="recency">Sort: recency</button>
         <button class="chip" data-sort="mostClicked">Sort: most clicked</button>
         <button class="chip" id="watchlistBtn">Watchlist only: off</button>
+        <button class="chip" id="saveWatchlistBtn">Save watchlist</button>
+        <button class="chip" id="restoreWatchlistBtn">Restore watchlist</button>
         <button class="chip" id="alertControlsBtn">Alert controls</button>
       </div>
       <div class="seg" style="margin-top:8px">
@@ -107,6 +114,16 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
         <button class="chip" id="exportCsvBtn">Export CSV</button>
       </div>
       <p class="muted" id="alertsSummary" style="margin-top:8px"></p>
+    </div>
+    <div class="card" style="margin-top:12px"><strong>Alert history</strong><p class="muted">Recently surfaced alerts, dismissals, and archives are stored locally and do not change ranking.</p><div id="alertHistoryPanel" class="grid" style="margin-top:8px"></div></div>
+    <div id="onboardingBanner" class="card onboarding-banner" hidden>
+      <div class="row"><strong>Quick start</strong><button class="btn" id="dismissOnboardingBtn">Dismiss</button></div>
+      <p class="muted">Use the list to scan opportunities, open detail for compare and history, then trade when the pre-trade check is green.</p>
+      <div class="onboarding-steps">
+        <span class="pill">1. Search or sort the list</span>
+        <span class="pill">2. Open detail for compare</span>
+        <span class="pill">3. Pre-trade check then open Kalshi</span>
+      </div>
     </div>
     <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
@@ -148,23 +165,22 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Forecast theses</strong>
-      <div class="grid" style="margin-top:8px">
-        ${reviewItems.length ? reviewItems.map((item, index) => `<article class="card"><div class="row"><strong>${index + 1}. ${escapeHtml(item.market || item.title || 'Forecast')}</strong><span class="pill">score ${Number(item.score || 0).toFixed(2)}</span></div><p class="muted">${escapeHtml(item.event || 'No event')} · ${escapeHtml(item.direction || 'n/a')}</p><p class="muted">Thesis: ${escapeHtml(item.thesis || 'No thesis')}</p><p class="muted">Post-mortem prompt: ${escapeHtml(item.postMortem || 'No post-mortem prompt')}</p></article>`).join('') : '<div class="muted">No forecast review items yet.</div>'}
-      </div>
+      <div class="grid" style="margin-top:8px">${reviewItems.length ? reviewItems.map((item, index) => `<article class="card"><div class="row"><strong>${index + 1}. ${escapeHtml(item.market || item.title || 'Forecast')}</strong><span class="pill">score ${Number(item.score || 0).toFixed(2)}</span></div><p class="muted">${escapeHtml(item.event || 'No event')} · ${escapeHtml(item.direction || 'n/a')}</p><p class="muted">Thesis: ${escapeHtml(item.thesis || 'No thesis')}</p><p class="muted">Post-mortem prompt: ${escapeHtml(item.postMortem || 'No post-mortem prompt')}</p></article>`).join('') : '<div class="muted">No forecast review items yet.</div>'}
+
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Resolved archive</strong>
-      <div class="grid" style="margin-top:8px">${archive.map((item) => `<article class="card"><div class="row"><strong>${escapeHtml(item.market)}</strong><span class="pill">${escapeHtml(item.correct ? 'correct' : 'missed')}</span></div><p>${escapeHtml(item.outcome.label)}</p><p class="muted">Forecast direction: ${escapeHtml(item.direction)} · Outcome: ${escapeHtml(item.outcome.direction)}</p><p class="muted">Score ${Number(item.score || 0).toFixed(2)} · accuracy ${escapeHtml(item.accuracyLabel || (item.correct ? 'correct' : 'missed'))}</p></article>`).join('')}</div>
+      <div class="grid" style="margin-top:8px">${archive.map((item) => `<article class="card"><div class="row"><strong>${escapeHtml(item.market)}</strong><span class="pill">${escapeHtml(item.correct ? 'correct' : 'missed')}</span></div><p>${escapeHtml(item.outcome.label)}</p><p class="muted">Forecast direction: ${escapeHtml(item.direction)} · Outcome: ${escapeHtml(item.outcome.direction)}</p><p class="muted">Score ${Number(item.score || 0).toFixed(2)} · accuracy ${escapeHtml(item.accuracyLabel || (item.correct ? 'correct' : 'missed'))}</p>${item.freshnessSeconds != null ? `<div class="row" style="margin-top:8px;flex-wrap:wrap">${freshnessBadgeHtml(item.freshnessSeconds)}</div>` : ''}</article>`).join('')}</div>
     </div>
     <div class="card" style="margin-top:12px"><p class="muted">Correct: ${summary.wins} · Missed: ${summary.misses}</p></div>
   </section>
 </main>
 
-<div class="modal" id="preTradeModal" aria-hidden="true">
+<div class="modal" id="preTradeModal" aria-hidden="true" role="dialog" aria-modal="true">
   <div class="modal-card" id="preTradeBody"></div>
 </div>
 
-<div class="modal" id="alertModal" aria-hidden="true">
+<div class="modal" id="alertModal" aria-hidden="true" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div class="row"><strong>Personalized alert controls</strong><button class="btn" data-close="alertModal">Close</button></div>
     <div class="inputs" style="margin-top:10px">
@@ -187,7 +203,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   </div>
 </div>
 
-<div class="modal" id="paywallModal" aria-hidden="true">
+<div class="modal" id="paywallModal" aria-hidden="true" role="dialog" aria-modal="true">
   <div class="modal-card" id="paywallBody"></div>
 </div>
 
@@ -231,6 +247,9 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var funnelStatsEl = document.getElementById('funnelStats');
   var watchlistHealthEl = document.getElementById('watchlistHealth');
   var alertsSummaryEl = document.getElementById('alertsSummary');
+  var alertHistoryPanel = document.getElementById('alertHistoryPanel');
+  var onboardingBanner = document.getElementById('onboardingBanner');
+  var dismissOnboardingBtn = document.getElementById('dismissOnboardingBtn');
   var sortChips = Array.from(document.querySelectorAll('[data-sort]'));
 
   var preTradeModal = document.getElementById('preTradeModal');
@@ -239,6 +258,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var paywallModal = document.getElementById('paywallModal');
   var paywallBody = document.getElementById('paywallBody');
   var stickyTradeCta = document.getElementById('stickyTradeCta');
+  var activeModalTrigger = null;
 
   function esc(v){return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
 
@@ -282,6 +302,72 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     return list;
   }
   function isWatchlisted(id){ return loadWatchlist().includes(String(id)); }
+
+  function loadSavedWatchlists(){
+    try { return JSON.parse(localStorage.getItem('ff_saved_watchlists_v1') || '{}'); } catch { return {}; }
+  }
+  function saveSavedWatchlists(value){ localStorage.setItem('ff_saved_watchlists_v1', JSON.stringify(value)); }
+  function saveNamedWatchlist(name){
+    var key = String(name || '').trim();
+    if(!key) return null;
+    var store = loadSavedWatchlists();
+    store[key] = { ids: loadWatchlist().slice().sort(), updatedAt: new Date().toISOString() };
+    saveSavedWatchlists(store);
+    return store[key];
+  }
+  function loadNamedWatchlist(name){
+    var store = loadSavedWatchlists();
+    return store[String(name || '').trim()] || null;
+  }
+  function listSavedWatchlistNames(){
+    return Object.keys(loadSavedWatchlists()).sort(function(a, b){ return a.localeCompare(b); });
+  }
+  function watchlistSummary(){
+    var saved = listSavedWatchlistNames();
+    if(!saved.length) return 'No saved watchlists yet.';
+    return 'Saved watchlists: ' + saved.join(', ');
+  }
+  function freshnessMeta(freshnessSeconds){
+    var value = Number(freshnessSeconds || 0);
+    if(value <= 600) return { label: 'Fresh', tone: 'fresh' };
+    if(value <= 1800) return { label: 'Warm', tone: 'warm' };
+    return { label: 'Stale', tone: 'stale' };
+  }
+  function freshnessBadge(freshnessSeconds){
+    var meta = freshnessMeta(freshnessSeconds);
+    return '<span class="pill fresh-badge" data-freshness="'+meta.tone+'">'+meta.label+' · '+Number(freshnessSeconds || 0).toFixed(0)+'s</span>';
+  }
+
+  function readListStateFromUrl(){
+    var params = new URLSearchParams(window.location.search || '');
+    return {
+      query: params.get('q') || '',
+      sort: params.get('sort') || 'score',
+      selectedId: params.get('selected') || null,
+      watchlistOnly: params.get('watchlist') === '1',
+      feedMode: params.get('feed') === 'discover' ? 'discover' : 'now',
+      minEdgePreset: params.get('edge') != null && params.get('edge') !== '' ? Number(params.get('edge')) : null,
+      maxResolveHours: params.get('resolve') != null && params.get('resolve') !== '' ? Number(params.get('resolve')) : null,
+      breakoutOnly: params.get('breakout') === '1',
+      executionReadyOnly: params.get('exec') === '1',
+    };
+  }
+  function syncListStateToUrl(tab){
+    var params = new URLSearchParams();
+    if(state.query) params.set('q', state.query);
+    if(state.sort && state.sort !== 'score') params.set('sort', state.sort);
+    if(state.selectedId) params.set('selected', state.selectedId);
+    if(state.watchlistOnly) params.set('watchlist', '1');
+    if(state.feedMode && state.feedMode !== 'now') params.set('feed', state.feedMode);
+    if(state.minEdgePreset != null) params.set('edge', String(state.minEdgePreset));
+    if(state.maxResolveHours != null) params.set('resolve', String(state.maxResolveHours));
+    if(state.breakoutOnly) params.set('breakout', '1');
+    if(state.executionReadyOnly) params.set('exec', '1');
+    var search = params.toString();
+    var hash = tab || (location.hash || '').replace('#', '') || 'list';
+    var next = location.pathname + (search ? '?' + search : '') + '#' + hash;
+    history.replaceState(null, '', next);
+  }
 
   function loadFunnel(){ try { return JSON.parse(localStorage.getItem(funnelKey) || '[]'); } catch { return []; } }
   function saveFunnel(events){ localStorage.setItem(funnelKey, JSON.stringify(events.slice(-500))); }
@@ -386,6 +472,57 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     return items.filter(function(item){ return isAlertEligible(item, prefs); }).length;
   }
 
+  function loadAlertHistory(){
+    try { return JSON.parse(localStorage.getItem('ff_alert_history_v1') || '[]'); } catch { return []; }
+  }
+  function saveAlertHistory(history){
+    localStorage.setItem('ff_alert_history_v1', JSON.stringify((history || []).slice(0, 50)));
+  }
+  function alertHistoryEntryFor(id){
+    return loadAlertHistory().find(function(entry){ return String(entry.marketId) === String(id); }) || null;
+  }
+  function recordSurfacedAlert(item, reason){
+    var history = loadAlertHistory();
+    var existing = history.find(function(entry){ return String(entry.marketId) === String(item.id); });
+    if(existing && existing.status && existing.status !== 'surfaced') return history;
+    var next = upsertAlertHistoryItem(history, Object.assign({}, item, { alertReason: reason }), 'surfaced', new Date());
+    saveAlertHistory(next);
+    return next;
+  }
+  function updateAlertHistoryStatus(id, status){
+    var history = loadAlertHistory();
+    var next = status === 'archived' ? archiveAlertHistoryItem(history, id, new Date()) : markAlertHistoryItem(history, id, status, new Date());
+    saveAlertHistory(next);
+    return next;
+  }
+  function renderAlertHistory(){
+    if(!alertHistoryPanel) return;
+    var history = loadAlertHistory();
+    var summary = summarizeAlertHistory(history);
+    if(!history.length){
+      alertHistoryPanel.innerHTML = '<div class="muted">No alert history yet. Surfaced opportunities will appear here with dismiss/archive controls.</div>';
+      return;
+    }
+    alertHistoryPanel.innerHTML = '<div class="row"><span>'+summary.total+' tracked alerts</span><span class="pill">surfaced '+summary.surfaced+' · dismissed '+summary.dismissed+' · archived '+summary.archived+'</span></div>' + history.slice(0, 5).map(function(item){
+      return '<article class="card"><div class="row"><strong>'+esc(item.title || item.marketId)+'</strong><span class="pill">'+esc(item.status || 'surfaced')+'</span></div><p class="muted">'+esc(item.event || 'No event')+' · '+esc(item.reason || 'No reason recorded')+'</p><p class="muted">Surfaced: '+esc(item.surfacedAt || item.updatedAt || '')+' · Updated: '+esc(item.updatedAt || '')+'</p><div class="actions"><button class="btn" data-action="dismiss-alert" data-id="'+esc(item.marketId)+'">Dismiss</button><button class="btn warn" data-action="archive-alert" data-id="'+esc(item.marketId)+'">Archive</button></div></article>';
+    }).join('');
+  }
+
+  function onboardingSeen(){
+    try { return localStorage.getItem('ff_onboarding_seen_v1') === '1'; } catch { return false; }
+  }
+  function setOnboardingSeen(value){
+    localStorage.setItem('ff_onboarding_seen_v1', value ? '1' : '0');
+  }
+  function renderOnboardingBanner(){
+    if(!onboardingBanner) return;
+    onboardingBanner.hidden = onboardingSeen();
+  }
+  function dismissOnboarding(){
+    setOnboardingSeen(true);
+    renderOnboardingBanner();
+  }
+
   function compliantCopy(text){
     var cleaned = String(text||'')
       .replace(/guaranteed/gi,'')
@@ -482,30 +619,34 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   }
 
 
-  function signalCard(item){
+  function signalCard(item, prefs, alertEntryMap){
     var edgePct = (item.edge * 100).toFixed(2);
-    var eligible = isAlertEligible(item, loadAlertPrefs());
+    var eligible = isAlertEligible(item, prefs || loadAlertPrefs());
+    var alertEntry = alertEntryMap ? alertEntryMap[String(item.id)] : alertHistoryEntryFor(item.id);
     var watchlisted = isWatchlisted(item.id);
     var movement = item.movementFlag || { label: 'Normal', driftPp: 0, reliability: 0 };
     var trend = sparkline((item.probabilityHistory || []).slice(-5));
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
+    var alertStatus = alertEntry ? alertEntry.status : (eligible ? 'surfaced' : 'quiet');
     return '<article class="card" data-id="'+esc(item.id)+'">'
       + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+' · '+esc(movement.label)+' · '+esc(trendSummary.badge)+'</span></div>'
       + '<p class="muted">'+esc(item.event)+'</p>'
-      + '<p class="muted">Move '+(item.move>0?'+':'')+item.move+' · Edge '+edgePct+'% · Freshness '+item.freshnessSeconds+'s · CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</p>'
+      + '<div class="row" style="margin-top:6px;flex-wrap:wrap"><span class="muted">Move '+(item.move>0?'+':'')+item.move+' · Edge '+edgePct+'% · CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</span>'+freshnessBadge(item.freshnessSeconds)+'</div>'
       + '<p class="muted">Movement drift '+(Number(movement.driftPp || 0) > 0 ? '+' : '')+Number(movement.driftPp || 0).toFixed(2)+'pp · reliability '+(Number(movement.reliability || 0)*100).toFixed(0)+'%</p>'
-      + '<p class="muted">24h delta '+esc(trendSummary.summary)+'</p>'
       + '<div style="margin-top:8px">'+trend+'</div>'
-      + '<p class="muted">Score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+'</p>'
+      + '<p class="muted">Score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+' · history '+esc(alertStatus)+'</p>'
       + explainabilityDrawer(item)
       + '<div class="actions">'
       + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">View detail</button>'
       + '<button class="btn" data-action="watch" data-id="'+esc(item.id)+'">'+(watchlisted ? 'Unwatch' : 'Watch')+'</button>'
       + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
+      + '<button class="btn" data-action="dismiss-alert" data-id="'+esc(item.id)+'">Dismiss alert</button>'
+      + '<button class="btn warn" data-action="archive-alert" data-id="'+esc(item.id)+'">Archive alert</button>'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div></article>';
   }
+
 
 
   function renderMostClicked(){
@@ -589,12 +730,15 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   function renderAlertsSummary(){
     var prefs = loadAlertPrefs();
     var eligible = alertEligibleCount(data);
-    alertsSummaryEl.textContent = 'Alert prefs: edge ≥ '+prefs.minEdgePercent+'%, confidence ≥ '+prefs.confidenceFloor+', quiet '+prefs.quietHoursStart+':00-'+prefs.quietHoursEnd+':00, cooldown '+prefs.cooldownMinutes+'m · eligible now: '+eligible;
+    alertsSummaryEl.textContent = 'Alert prefs: edge ≥ '+prefs.minEdgePercent+'%, confidence ≥ '+prefs.confidenceFloor+', quiet '+prefs.quietHoursStart+':00-'+prefs.quietHoursEnd+':00, cooldown '+prefs.cooldownMinutes+'m · eligible now: '+eligible+' · '+watchlistSummary();
   }
 
   function renderList(){
     var q = String(state.query||'').toLowerCase();
     var filtered = data.filter(function(item){return !q || (item.title+' '+item.event).toLowerCase().includes(q);});
+
+    var watchBtn = document.getElementById('watchlistBtn');
+    if(watchBtn) watchBtn.textContent = 'Watchlist only: ' + (state.watchlistOnly ? 'on' : 'off');
 
     if(state.feedMode === 'now') {
       filtered = filtered.filter(function(item){
@@ -629,13 +773,24 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     if(!sorted.length){ listState.hidden=false; listState.textContent='No results match this search/filter.'; listResults.innerHTML=''; return; }
 
     listState.hidden = true;
+    var alertPrefs = loadAlertPrefs();
+    var alertHistory = loadAlertHistory();
+    var alertEntryMap = alertHistory.reduce(function(map, entry){ map[String(entry.marketId)] = entry; return map; }, {});
     listResults.innerHTML = groupSignalsByEvent(sorted).map(function(group){
-      return '<section class="card"><div class="row"><strong>'+esc(group.event)+'</strong><span class="pill">'+group.items.length+' markets</span></div><div class="grid" style="margin-top:10px">'+group.items.map(signalCard).join('')+'</div></section>';
+      return '<section class="card"><div class="row"><strong>'+esc(group.event)+'</strong><span class="pill">'+group.items.length+' markets</span></div><div class="grid" style="margin-top:10px">'+group.items.map(function(item){ return signalCard(item, alertPrefs, alertEntryMap); }).join('')+'</div></section>';
     }).join('');
-    sorted.forEach(function(item){ recordFunnel('impression', item.id); });
+    sorted.forEach(function(item){
+      recordFunnel('impression', item.id);
+      if(isAlertEligible(item, alertPrefs) && !alertEntryMap[String(item.id)]){
+        recordSurfacedAlert(item, 'eligible opportunity');
+      }
+    });
     renderAlertsSummary();
+    renderAlertHistory();
+    renderOnboardingBanner();
     renderWatchlistHealth();
     renderFunnel();
+    syncListStateToUrl('list');
   }
 
 
@@ -670,8 +825,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<div class="actions">'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div>';
-    preTradeModal.classList.add('show');
-    preTradeModal.setAttribute('aria-hidden','false');
+    openModal(preTradeModal, document.activeElement);
   }
 
 
@@ -683,8 +837,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<div class="card"><strong>Proof panel</strong><p class="muted">Historical outcomes: '+calibrationData.wins+' wins / '+calibrationData.misses+' misses (win rate '+(Number(calibrationData.winRate || 0) * 100).toFixed(1)+'%).</p><ul class="muted">'+(calibrationData.methodology || []).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul><p class="muted">Forecasts are probabilistic and not financial advice.</p></div>'
       + '<div class="card"><strong>Onboarding to trial</strong><ol class="muted">'+offer.steps.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ol></div>'
       + '<div class="actions"><button class="btn primary" data-action="startTrial">'+esc(offer.cta)+'</button></div>';
-    paywallModal.classList.add('show');
-    paywallModal.setAttribute('aria-hidden','false');
+    openModal(paywallModal, document.activeElement);
   }
 
   function renderDetail(){
@@ -694,7 +847,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var lo = item.confidenceInterval ? item.confidenceInterval[0] : 0;
     var hi = item.confidenceInterval ? item.confidenceInterval[1] : 0;
     var drivers = (item.scenarioDrivers||[]).map(function(d){return '<span class="driver">'+esc(d)+'</span>';}).join('');
-    var compare = compareMarketToMedian(data, state.selectedId);
+    var compare = compareMarketToEventMedian(data, state.selectedId);
     var selectedDepth = Number(item.depth || 0);
     var selectedFreshness = Number(item.freshnessSeconds || 0);
     var selectedEdge = Math.abs(Number(item.edge || 0)) * 100;
@@ -702,17 +855,20 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var medianEdge = Number(compare.median.edge || 0).toFixed(2);
     var medianDepth = Number(compare.median.depth || 0).toFixed(0);
     var medianFreshness = Number(compare.median.freshnessSeconds || 0).toFixed(0);
+    var edgeDelta = compare.deltas ? Number(compare.deltas.edge || 0).toFixed(2) : '0.00';
+    var depthDelta = compare.deltas ? Number(compare.deltas.depth || 0).toFixed(0) : '0';
+    var freshnessDelta = compare.deltas ? Number(compare.deltas.freshnessSeconds || 0).toFixed(0) : '0';
     var shareText = buildShareText(item);
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
     detailPanel.innerHTML = '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
       + '<p class="muted">'+esc(item.event)+' · last updated '+esc(item.lastUpdated)+'</p>'
-      + '<div class="row" style="margin-top:8px"><div>Market prob: <strong>'+(item.marketProb*100).toFixed(2)+'%</strong></div><div>Model prob: <strong>'+(item.modelProb*100).toFixed(2)+'%</strong></div></div>'
+      + '<div class="row" style="margin-top:8px;flex-wrap:wrap"><div>Market prob: <strong>'+(item.marketProb*100).toFixed(2)+'%</strong></div><div>Model prob: <strong>'+(item.modelProb*100).toFixed(2)+'%</strong></div>'+freshnessBadge(item.freshnessSeconds)+'</div>'
       + '<p class="muted">Confidence interval: '+(lo*100).toFixed(2)+'% to '+(hi*100).toFixed(2)+'%</p>'
       + '<div class="card" style="margin-top:10px"><strong>24h probability delta</strong><p class="muted">'+esc(trendSummary.summary)+' · acceleration '+esc(trendSummary.accelerationLabel)+'</p></div>'
       + sparkline(item.probabilityHistory || [])
       + '<div class="drivers">'+drivers+'</div>'
       + explainabilityDrawer(item)
-      + '<div class="card" style="margin-top:10px"><strong>Compare vs watchlist median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median · Depth '+selectedDepth+' vs '+medianDepth+' median · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median · Recency score '+selectedRecency.toFixed(0)+'</p></div>'
+      + '<div class="card" style="margin-top:10px"><strong>Compare vs event median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median (Δ '+edgeDelta+'pp) · Depth '+selectedDepth+' vs '+medianDepth+' median (Δ '+depthDelta+') · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median (Δ '+freshnessDelta+'s)</p></div>'
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
       + '<button class="btn" data-action="share-summary" data-id="'+esc(item.id)+'">Share summary</button>'
@@ -723,6 +879,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     stickyTradeCta.setAttribute('href', item.tradeUrl || '#');
     stickyTradeCta.setAttribute('data-id', item.id || '');
     stickyTradeCta.textContent = 'Trade ' + item.title + ' on Kalshi';
+    syncListStateToUrl('detail');
   }
 
 
@@ -730,6 +887,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     views.forEach(function(v){v.hidden = v.dataset.view !== tab;});
     buttons.forEach(function(b){b.classList.toggle('active', b.dataset.tab===tab);});
     history.replaceState(null,'','#'+tab);
+    syncListStateToUrl(tab);
   }
 
   function openAlertPrefsModal(){
@@ -739,8 +897,16 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     document.getElementById('prefQuietStart').value = prefs.quietHoursStart;
     document.getElementById('prefQuietEnd').value = prefs.quietHoursEnd;
     document.getElementById('prefCooldown').value = prefs.cooldownMinutes;
-    alertModal.classList.add('show');
-    alertModal.setAttribute('aria-hidden','false');
+    openModal(alertModal, document.activeElement);
+  }
+
+  function openModal(modal, trigger){
+    if(!modal) return;
+    activeModalTrigger = trigger || document.activeElement || null;
+    modal.classList.add('show');
+    modal.setAttribute('aria-hidden','false');
+    var focusTarget = modal.querySelector('[data-close], .btn, button, a, input, select, textarea');
+    setTimeout(function(){ if(focusTarget && focusTarget.focus) focusTarget.focus(); }, 0);
   }
 
   function closeModal(id){
@@ -748,17 +914,86 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     if(!modal) return;
     modal.classList.remove('show');
     modal.setAttribute('aria-hidden','true');
+    if(activeModalTrigger && activeModalTrigger.focus){
+      setTimeout(function(){ try { activeModalTrigger.focus(); } catch {} }, 0);
+    }
+    activeModalTrigger = null;
   }
+
+  function currentOpenModal(){
+    return [preTradeModal, alertModal, paywallModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
+  }
+
+  function trapModalTabKey(event){
+    var modal = currentOpenModal();
+    if(!modal || event.key !== 'Tab') return;
+    var nodes = Array.from(modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])')).filter(function(node){ return !node.hasAttribute('disabled'); });
+    if(!nodes.length) return;
+    var first = nodes[0];
+    var last = nodes[nodes.length - 1];
+    if(event.shiftKey && document.activeElement === first){
+      event.preventDefault();
+      last.focus();
+    } else if(!event.shiftKey && document.activeElement === last){
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  window.addEventListener('keydown', function(event){
+    if(event.key === 'Escape'){
+      if(paywallModal.classList.contains('show')){ closeModal('paywallModal'); return; }
+      if(alertModal.classList.contains('show')){ closeModal('alertModal'); return; }
+      if(preTradeModal.classList.contains('show')){ closeModal('preTradeModal'); return; }
+    }
+    trapModalTabKey(event);
+  });
+
+  document.addEventListener('focusin', function(event){
+    var modal = currentOpenModal();
+    if(!modal) return;
+    if(!modal.contains(event.target)){
+      var target = modal.querySelector('[data-close], .btn, button, a, input, select, textarea');
+      if(target && target.focus) target.focus();
+    }
+  });
 
   buttons.forEach(function(button){button.addEventListener('click', function(){show(button.dataset.tab); if(button.dataset.tab==='detail') renderDetail();});});
   searchInput.addEventListener('input', function(e){state.query=e.target.value||''; renderList();});
   sortChips.forEach(function(chip){chip.addEventListener('click', function(){state.sort = chip.dataset.sort || 'score'; renderList();});});
 
   document.getElementById('alertControlsBtn').addEventListener('click', openAlertPrefsModal);
+  if(dismissOnboardingBtn){
+    dismissOnboardingBtn.addEventListener('click', function(){
+      dismissOnboarding();
+    });
+  }
   document.getElementById('watchlistBtn').addEventListener('click', function(){
     state.watchlistOnly = !state.watchlistOnly;
     this.textContent = 'Watchlist only: ' + (state.watchlistOnly ? 'on' : 'off');
     renderList();
+  });
+  document.getElementById('saveWatchlistBtn').addEventListener('click', function(){
+    var name = window.prompt('Save current watchlist as');
+    if(saveNamedWatchlist(name)){
+      this.textContent = 'Saved';
+      setTimeout(() => { this.textContent = 'Save watchlist'; }, 1200);
+      renderWatchlistHealth();
+    }
+  });
+  document.getElementById('restoreWatchlistBtn').addEventListener('click', function(){
+    var names = listSavedWatchlistNames();
+    var choice = window.prompt('Restore watchlist name\n' + (names.length ? names.join(', ') : 'No saved watchlists yet.'));
+    var saved = loadNamedWatchlist(choice);
+    if(saved){
+      saveWatchlist(Array.isArray(saved.ids) ? saved.ids : []);
+      state.watchlistOnly = true;
+      document.getElementById('watchlistBtn').textContent = 'Watchlist only: on';
+      renderList();
+      renderWatchlistHealth();
+      this.textContent = 'Restored';
+      setTimeout(() => { this.textContent = 'Restore watchlist'; }, 1200);
+    }
   });
   document.getElementById('feedNowBtn').addEventListener('click', function(){
     state.feedMode = 'now';
@@ -780,18 +1015,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   document.getElementById('presetExpiringBtn').addEventListener('click', function(){ state.maxResolveHours = 168; state.breakoutOnly = false; state.executionReadyOnly = false; renderList(); });
   document.getElementById('resetPresetBtn').addEventListener('click', function(){ state.minEdgePreset = null; state.maxResolveHours = null; state.breakoutOnly = false; state.executionReadyOnly = false; state.watchlistOnly = false; state.feedMode = 'now'; renderList(); });
   document.getElementById('exportCsvBtn').addEventListener('click', function(){
-    var header = ['id','title','event','rankScore','edgePercent','quality','tradeUrl'];
-    var rows = sortSignals(data).map(function(item){ return [item.id,item.title,item.event,Number(item.rankScore||0).toFixed(2),(Math.abs(Number(item.edge||0))*100).toFixed(2),item.signalQualityGrade||'C',item.tradeUrl||'']; });
-    var csv = [header.join(',')].concat(rows.map(function(r){ return r.map(function(c){ c=String(c||''); return (c.includes(',')||c.includes('"')) ? '"'+c.replaceAll('"','""')+'"' : c; }).join(','); })).join('\n') + '\n';
-    var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'forecast-opportunities.csv';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
+    downloadTextFile('forecast-opportunities.csv', buildOpportunityCsv(sortSignals(data)), 'text/csv;charset=utf-8');
   });
   document.getElementById('exportBriefCsvBtn').addEventListener('click', function(){
     downloadTextFile('forecast-futures-morning-brief.csv', morningBriefToCsv(morningBriefData), 'text/csv;charset=utf-8');
@@ -846,6 +1070,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     if(action==='view'){ state.selectedId = id; show('detail'); renderDetail(); }
     if(action==='watch' && item){ toggleWatchlist(id); renderList(); }
     if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet(item); renderFunnel(); }
+    if(action==='dismiss-alert' && item){ updateAlertHistoryStatus(id, 'dismissed'); renderAlertHistory(); renderList(); }
+    if(action==='archive-alert' && item){ updateAlertHistoryStatus(id, 'archived'); renderAlertHistory(); renderList(); }
     if(action==='trade'){
       recordClick(id);
       recordFunnel('trade', id);
@@ -885,10 +1111,12 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   });
 
   state.tradeClicks = totalTradeClicks();
+  Object.assign(state, readListStateFromUrl());
   renderList();
   renderMorningBrief();
   renderCalibrationSnapshot();
   renderWatchlistHealth();
+  renderAlertHistory();
   renderMostClicked();
   renderMostExecuted();
   renderRisingInterest();
@@ -900,6 +1128,13 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 </script>
 </body>
 </html>`;
+}
+
+function freshnessBadgeHtml(freshnessSeconds) {
+  var value = Number(freshnessSeconds || 0);
+  var tone = value <= 600 ? 'fresh' : value <= 1800 ? 'warm' : 'stale';
+  var label = value <= 600 ? 'Fresh' : value <= 1800 ? 'Warm' : 'Stale';
+  return '<span class="pill fresh-badge" data-freshness="'+tone+'">'+label+' · '+value.toFixed(0)+'s</span>';
 }
 
 function escapeHtml(value) {

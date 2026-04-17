@@ -76,3 +76,27 @@ export function compareMarketToMedian(markets = [], selectedId = null) {
   };
   return { selected, median: metrics };
 }
+
+export function compareMarketToEventMedian(markets = [], selectedId = null) {
+  const selected = markets.find((m) => String(m.id) === String(selectedId)) || null;
+  const pool = selected?.event
+    ? markets.filter((market) => String(market.event || '') === String(selected.event))
+    : markets;
+  const median = (values = []) => {
+    const list = values.map((value) => Number(value)).filter(Number.isFinite).sort((a, b) => a - b);
+    if (!list.length) return 0;
+    const mid = Math.floor(list.length / 2);
+    return list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2;
+  };
+  const eventMedian = {
+    edge: median(pool.map((m) => Math.abs(Number(m.edge || 0)) * 100)),
+    depth: median(pool.map((m) => Number(m.depth || 0))),
+    freshnessSeconds: median(pool.map((m) => Number(m.freshnessSeconds || 0))),
+  };
+  const deltas = selected ? {
+    edge: Number((Math.abs(Number(selected.edge || 0)) * 100 - eventMedian.edge).toFixed(2)),
+    depth: Number((Number(selected.depth || 0) - eventMedian.depth).toFixed(0)),
+    freshnessSeconds: Number((Number(selected.freshnessSeconds || 0) - eventMedian.freshnessSeconds).toFixed(0)),
+  } : null;
+  return { selected, event: selected?.event || null, median: eventMedian, deltas };
+}
