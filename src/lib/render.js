@@ -4,9 +4,12 @@ import { buildMorningBrief } from './digest.js';
 import { buildCalibrationReport } from './calibration-report.js';
 import { attentionVsAlpha } from './attention.js';
 import { classifyMovement } from './movement-flags.js';
+import { summarizeProbabilityTrend } from './trend.js';
+import { computeRiskSizingGuidance } from './risk-sizing.js';
 import { computePaywallIntent, paywallHeadlineByIntent } from './paywall-intent.js';
 import { applyScanPreset, compareMarketToMedian, loadScanPreset, saveScanPreset } from './scan-presets.js';
-import { buildShareText, copyShareText } from './share.js';
+import { buildShareText, buildSummaryShareText, copyShareText } from './share.js';
+import { morningBriefToCsv } from './brief-export.js';
 
 export function renderApp({ markets, outliers, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails }) {
   const summary = archiveSummary(archive);
@@ -24,6 +27,8 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     lastUpdated: s.updatedAt,
     executionQuality: executionQualityScore(s),
     movementFlag: classifyMovement(s),
+    trendSummary: summarizeProbabilityTrend(s),
+    riskSizing: computeRiskSizingGuidance(s, executionQualityScore(s)),
     paywallHeadlineHint: paywallHeadlineByIntent(computePaywallIntent({
       rankScore: s.rankScore,
       edge: s.edge,
@@ -99,7 +104,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       </div>
       <p class="muted" id="alertsSummary" style="margin-top:8px"></p>
     </div>
-    <div class="card" style="margin-top:12px"><strong>Morning brief</strong><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
     <div id="listState" class="state" hidden></div>
     <div id="listResults" class="grid" style="margin-top:10px"></div>
@@ -283,9 +288,10 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       return;
     }
     morningBriefEl.innerHTML = morningBriefData.map(function(item){
-      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.quality)+'</span></div><p class="muted">Edge '+Number(item.edgePct).toFixed(2)+'% · confidence '+esc(item.confidence)+'</p></article>';
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.quality)+' · '+esc(item.trendSummary?.badge || '0.00pp')+'</span></div><p class="muted">Edge '+Number(item.edgePct).toFixed(2)+'% · confidence '+esc(item.confidence)+' · '+esc(item.trendSummary?.summary || 'No 24h history yet')+'</p></article>';
     }).join('');
   }
+
 
   function renderCalibrationSnapshot(){
     calibrationSnapshotEl.textContent = 'Historical outcomes: ' + calibrationData.wins + ' wins, ' + calibrationData.misses + ' misses (win rate ' + (Number(calibrationData.winRate || 0) * 100).toFixed(1) + '%).';
@@ -412,17 +418,34 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       + '</details>';
   }
 
+  function groupSignalsByEvent(items){
+    var groups = [];
+    items.forEach(function(item){
+      var key = item.event || 'Uncategorized event';
+      var group = groups.find(function(entry){ return entry.event === key; });
+      if(!group){
+        group = { event: key, items: [] };
+        groups.push(group);
+      }
+      group.items.push(item);
+    });
+    return groups;
+  }
+
+
   function signalCard(item){
     var edgePct = (item.edge * 100).toFixed(2);
     var eligible = isAlertEligible(item, loadAlertPrefs());
     var watchlisted = isWatchlisted(item.id);
     var movement = item.movementFlag || { label: 'Normal', driftPp: 0, reliability: 0 };
     var trend = sparkline((item.probabilityHistory || []).slice(-5));
+    var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
     return '<article class="card" data-id="'+esc(item.id)+'">'
-      + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+' · '+esc(movement.label)+'</span></div>'
+      + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+' · '+esc(movement.label)+' · '+esc(trendSummary.badge)+'</span></div>'
       + '<p class="muted">'+esc(item.event)+'</p>'
       + '<p class="muted">Move '+(item.move>0?'+':'')+item.move+' · Edge '+edgePct+'% · Freshness '+item.freshnessSeconds+'s · CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</p>'
       + '<p class="muted">Movement drift '+(Number(movement.driftPp || 0) > 0 ? '+' : '')+Number(movement.driftPp || 0).toFixed(2)+'pp · reliability '+(Number(movement.reliability || 0)*100).toFixed(0)+'%</p>'
+      + '<p class="muted">24h delta '+esc(trendSummary.summary)+'</p>'
       + '<div style="margin-top:8px">'+trend+'</div>'
       + '<p class="muted">Score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+'</p>'
       + explainabilityDrawer(item)
@@ -434,6 +457,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div></article>';
   }
+
 
   function renderMostClicked(){
     var payload = loadTelemetry();
@@ -455,6 +479,19 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.clickScore.toFixed(2)+'</span></div><p class="muted">Clicks '+Number(item.clickCount||0)+' · unique visitors '+Number(item.uniqueVisitors||0)+' · decay score '+item.clickScore.toFixed(2)+'</p><div class="actions"><a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a></div></article>';
     }).join('');
   }
+
+  function downloadTextFile(filename, content, mimeType){
+    var blob = new Blob([String(content || '')], { type: mimeType || 'text/plain;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
+  }
+
 
   function renderMostExecuted(){
     var events = loadFunnel();
@@ -543,14 +580,18 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     if(!sorted.length){ listState.hidden=false; listState.textContent='No results match this search/filter.'; listResults.innerHTML=''; return; }
 
     listState.hidden = true;
-    listResults.innerHTML = sorted.map(signalCard).join('');
+    listResults.innerHTML = groupSignalsByEvent(sorted).map(function(group){
+      return '<section class="card"><div class="row"><strong>'+esc(group.event)+'</strong><span class="pill">'+group.items.length+' markets</span></div><div class="grid" style="margin-top:10px">'+group.items.map(signalCard).join('')+'</div></section>';
+    }).join('');
     sorted.forEach(function(item){ recordFunnel('impression', item.id); });
     renderAlertsSummary();
     renderFunnel();
   }
 
+
   function preTradeChecklist(item){
     var eq = item.executionQuality || { score: 0, expectedSlippageBps: 0, guidance: [] };
+    var sizing = item.riskSizing || computeRiskSizingGuidance(item, eq);
     var checks = [
       { label: 'Execution quality score >= 60 ('+Number(eq.score || 0).toFixed(1)+')', ok: Number(eq.score || 0) >= 60 },
       { label: 'Expected slippage <= 35 bps ('+Number(eq.expectedSlippageBps || 0).toFixed(1)+' bps)', ok: Number(eq.expectedSlippageBps || 0) <= 35 },
@@ -559,18 +600,22 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       { label: 'Depth >= 250', ok: Number(item.depth||0) >= 250 },
       { label: 'Fresh quote <= 900s', ok: Number(item.freshnessSeconds||9999) <= 900 },
       { label: 'Model edge >= 4%', ok: Math.abs(Number(item.edge||0))*100 >= 4 },
+      { label: 'Risk sizing '+sizing.label+' ('+Number(sizing.multiplier).toFixed(2)+'x)', ok: sizing.tier !== 'watch' },
     ];
-    return checks;
+    return { checks: checks, sizing: sizing };
   }
 
   function openPreTradeSheet(item){
-    var checks = preTradeChecklist(item);
+    var checklist = preTradeChecklist(item);
+    var checks = checklist.checks;
+    var sizing = checklist.sizing;
     var eq = item.executionQuality || { guidance: [] };
     preTradeBody.innerHTML = '<div class="row"><strong>Pre-Trade Opportunity Check</strong><button class="btn" data-close="preTradeModal">Close</button></div>'
       + '<p class="muted">'+esc(item.title)+' · one-tap trade path</p>'
       + '<div class="grid">'
       + checks.map(function(c){return '<div class="card"><div class="row"><span>'+esc(c.label)+'</span><strong class="'+(c.ok?'ok':'warn')+'">'+(c.ok?'PASS':'REVIEW')+'</strong></div></div>';}).join('')
       + '</div>'
+      + '<div class="card" style="margin-top:10px"><strong>Risk sizing</strong><p class="muted">Suggested '+esc(sizing.label)+' position · '+esc(sizing.summary)+'</p></div>'
       + '<p class="muted" style="margin-top:8px">Execution guidance: '+esc((eq.guidance || []).join(' · '))+'</p>'
       + '<div class="actions">'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
@@ -578,6 +623,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     preTradeModal.classList.add('show');
     preTradeModal.setAttribute('aria-hidden','false');
   }
+
 
   function openPaywall(selected){
     var offer = paywallOffer(selected);
@@ -607,16 +653,19 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     var medianDepth = Number(compare.median.depth || 0).toFixed(0);
     var medianFreshness = Number(compare.median.freshnessSeconds || 0).toFixed(0);
     var shareText = buildShareText(item);
+    var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
     detailPanel.innerHTML = '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
       + '<p class="muted">'+esc(item.event)+' · last updated '+esc(item.lastUpdated)+'</p>'
       + '<div class="row" style="margin-top:8px"><div>Market prob: <strong>'+(item.marketProb*100).toFixed(2)+'%</strong></div><div>Model prob: <strong>'+(item.modelProb*100).toFixed(2)+'%</strong></div></div>'
       + '<p class="muted">Confidence interval: '+(lo*100).toFixed(2)+'% to '+(hi*100).toFixed(2)+'%</p>'
+      + '<div class="card" style="margin-top:10px"><strong>24h probability delta</strong><p class="muted">'+esc(trendSummary.summary)+' · acceleration '+esc(trendSummary.accelerationLabel)+'</p></div>'
       + sparkline(item.probabilityHistory || [])
       + '<div class="drivers">'+drivers+'</div>'
       + explainabilityDrawer(item)
       + '<div class="card" style="margin-top:10px"><strong>Compare vs watchlist median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median · Depth '+selectedDepth+' vs '+medianDepth+' median · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median · Recency score '+selectedRecency.toFixed(0)+'</p></div>'
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
+      + '<button class="btn" data-action="share-summary" data-id="'+esc(item.id)+'">Share summary</button>'
       + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div>';
@@ -625,6 +674,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     stickyTradeCta.setAttribute('data-id', item.id || '');
     stickyTradeCta.textContent = 'Trade ' + item.title + ' on Kalshi';
   }
+
 
   function show(tab){
     views.forEach(function(v){v.hidden = v.dataset.view !== tab;});
@@ -693,6 +743,18 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     a.remove();
     URL.revokeObjectURL(url);
   });
+  document.getElementById('exportBriefCsvBtn').addEventListener('click', function(){
+    downloadTextFile('forecast-futures-morning-brief.csv', morningBriefToCsv(morningBriefData), 'text/csv;charset=utf-8');
+  });
+  document.getElementById('shareBriefSummaryBtn').addEventListener('click', function(){
+    var selected = data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null;
+    var payload = buildSummaryShareText({ briefItems: morningBriefData, selectedItem: selected, compare: compareMarketToMedian(data, state.selectedId) });
+    Promise.resolve(copyShareText(payload)).then(function(done){
+      if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(payload); }
+      if(!done){ window.prompt('Copy summary', payload); }
+    });
+  });
+
   document.getElementById('saveAlertPrefs').addEventListener('click', function(){
     var prefs = {
       minEdgePercent: Number(document.getElementById('prefMinEdge').value || defaultPrefs.minEdgePercent),
@@ -744,6 +806,15 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
         if(!done){ window.prompt('Copy trade link', payload); }
       });
     }
+    if(action==='share-summary'){
+      var summaryItem = item || data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null;
+      var summaryPayload = buildSummaryShareText({ briefItems: morningBriefData, selectedItem: summaryItem, compare: compareMarketToMedian(data, state.selectedId) });
+      Promise.resolve(copyShareText(summaryPayload)).then(function(done){
+        if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(summaryPayload); }
+        if(!done){ window.prompt('Copy summary', summaryPayload); }
+      });
+    }
+
     if(action==='startTrial'){
       recordFunnel('trial', id);
       renderFunnel();
