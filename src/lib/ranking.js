@@ -31,6 +31,17 @@ function deriveModelProb(marketProb, move, volume) {
   return clamp(marketProb + moveLift + volumeLift);
 }
 
+function qualityGrade({ confidenceScore, freshnessSeconds, spread, depth }) {
+  const fresh = Number(freshnessSeconds || 0) <= 600;
+  const liquid = Number(depth || 0) >= 300;
+  const tight = Number(spread || 1) <= 0.05;
+
+  if (confidenceScore >= 0.9 && fresh && liquid && tight) return 'A';
+  if (confidenceScore >= 0.6 && fresh && liquid) return 'B';
+  if (confidenceScore >= 0.35 && Number(freshnessSeconds || 0) <= 1200) return 'C';
+  return 'D';
+}
+
 export function scoreOpportunity(signal) {
   const marketProb = clamp(Number(signal.price) / 100);
   const modelProb = signal.modelProb == null
@@ -57,6 +68,12 @@ export function scoreOpportunity(signal) {
     (recency * 10);
   const rankScore = Math.max(0, weighted - tradeabilityPenalty);
 
+  const uncertaintyHalfBand = Number(((1 - confidenceScore) * 0.2 + (1 - recency) * 0.06).toFixed(4));
+  const confidenceInterval = [
+    Number(clamp(modelProb - uncertaintyHalfBand).toFixed(4)),
+    Number(clamp(modelProb + uncertaintyHalfBand).toFixed(4)),
+  ];
+
   return {
     ...signal,
     marketProb,
@@ -64,6 +81,14 @@ export function scoreOpportunity(signal) {
     edge,
     rankScore,
     isTradeable,
+    uncertaintyHalfBand,
+    confidenceInterval,
+    signalQualityGrade: qualityGrade({
+      confidenceScore,
+      freshnessSeconds: signal.freshnessSeconds,
+      spread: signal.spread,
+      depth: signal.depth,
+    }),
     scoreBreakdown: {
       move: Number(Math.min(15, Math.abs(Number(signal.move || 0)) * 0.9).toFixed(2)),
       volumeAnomaly: Number((volumeAnomaly * 15).toFixed(2)),

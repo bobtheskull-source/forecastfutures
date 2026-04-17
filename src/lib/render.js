@@ -40,7 +40,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
 .modal-card{width:100%;max-width:980px;margin:0 auto;background:#0f172a;border:1px solid rgba(148,163,184,.25);border-radius:16px;padding:14px;max-height:82vh;overflow:auto}
 .inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inputs label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:#cbd5e1}
 .inputs input,.inputs select{padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb}
-.list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}
+.list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}.seg{display:flex;gap:8px;flex-wrap:wrap}.seg .active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}.sticky-trade{position:fixed;left:50%;transform:translateX(-50%);bottom:92px;z-index:30;width:min(980px,calc(100% - 24px));display:flex;justify-content:center}
 @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}}
 </style>
 </head>
@@ -66,13 +66,24 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
         <button class="chip" data-sort="score">Sort: score</button>
         <button class="chip" data-sort="recency">Sort: recency</button>
         <button class="chip" data-sort="mostClicked">Sort: most clicked</button>
+        <button class="chip" id="watchlistBtn">Watchlist only: off</button>
         <button class="chip" id="alertControlsBtn">Alert controls</button>
+      </div>
+      <div class="seg" style="margin-top:8px">
+        <button class="chip active" id="feedNowBtn">Feed: Now</button>
+        <button class="chip" id="feedDiscoverBtn">Feed: Discover</button>
+        <button class="chip" id="presetHighEdgeBtn">Preset: edge > 5%</button>
+        <button class="chip" id="presetExpiringBtn">Preset: resolves < 7d</button>
+        <button class="chip" id="resetPresetBtn">Preset: clear</button>
+        <button class="chip" id="exportCsvBtn">Export CSV</button>
       </div>
       <p class="muted" id="alertsSummary" style="margin-top:8px"></p>
     </div>
     <div id="listState" class="state" hidden></div>
     <div id="listResults" class="grid" style="margin-top:10px"></div>
     <div class="card" style="margin-top:12px"><strong>Most clicked (time-decay)</strong><div id="mostClicked" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><strong>Rising interest (velocity)</strong><div id="risingInterest" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><strong>Funnel analytics</strong><p id="funnelStats" class="muted" style="margin-top:8px"></p></div>
   </section>
 
   <section class="view section" data-view="detail" hidden>
@@ -130,6 +141,8 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   <div class="modal-card" id="paywallBody"></div>
 </div>
 
+<div class="sticky-trade"><a id="stickyTradeCta" class="btn primary" href="#" target="_blank" rel="noopener" data-action="trade">Trade selected on Kalshi</a></div>
+
 <nav class="nav" aria-label="Primary">
   <button class="active" data-tab="list">List</button>
   <button data-tab="detail">Detail</button>
@@ -143,10 +156,13 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   var telemetryKey = 'ff_clicks_v1';
   var visitorKey = 'ff_visitor_id';
   var alertKey = 'ff_alert_prefs_v1';
+  var watchlistKey = 'ff_watchlist_v1';
+  var funnelKey = 'ff_funnel_events_v1';
+  var paywallSeenKey = 'ff_paywall_seen_v1';
   var halfLifeMs = 6 * 60 * 60 * 1000;
   var defaultPrefs = { minEdgePercent: 4, confidenceFloor: 'medium', quietHoursStart: 22, quietHoursEnd: 7, cooldownMinutes: 30 };
   var confRank = { low: 1, medium: 2, high: 3 };
-  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0 };
+  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null };
 
   var buttons = Array.from(document.querySelectorAll('.nav button'));
   var views = Array.from(document.querySelectorAll('.view'));
@@ -156,6 +172,8 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   var detailPanel = document.getElementById('detailPanel');
   var detailState = document.getElementById('detailState');
   var mostClickedEl = document.getElementById('mostClicked');
+  var risingInterestEl = document.getElementById('risingInterest');
+  var funnelStatsEl = document.getElementById('funnelStats');
   var alertsSummaryEl = document.getElementById('alertsSummary');
   var sortChips = Array.from(document.querySelectorAll('[data-sort]'));
 
@@ -164,6 +182,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   var alertModal = document.getElementById('alertModal');
   var paywallModal = document.getElementById('paywallModal');
   var paywallBody = document.getElementById('paywallBody');
+  var stickyTradeCta = document.getElementById('stickyTradeCta');
 
   function esc(v){return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
 
@@ -194,6 +213,52 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     var now = Date.now();
     var entries = payload[marketId] || [];
     return entries.reduce(function(acc,e){return acc + Math.exp(-(now-e.ts)/halfLifeMs);},0);
+  }
+
+  function loadWatchlist(){ try { return JSON.parse(localStorage.getItem(watchlistKey) || '[]'); } catch { return []; } }
+  function saveWatchlist(list){ localStorage.setItem(watchlistKey, JSON.stringify(list)); }
+  function toggleWatchlist(id){
+    var list = loadWatchlist();
+    var key = String(id);
+    if(list.includes(key)) list = list.filter(function(x){ return x !== key; });
+    else list.push(key);
+    saveWatchlist(list);
+    return list;
+  }
+  function isWatchlisted(id){ return loadWatchlist().includes(String(id)); }
+
+  function loadFunnel(){ try { return JSON.parse(localStorage.getItem(funnelKey) || '[]'); } catch { return []; } }
+  function saveFunnel(events){ localStorage.setItem(funnelKey, JSON.stringify(events.slice(-500))); }
+  function recordFunnel(type, marketId){
+    var events = loadFunnel();
+    events.push({ type: type, marketId: marketId || null, ts: Date.now() });
+    saveFunnel(events);
+  }
+  function renderFunnel(){
+    var events = loadFunnel();
+    var counts = { impressions: 0, pretrade: 0, trade: 0, paywall: 0, trial: 0 };
+    events.forEach(function(e){
+      if(e.type==='impression') counts.impressions += 1;
+      if(e.type==='pretrade') counts.pretrade += 1;
+      if(e.type==='trade') counts.trade += 1;
+      if(e.type==='paywall') counts.paywall += 1;
+      if(e.type==='trial') counts.trial += 1;
+    });
+    var ctr = counts.impressions ? (counts.trade / counts.impressions) : 0;
+    var cvr = counts.paywall ? (counts.trial / counts.paywall) : 0;
+    funnelStatsEl.textContent = 'impressions ' + counts.impressions + ' · pretrade ' + counts.pretrade + ' · trade ' + counts.trade + ' · paywall ' + counts.paywall + ' · trial ' + counts.trial + ' · CTR ' + (ctr * 100).toFixed(1) + '% · CVR ' + (cvr * 100).toFixed(1) + '%';
+  }
+
+  function risingInterestScore(marketId){
+    var payload = loadTelemetry();
+    var now = Date.now();
+    var entries = payload[marketId] || [];
+    var recent = entries.filter(function(e){ return (now - e.ts) <= 30 * 60 * 1000; });
+    var prior = entries.filter(function(e){ return (now - e.ts) > 30 * 60 * 1000 && (now - e.ts) <= 2 * 60 * 60 * 1000; });
+    var uniqRecent = new Set(recent.map(function(e){ return e.visitor; })).size;
+    var velocity = recent.length * 2 + uniqRecent * 1.5;
+    var baseline = Math.max(1, prior.length / 3);
+    return velocity / baseline;
   }
 
   function loadAlertPrefs(){
@@ -237,13 +302,18 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     return cleaned;
   }
   function shouldShowPaywall(selected){
-    return state.tradeClicks >= 2 || Number(selected && selected.rankScore || 0) >= 65;
+    var seenAt = Number(localStorage.getItem(paywallSeenKey) || 0);
+    var cooloffOver = !seenAt || (Date.now() - seenAt) > 12 * 60 * 60 * 1000;
+    var highIntent = state.tradeClicks >= 2 || Number(selected && selected.rankScore || 0) >= 65;
+    return highIntent && cooloffOver;
   }
   function paywallOffer(selected){
     var rank = Number(selected && selected.rankScore || 0);
     var tier = rank >= 80 ? 'pro' : rank >= 60 ? 'plus' : 'starter';
+    var variant = (visitorId().charCodeAt(0) % 2 === 0) ? 'A' : 'B';
     return {
       tier: tier,
+      variant: variant,
       headline: shouldShowPaywall(selected) ? 'Unlock pro opportunities + faster execution intel' : 'Start your trial for advanced market intel',
       body: compliantCopy('Get explainability, personalized alerts, and execution-quality filters tuned for ' + (selected && selected.title ? selected.title : 'your watchlist') + '.'),
       steps: ['Choose focus markets', 'Set your alert thresholds', 'Activate trial + trade links'],
@@ -286,14 +356,16 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   function signalCard(item){
     var edgePct = (item.edge * 100).toFixed(2);
     var eligible = isAlertEligible(item, loadAlertPrefs());
+    var watchlisted = isWatchlisted(item.id);
     return '<article class="card" data-id="'+esc(item.id)+'">'
-      + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+'</span></div>'
+      + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
       + '<p class="muted">'+esc(item.event)+'</p>'
-      + '<p class="muted">Move '+(item.move>0?'+':'')+item.move+' · Edge '+edgePct+'% · Freshness '+item.freshnessSeconds+'s</p>'
+      + '<p class="muted">Move '+(item.move>0?'+':'')+item.move+' · Edge '+edgePct+'% · Freshness '+item.freshnessSeconds+'s · CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</p>'
       + '<p class="muted">Score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+'</p>'
       + explainabilityDrawer(item)
       + '<div class="actions">'
       + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">View detail</button>'
+      + '<button class="btn" data-action="watch" data-id="'+esc(item.id)+'">'+(watchlisted ? 'Unwatch' : 'Watch')+'</button>'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div></article>';
@@ -311,6 +383,21 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     }).join('');
   }
 
+  function renderRisingInterest(){
+    var ranked = data.map(function(d){ return Object.assign({}, d, { risingScore: risingInterestScore(d.id) }); })
+      .sort(function(a,b){ return b.risingScore - a.risingScore; })
+      .slice(0,5);
+
+    if(!ranked.some(function(item){ return item.risingScore > 0; })){
+      risingInterestEl.innerHTML = '<div class="muted">No rising-interest signal yet.</div>';
+      return;
+    }
+
+    risingInterestEl.innerHTML = ranked.map(function(item){
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+item.risingScore.toFixed(2)+'</span></div><p class="muted">Velocity score (30m vs 2h baseline)</p></article>';
+    }).join('');
+  }
+
   function renderAlertsSummary(){
     var prefs = loadAlertPrefs();
     var eligible = alertEligibleCount(data);
@@ -320,6 +407,26 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   function renderList(){
     var q = String(state.query||'').toLowerCase();
     var filtered = data.filter(function(item){return !q || (item.title+' '+item.event).toLowerCase().includes(q);});
+
+    if(state.feedMode === 'now') {
+      filtered = filtered.filter(function(item){
+        return Number(item.rankScore || 0) >= 65 || Math.abs(Number(item.edge || 0)) >= 0.05;
+      });
+    }
+
+    if(state.watchlistOnly) {
+      var watch = loadWatchlist();
+      filtered = filtered.filter(function(item){ return watch.includes(String(item.id)); });
+    }
+
+    if(state.minEdgePreset != null) {
+      filtered = filtered.filter(function(item){ return Math.abs(Number(item.edge || 0)) * 100 >= state.minEdgePreset; });
+    }
+
+    if(state.maxResolveHours != null) {
+      filtered = filtered.filter(function(item){ return Number(item.hoursToResolve || 48) <= state.maxResolveHours; });
+    }
+
     var sorted = sortSignals(filtered);
 
     if(!data.length){ listState.hidden=false; listState.textContent='Loading opportunities...'; listResults.innerHTML=''; return; }
@@ -327,7 +434,9 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
 
     listState.hidden = true;
     listResults.innerHTML = sorted.map(signalCard).join('');
+    sorted.forEach(function(item){ recordFunnel('impression', item.id); });
     renderAlertsSummary();
+    renderFunnel();
   }
 
   function preTradeChecklist(item){
@@ -358,7 +467,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   function openPaywall(selected){
     var offer = paywallOffer(selected);
     paywallBody.innerHTML = '<div class="row"><strong>'+esc(offer.headline)+'</strong><button class="btn" data-close="paywallModal">Close</button></div>'
-      + '<p class="muted">Plan: '+esc(offer.tier)+'</p>'
+      + '<p class="muted">Plan: '+esc(offer.tier)+' · Variant '+esc(offer.variant)+'</p>'
       + '<p class="muted">'+esc(offer.body)+'</p>'
       + '<div class="card"><strong>Onboarding to trial</strong><ol class="muted">'+offer.steps.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ol></div>'
       + '<div class="actions"><button class="btn primary" data-action="startTrial">'+esc(offer.cta)+'</button></div>';
@@ -373,7 +482,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     var lo = item.confidenceInterval ? item.confidenceInterval[0] : 0;
     var hi = item.confidenceInterval ? item.confidenceInterval[1] : 0;
     var drivers = (item.scenarioDrivers||[]).map(function(d){return '<span class="driver">'+esc(d)+'</span>';}).join('');
-    detailPanel.innerHTML = '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+'</span></div>'
+    detailPanel.innerHTML = '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
       + '<p class="muted">'+esc(item.event)+' · last updated '+esc(item.lastUpdated)+'</p>'
       + '<div class="row" style="margin-top:8px"><div>Market prob: <strong>'+(item.marketProb*100).toFixed(2)+'%</strong></div><div>Model prob: <strong>'+(item.modelProb*100).toFixed(2)+'%</strong></div></div>'
       + '<p class="muted">Confidence interval: '+(lo*100).toFixed(2)+'% to '+(hi*100).toFixed(2)+'%</p>'
@@ -384,6 +493,10 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div>';
+
+    stickyTradeCta.setAttribute('href', item.tradeUrl || '#');
+    stickyTradeCta.setAttribute('data-id', item.id || '');
+    stickyTradeCta.textContent = 'Trade ' + item.title + ' on Kalshi';
   }
 
   function show(tab){
@@ -415,6 +528,40 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   sortChips.forEach(function(chip){chip.addEventListener('click', function(){state.sort = chip.dataset.sort || 'score'; renderList();});});
 
   document.getElementById('alertControlsBtn').addEventListener('click', openAlertPrefsModal);
+  document.getElementById('watchlistBtn').addEventListener('click', function(){
+    state.watchlistOnly = !state.watchlistOnly;
+    this.textContent = 'Watchlist only: ' + (state.watchlistOnly ? 'on' : 'off');
+    renderList();
+  });
+  document.getElementById('feedNowBtn').addEventListener('click', function(){
+    state.feedMode = 'now';
+    document.getElementById('feedNowBtn').classList.add('active');
+    document.getElementById('feedDiscoverBtn').classList.remove('active');
+    renderList();
+  });
+  document.getElementById('feedDiscoverBtn').addEventListener('click', function(){
+    state.feedMode = 'discover';
+    document.getElementById('feedDiscoverBtn').classList.add('active');
+    document.getElementById('feedNowBtn').classList.remove('active');
+    renderList();
+  });
+  document.getElementById('presetHighEdgeBtn').addEventListener('click', function(){ state.minEdgePreset = 5; renderList(); });
+  document.getElementById('presetExpiringBtn').addEventListener('click', function(){ state.maxResolveHours = 168; renderList(); });
+  document.getElementById('resetPresetBtn').addEventListener('click', function(){ state.minEdgePreset = null; state.maxResolveHours = null; renderList(); });
+  document.getElementById('exportCsvBtn').addEventListener('click', function(){
+    var header = ['id','title','event','rankScore','edgePercent','quality','tradeUrl'];
+    var rows = sortSignals(data).map(function(item){ return [item.id,item.title,item.event,Number(item.rankScore||0).toFixed(2),(Math.abs(Number(item.edge||0))*100).toFixed(2),item.signalQualityGrade||'C',item.tradeUrl||'']; });
+    var csv = [header.join(',')].concat(rows.map(function(r){ return r.map(function(c){ c=String(c||''); return (c.includes(',')||c.includes('"')) ? '"'+c.replaceAll('"','""')+'"' : c; }).join(','); })).join('\n') + '\n';
+    var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'forecast-opportunities.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
   document.getElementById('saveAlertPrefs').addEventListener('click', function(){
     var prefs = {
       minEdgePercent: Number(document.getElementById('prefMinEdge').value || defaultPrefs.minEdgePercent),
@@ -444,13 +591,23 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     var item = data.find(function(x){ return x.id === id; });
 
     if(action==='view'){ state.selectedId = id; show('detail'); renderDetail(); }
-    if(action==='pretrade' && item){ openPreTradeSheet(item); }
+    if(action==='watch' && item){ toggleWatchlist(id); renderList(); }
+    if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet(item); renderFunnel(); }
     if(action==='trade'){
       recordClick(id);
+      recordFunnel('trade', id);
       renderMostClicked();
-      if(item && shouldShowPaywall(item)) openPaywall(item);
+      renderRisingInterest();
+      renderFunnel();
+      if(item && shouldShowPaywall(item)) {
+        recordFunnel('paywall', id);
+        localStorage.setItem(paywallSeenKey, String(Date.now()));
+        openPaywall(item);
+      }
     }
     if(action==='startTrial'){
+      recordFunnel('trial', id);
+      renderFunnel();
       paywallBody.innerHTML = '<div class="row"><strong>Trial activated</strong><button class="btn" data-close="paywallModal">Close</button></div>'
         + '<p class="muted">Your onboarding is complete. Alerts + pro opportunity panel unlocked for 7 days.</p>'
         + '<p class="muted">Forecasts are probabilistic and not financial advice. Trade responsibly.</p>';
@@ -460,7 +617,9 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   state.tradeClicks = totalTradeClicks();
   renderList();
   renderMostClicked();
+  renderRisingInterest();
   renderDetail();
+  renderFunnel();
   var tab = location.hash.replace('#','');
   show(['list','detail','trends','archive'].includes(tab) ? tab : 'list');
 })();

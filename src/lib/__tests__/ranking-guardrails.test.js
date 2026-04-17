@@ -23,6 +23,10 @@ test('ranking emits explainability components including volume anomaly', () => {
   assert.ok(Object.hasOwn(a.scoreBreakdown, 'modelEdge'));
   assert.ok(Object.hasOwn(a.scoreBreakdown, 'liquidity'));
   assert.ok(Object.hasOwn(a.scoreBreakdown, 'recency'));
+  assert.ok(['A', 'B', 'C', 'D'].includes(a.signalQualityGrade));
+  assert.equal(Array.isArray(a.confidenceInterval), true);
+  assert.equal(a.confidenceInterval.length, 2);
+  assert.ok(a.confidenceInterval[0] <= a.confidenceInterval[1]);
 });
 
 test('execution quality report flags low-liquidity/wide-spread/stale', () => {
