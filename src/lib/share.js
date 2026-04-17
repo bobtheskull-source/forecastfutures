@@ -38,6 +38,35 @@ export function buildSummaryShareText({ briefItems = [], selectedItem = null, co
   return lines.join('\n');
 }
 
+export function buildReviewShareText({ review = {}, archiveSummary = null } = {}) {
+  const lines = ['Forecast Futures review'];
+
+  if (archiveSummary) {
+    lines.push(`Archive: ${Number(archiveSummary.wins || 0)} wins · ${Number(archiveSummary.misses || 0)} misses`);
+    if (archiveSummary.topWin?.market) {
+      lines.push(`Top win: ${archiveSummary.topWin.market} · ${archiveSummary.topWin.outcome?.label || 'correct'}`);
+    }
+    if (archiveSummary.topMiss?.market) {
+      lines.push(`Top miss: ${archiveSummary.topMiss.market} · ${archiveSummary.topMiss.outcome?.label || 'missed'}`);
+    }
+  }
+
+  if (review?.generatedAt) {
+    lines.push(`Generated: ${review.generatedAt}`);
+  }
+
+  const forecasts = Array.isArray(review?.forecasts) ? review.forecasts : [];
+  if (forecasts.length) {
+    lines.push('Forecast theses:');
+    forecasts.slice(0, 3).forEach((item, index) => {
+      lines.push(`${index + 1}. ${item.market} · score ${Number(item.score || 0).toFixed(2)}`);
+      lines.push(`   ${item.thesis}`);
+    });
+  }
+
+  return lines.join('\n');
+}
+
 export async function copyShareText(text, clipboard = globalThis.navigator?.clipboard) {
   if (clipboard?.writeText) {
     await clipboard.writeText(String(text || ''));

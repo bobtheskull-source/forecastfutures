@@ -8,10 +8,11 @@ import { summarizeProbabilityTrend } from './trend.js';
 import { computeRiskSizingGuidance } from './risk-sizing.js';
 import { computePaywallIntent, paywallHeadlineByIntent } from './paywall-intent.js';
 import { applyScanPreset, compareMarketToMedian, loadScanPreset, saveScanPreset } from './scan-presets.js';
-import { buildShareText, buildSummaryShareText, copyShareText } from './share.js';
+import { buildShareText, buildSummaryShareText, buildReviewShareText, copyShareText } from './share.js';
 import { morningBriefToCsv } from './brief-export.js';
+import { forecastReviewToCsv } from './review-export.js';
 
-export function renderApp({ markets, outliers, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails }) {
+export function renderApp({ markets, outliers, review = {}, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails }) {
   const summary = archiveSummary(archive);
   const morningBrief = buildMorningBrief(outliers);
   const calibrationReport = buildCalibrationReport(archive);
@@ -34,6 +35,9 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       edge: s.edge,
     })),
   }));
+  const reviewItems = Array.isArray(review?.forecasts) ? review.forecasts : [];
+  const reviewCsvText = forecastReviewToCsv({ review, archive });
+  const reviewShareText = buildReviewShareText({ review, archiveSummary: summary });
 
   return `<!doctype html>
 <html lang="en">
@@ -125,6 +129,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     <div class="grid">
       <article class="card"><strong>Latency metrics</strong><p class="muted">p50: ${guardrails?.metrics?.p50LatencyMs ?? 0}ms · p95: ${guardrails?.metrics?.p95LatencyMs ?? 0}ms</p></article>
       <article class="card"><strong>Quality gate</strong><p class="muted">Depth ≥ ${guardrails?.metrics?.executionQualityGate?.minDepth ?? 250}, Volume ≥ ${guardrails?.metrics?.executionQualityGate?.minVolume ?? 200}, Spread ≤ ${guardrails?.metrics?.executionQualityGate?.maxSpread ?? 0.06}, Freshness ≤ ${guardrails?.metrics?.executionQualityGate?.freshnessThresholdSeconds ?? 900}s</p></article>
+      <article class="card"><strong>Watchlist health</strong><p id="watchlistHealth" class="muted" style="margin-top:8px"></p></article>
       <article class="card"><strong>Gate reason counts</strong><p class="muted">low depth: ${guardrails?.metrics?.reasonCounts?.low_liquidity_depth ?? 0} · low volume: ${guardrails?.metrics?.reasonCounts?.low_liquidity_volume ?? 0} · wide spread: ${guardrails?.metrics?.reasonCounts?.wide_spread ?? 0} · stale: ${guardrails?.metrics?.reasonCounts?.stale_quote ?? 0}</p></article>
     </div>
     <div class="card" style="margin-top:12px"><strong>Move rules</strong><ul class="muted">${rules.map((r) => `<li>${escapeHtml(r.label)}: move >= ${r.minMove}, volume >= ${r.minVolume}, score floor ${r.scoreFloor}</li>`).join('')}</ul></div>
@@ -133,7 +138,24 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
 
   <section class="view section" data-view="archive" hidden>
     <h2>Archive</h2>
-    <div class="grid">${archive.map((item) => `<article class="card"><div class="row"><strong>${escapeHtml(item.market)}</strong><span class="pill">${item.correct ? 'win' : 'miss'}</span></div><p>${escapeHtml(item.outcome.label)}</p><p class="muted">Forecast direction: ${escapeHtml(item.direction)} · Outcome: ${escapeHtml(item.outcome.direction)}</p></article>`).join('')}</div>
+    <div class="card">
+      <div class="row"><strong>Review summary</strong><span class="pill">${summary.wins} wins · ${summary.misses} misses</span></div>
+      <p class="muted">Top win: ${escapeHtml(summary.topWin?.market || 'n/a')} · Top miss: ${escapeHtml(summary.topMiss?.market || 'n/a')}</p>
+      <div class="actions">
+        <button class="btn" id="exportReviewCsvBtn">Export review CSV</button>
+        <button class="btn" id="shareReviewSummaryBtn">Share review</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <strong>Forecast theses</strong>
+      <div class="grid" style="margin-top:8px">
+        ${reviewItems.length ? reviewItems.map((item, index) => `<article class="card"><div class="row"><strong>${index + 1}. ${escapeHtml(item.market || item.title || 'Forecast')}</strong><span class="pill">score ${Number(item.score || 0).toFixed(2)}</span></div><p class="muted">${escapeHtml(item.event || 'No event')} · ${escapeHtml(item.direction || 'n/a')}</p><p class="muted">Thesis: ${escapeHtml(item.thesis || 'No thesis')}</p><p class="muted">Post-mortem prompt: ${escapeHtml(item.postMortem || 'No post-mortem prompt')}</p></article>`).join('') : '<div class="muted">No forecast review items yet.</div>'}
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <strong>Resolved archive</strong>
+      <div class="grid" style="margin-top:8px">${archive.map((item) => `<article class="card"><div class="row"><strong>${escapeHtml(item.market)}</strong><span class="pill">${escapeHtml(item.correct ? 'correct' : 'missed')}</span></div><p>${escapeHtml(item.outcome.label)}</p><p class="muted">Forecast direction: ${escapeHtml(item.direction)} · Outcome: ${escapeHtml(item.outcome.direction)}</p><p class="muted">Score ${Number(item.score || 0).toFixed(2)} · accuracy ${escapeHtml(item.accuracyLabel || (item.correct ? 'correct' : 'missed'))}</p></article>`).join('')}</div>
+    </div>
     <div class="card" style="margin-top:12px"><p class="muted">Correct: ${summary.wins} · Missed: ${summary.misses}</p></div>
   </section>
 </main>
@@ -207,6 +229,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   var mostExecutedEl = document.getElementById('mostExecuted');
   var risingInterestEl = document.getElementById('risingInterest');
   var funnelStatsEl = document.getElementById('funnelStats');
+  var watchlistHealthEl = document.getElementById('watchlistHealth');
   var alertsSummaryEl = document.getElementById('alertsSummary');
   var sortChips = Array.from(document.querySelectorAll('[data-sort]'));
 
@@ -295,6 +318,32 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
 
   function renderCalibrationSnapshot(){
     calibrationSnapshotEl.textContent = 'Historical outcomes: ' + calibrationData.wins + ' wins, ' + calibrationData.misses + ' misses (win rate ' + (Number(calibrationData.winRate || 0) * 100).toFixed(1) + '%).';
+  }
+
+  function renderWatchlistHealth(){
+    if(!watchlistHealthEl) return;
+    var watch = loadWatchlist();
+    if(!watch.length){
+      watchlistHealthEl.innerHTML = '<div class="muted">No saved markets yet. Watch a few ideas to see watchlist health.</div>';
+      return;
+    }
+    var saved = data.filter(function(item){ return watch.includes(String(item.id)); });
+    if(!saved.length){
+      watchlistHealthEl.innerHTML = '<div class="muted">Saved markets are not in the current feed.</div>';
+      return;
+    }
+    var median = function(values){
+      var list = values.map(function(value){ return Number(value); }).filter(Number.isFinite).sort(function(a, b){ return a - b; });
+      if(!list.length) return 0;
+      var mid = Math.floor(list.length / 2);
+      return list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2;
+    };
+    var medEdge = median(saved.map(function(item){ return Math.abs(Number(item.edge || 0)) * 100; }));
+    var medDepth = median(saved.map(function(item){ return Number(item.depth || 0); }));
+    var medFresh = median(saved.map(function(item){ return Number(item.freshnessSeconds || 0); }));
+    var tradeable = saved.filter(function(item){ return item.isTradeable !== false; }).length;
+    var label = medEdge >= 5 && medDepth >= 500 && medFresh <= 900 ? 'healthy' : medEdge >= 3 ? 'watch' : 'thin';
+    watchlistHealthEl.innerHTML = '<div class="row"><span>'+saved.length+' saved markets</span><span class="pill">'+label+'</span></div><p class="muted">Median edge '+medEdge.toFixed(2)+'% · depth '+medDepth.toFixed(0)+' · freshness '+medFresh.toFixed(0)+'s · tradeable '+tradeable+'/'+saved.length+'</p>';
   }
 
   function risingInterestScore(marketId){
@@ -585,6 +634,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     }).join('');
     sorted.forEach(function(item){ recordFunnel('impression', item.id); });
     renderAlertsSummary();
+    renderWatchlistHealth();
     renderFunnel();
   }
 
@@ -755,6 +805,16 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     });
   });
 
+  document.getElementById('exportReviewCsvBtn').addEventListener('click', function(){
+    downloadTextFile('forecast-futures-review.csv', reviewCsvText, 'text/csv;charset=utf-8');
+  });
+  document.getElementById('shareReviewSummaryBtn').addEventListener('click', function(){
+    Promise.resolve(copyShareText(reviewShareText)).then(function(done){
+      if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(reviewShareText); }
+      if(!done){ window.prompt('Copy review summary', reviewShareText); }
+    });
+  });
+
   document.getElementById('saveAlertPrefs').addEventListener('click', function(){
     var prefs = {
       minEdgePercent: Number(document.getElementById('prefMinEdge').value || defaultPrefs.minEdgePercent),
@@ -828,6 +888,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   renderList();
   renderMorningBrief();
   renderCalibrationSnapshot();
+  renderWatchlistHealth();
   renderMostClicked();
   renderMostExecuted();
   renderRisingInterest();

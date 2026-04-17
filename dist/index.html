@@ -88,6 +88,7 @@
     <div class="grid">
       <article class="card"><strong>Latency metrics</strong><p class="muted">p50: 76.68ms · p95: 107.07ms</p></article>
       <article class="card"><strong>Quality gate</strong><p class="muted">Depth ≥ 250, Volume ≥ 200, Spread ≤ 0.06, Freshness ≤ 900s</p></article>
+      <article class="card"><strong>Watchlist health</strong><p id="watchlistHealth" class="muted" style="margin-top:8px"></p></article>
       <article class="card"><strong>Gate reason counts</strong><p class="muted">low depth: 1 · low volume: 0 · wide spread: 1 · stale: 0</p></article>
     </div>
     <div class="card" style="margin-top:12px"><strong>Move rules</strong><ul class="muted"><li>breakout candidate: move >= 12, volume >= 400, score floor 22</li><li>liquid mover: move >= 8, volume >= 700, score floor 18</li><li>watchlist drift: move >= 5, volume >= 1000, score floor 15</li></ul></div>
@@ -96,7 +97,24 @@
 
   <section class="view section" data-view="archive" hidden>
     <h2>Archive</h2>
-    <div class="grid"><article class="card"><div class="row"><strong>CPI surprise next print</strong><span class="pill">win</span></div><p>Real world confirmed the move</p><p class="muted">Forecast direction: up · Outcome: up</p></article><article class="card"><div class="row"><strong>Fed cuts at next meeting</strong><span class="pill">win</span></div><p>Signal overshot and reversed</p><p class="muted">Forecast direction: down · Outcome: down</p></article><article class="card"><div class="row"><strong>Major storm makes landfall</strong><span class="pill">win</span></div><p>Event pressure kept building</p><p class="muted">Forecast direction: up · Outcome: up</p></article></div>
+    <div class="card">
+      <div class="row"><strong>Review summary</strong><span class="pill">3 wins · 0 misses</span></div>
+      <p class="muted">Top win: CPI surprise next print · Top miss: n/a</p>
+      <div class="actions">
+        <button class="btn" id="exportReviewCsvBtn">Export review CSV</button>
+        <button class="btn" id="shareReviewSummaryBtn">Share review</button>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <strong>Forecast theses</strong>
+      <div class="grid" style="margin-top:8px">
+        <article class="card"><div class="row"><strong>1. CPI surprise next print</strong><span class="pill">score 79.48</span></div><p class="muted">BLS CPI release · up</p><p class="muted">Thesis: Large up move with market/model edge 28.33% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>2. Fed cuts at next meeting</strong><span class="pill">score 71.35</span></div><p class="muted">FOMC decision · down</p><p class="muted">Thesis: Large down move with market/model edge -18.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>3. Major storm makes landfall</strong><span class="pill">score 64.56</span></div><p class="muted">Weather event · up</p><p class="muted">Thesis: Large up move with market/model edge 30.00% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <strong>Resolved archive</strong>
+      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>CPI surprise next print</strong><span class="pill">correct</span></div><p>Real world confirmed the move</p><p class="muted">Forecast direction: up · Outcome: up</p><p class="muted">Score 79.48 · accuracy correct</p></article><article class="card"><div class="row"><strong>Fed cuts at next meeting</strong><span class="pill">correct</span></div><p>Signal overshot and reversed</p><p class="muted">Forecast direction: down · Outcome: down</p><p class="muted">Score 71.35 · accuracy correct</p></article><article class="card"><div class="row"><strong>Major storm makes landfall</strong><span class="pill">correct</span></div><p>Event pressure kept building</p><p class="muted">Forecast direction: up · Outcome: up</p><p class="muted">Score 64.56 · accuracy correct</p></article></div>
+    </div>
     <div class="card" style="margin-top:12px"><p class="muted">Correct: 3 · Missed: 0</p></div>
   </section>
 </main>
@@ -143,7 +161,7 @@
 
 <script>
 (function(){
-  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-17T03:39:19.343Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":79.48471541130587,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-17T03:39:19.343Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Elevated","direction":"up","driftPp":11,"amplitudePp":11,"reliability":0.911},"trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 28.33% edge · quality B · execution 82","reason":"28.33% edge · quality B · execution 82","edgePct":28.33,"execScore":81.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-17T03:41:19.343Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":71.35157967159027,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-17T03:41:19.343Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":-16,"amplitudePp":16,"reliability":0.675},"trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 18.00% edge · quality A · execution 69","reason":"18.00% edge · quality A · execution 69","edgePct":18,"execScore":69.1,"quality":"A"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-17T03:34:19.343Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":64.55656080200019,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-17T03:34:19.343Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":16,"amplitudePp":16,"reliability":0.378},"trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 30.00% edge · quality C · execution 39","reason":"30.00% edge · quality C · execution 39","edgePct":30,"execScore":38.6,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel"}];
+  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-17T03:51:58.081Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":79.48471541130587,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-17T03:51:58.081Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Elevated","direction":"up","driftPp":11,"amplitudePp":11,"reliability":0.911},"trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 28.33% edge · quality B · execution 82","reason":"28.33% edge · quality B · execution 82","edgePct":28.33,"execScore":81.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-17T03:53:58.081Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":71.35157967159027,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-17T03:53:58.081Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":-16,"amplitudePp":16,"reliability":0.675},"trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 18.00% edge · quality A · execution 69","reason":"18.00% edge · quality A · execution 69","edgePct":18,"execScore":69.1,"quality":"A"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-17T03:46:58.081Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":64.55656080200019,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-17T03:46:58.081Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":16,"amplitudePp":16,"reliability":0.378},"trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 30.00% edge · quality C · execution 39","reason":"30.00% edge · quality C · execution 39","edgePct":30,"execScore":38.6,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel"}];
   var morningBriefData = [{"id":"inflation-cpi","title":"CPI surprise next print","event":"BLS CPI release","tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","edgePct":28.33,"confidence":"medium","quality":"B","trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"fed-cut","title":"Fed cuts at next meeting","event":"FOMC decision","tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","edgePct":18,"confidence":"high","quality":"A","trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"storm-track","title":"Major storm makes landfall","event":"Weather event","tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","edgePct":30,"confidence":"medium","quality":"C","trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"}}];
   var calibrationData = {"total":3,"wins":3,"misses":0,"winRate":1,"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"]};
   var telemetryKey = 'ff_clicks_v1';
@@ -170,6 +188,7 @@
   var mostExecutedEl = document.getElementById('mostExecuted');
   var risingInterestEl = document.getElementById('risingInterest');
   var funnelStatsEl = document.getElementById('funnelStats');
+  var watchlistHealthEl = document.getElementById('watchlistHealth');
   var alertsSummaryEl = document.getElementById('alertsSummary');
   var sortChips = Array.from(document.querySelectorAll('[data-sort]'));
 
@@ -258,6 +277,32 @@
 
   function renderCalibrationSnapshot(){
     calibrationSnapshotEl.textContent = 'Historical outcomes: ' + calibrationData.wins + ' wins, ' + calibrationData.misses + ' misses (win rate ' + (Number(calibrationData.winRate || 0) * 100).toFixed(1) + '%).';
+  }
+
+  function renderWatchlistHealth(){
+    if(!watchlistHealthEl) return;
+    var watch = loadWatchlist();
+    if(!watch.length){
+      watchlistHealthEl.innerHTML = '<div class="muted">No saved markets yet. Watch a few ideas to see watchlist health.</div>';
+      return;
+    }
+    var saved = data.filter(function(item){ return watch.includes(String(item.id)); });
+    if(!saved.length){
+      watchlistHealthEl.innerHTML = '<div class="muted">Saved markets are not in the current feed.</div>';
+      return;
+    }
+    var median = function(values){
+      var list = values.map(function(value){ return Number(value); }).filter(Number.isFinite).sort(function(a, b){ return a - b; });
+      if(!list.length) return 0;
+      var mid = Math.floor(list.length / 2);
+      return list.length % 2 ? list[mid] : (list[mid - 1] + list[mid]) / 2;
+    };
+    var medEdge = median(saved.map(function(item){ return Math.abs(Number(item.edge || 0)) * 100; }));
+    var medDepth = median(saved.map(function(item){ return Number(item.depth || 0); }));
+    var medFresh = median(saved.map(function(item){ return Number(item.freshnessSeconds || 0); }));
+    var tradeable = saved.filter(function(item){ return item.isTradeable !== false; }).length;
+    var label = medEdge >= 5 && medDepth >= 500 && medFresh <= 900 ? 'healthy' : medEdge >= 3 ? 'watch' : 'thin';
+    watchlistHealthEl.innerHTML = '<div class="row"><span>'+saved.length+' saved markets</span><span class="pill">'+label+'</span></div><p class="muted">Median edge '+medEdge.toFixed(2)+'% · depth '+medDepth.toFixed(0)+' · freshness '+medFresh.toFixed(0)+'s · tradeable '+tradeable+'/'+saved.length+'</p>';
   }
 
   function risingInterestScore(marketId){
@@ -548,6 +593,7 @@
     }).join('');
     sorted.forEach(function(item){ recordFunnel('impression', item.id); });
     renderAlertsSummary();
+    renderWatchlistHealth();
     renderFunnel();
   }
 
@@ -720,6 +766,16 @@
     });
   });
 
+  document.getElementById('exportReviewCsvBtn').addEventListener('click', function(){
+    downloadTextFile('forecast-futures-review.csv', reviewCsvText, 'text/csv;charset=utf-8');
+  });
+  document.getElementById('shareReviewSummaryBtn').addEventListener('click', function(){
+    Promise.resolve(copyShareText(reviewShareText)).then(function(done){
+      if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(reviewShareText); }
+      if(!done){ window.prompt('Copy review summary', reviewShareText); }
+    });
+  });
+
   document.getElementById('saveAlertPrefs').addEventListener('click', function(){
     var prefs = {
       minEdgePercent: Number(document.getElementById('prefMinEdge').value || defaultPrefs.minEdgePercent),
@@ -793,6 +849,7 @@
   renderList();
   renderMorningBrief();
   renderCalibrationSnapshot();
+  renderWatchlistHealth();
   renderMostClicked();
   renderMostExecuted();
   renderRisingInterest();
