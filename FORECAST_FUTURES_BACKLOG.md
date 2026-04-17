@@ -102,31 +102,31 @@ AC:
 2) Click telemetry records unique clicks per market for trending.
 3) Most-clicked module renders from telemetry with time decay window.
 
-CARD-026 | Ready to Deploy | Add saved watchlists + focused market filters
+CARD-026 | Backlog | Add saved watchlists + focused market filters
 AC:
 1) Users can save and restore named watchlists in local storage.
 2) List view can filter to selected watchlists and preserve the active set.
 3) Watchlist state survives refresh and does not break existing sort/search controls.
 
-CARD-027 | Ready to Deploy | Add URL-shareable list state and deep links
+CARD-027 | Backlog | Add URL-shareable list state and deep links
 AC:
 1) Search, sort, feed mode, and selected market can be encoded in the URL.
 2) Opening a shared link restores the same list/detail state.
 3) Invalid or missing query params fall back safely to defaults.
 
-CARD-028 | Ready to Deploy | Improve export/share helpers for briefs and reviews
+CARD-028 | Backlog | Improve export/share helpers for briefs and reviews
 AC:
 1) CSV and share text exports include score breakdown, confidence, and timestamp fields.
 2) Export actions work from list, detail, and archive surfaces.
 3) Exported text stays concise enough for mobile sharing and clipboard fallback.
 
-CARD-029 | Ready to Deploy | Add model/market freshness indicators and staleness badges
+CARD-029 | Backlog | Add model/market freshness indicators and staleness badges
 AC:
 1) Every surfaced market shows freshness and update age in a visible badge.
 2) Stale signals are labeled consistently across list, detail, and archive views.
 3) Badge thresholds match guardrail settings and are tested directly.
 
-CARD-030 | Ready to Deploy | Clean up mobile layout spacing and blocking controls
+CARD-030 | Backlog | Clean up mobile layout spacing and blocking controls
 AC:
 1) Fixed/sticky controls never cover the main content on mobile or desktop.
 2) Buttons, chips, and modals have safe spacing and accessible tap targets.
@@ -264,35 +264,65 @@ AC:
 2) Tests assert refresh state is persisted and rendered.
 3) Tests assert the safe-area layout styles remain in place after edits.
 
-CARD-081 | Ready to Deploy | Add snapshot provenance card for backend/import source and safe refresh copy
+CARD-081 | Backlog | Add snapshot provenance card for backend/import source and safe refresh copy
 AC:
 1) Hero/list surfaces show where the current markets snapshot came from.
 2) Refresh copy explains that saved state is preserved on reload.
 3) Missing or bundled-source states fall back to clear copy instead of a blank field.
 
-CARD-082 | Ready to Deploy | Add review export and share summary card that stays tied to backend review data
+CARD-082 | Backlog | Add review export and share summary card that stays tied to backend review data
 AC:
 1) Review/export actions are grouped in one visible surface.
 2) CSV and share summary remain aligned with the same review/archive data.
 3) Mobile copy stays concise enough to share or copy manually.
 
-CARD-083 | Ready to Deploy | Connect morning brief, calibration, and archive review surfaces to one backend summary flow
+CARD-083 | Backlog | Connect morning brief, calibration, and archive review surfaces to one backend summary flow
 AC:
 1) Morning brief and review summary reference the same backend-derived story.
 2) Calibration and archive text make the data linkage obvious.
 3) The summary does not block the list, detail, or archive sections.
 
-CARD-084 | Ready to Deploy | Harden sticky trade and nav spacing so buttons do not block content sections
+CARD-084 | Backlog | Harden sticky trade and nav spacing so buttons do not block content sections
 AC:
 1) Sticky controls and nav stay clear of the main content on small screens.
 2) Safe-area padding keeps cards reachable on mobile browsers and zoomed layouts.
 3) Modal padding prevents action buttons from covering the underlying sheet content.
 
-CARD-085 | Ready to Deploy | Verify backend-linked surfaces and layout fixes with regression tests
+CARD-085 | Backlog | Verify backend-linked surfaces and layout fixes with regression tests
 AC:
 1) Tests assert snapshot provenance and review/export card labels appear.
 2) Tests assert safe-area and sticky spacing remain in the generated markup.
 3) Tests cover the new summary/card copy so future UI changes do not break the backend bridge.
 
+CARD-086 | Ready to Deploy | Redesign the home screen into a market command center with top status tiles, one primary signal block, and a tighter hierarchy for watchlists and scans
+AC:
+1) Key metrics appear above secondary modules.
+2) The mobile layout stays readable and does not block any section.
+3) The home screen clearly separates primary signal, watchlist, and scan areas.
+
+CARD-087 | Ready to Deploy | Rebuild watchlist and scan result rows with compact symbols, change, freshness, tiny sparklines, and quick actions
+AC:
+1) Every row shows title, delta, freshness, and one-tap open.
+2) Rows remain touch-friendly on mobile.
+3) Filters and sort chips stay visible while browsing results.
+
+CARD-088 | Ready to Deploy | Create a chart-centered market workspace with a contextual detail drawer that stays in place while users switch markets
+AC:
+1) The chart is the primary center surface.
+2) Detail panel updates without full navigation.
+3) Compare and history remain one tap away.
+
+CARD-089 | Ready to Deploy | Add trust-first onboarding and status surfaces with plain-language guidance, clear state chips, and obvious next actions
+AC:
+1) First-run guidance explains what to do next.
+2) Status cards show freshness and readiness.
+3) Disclosures and helper copy stay concise and readable.
+
+CARD-090 | Ready to Deploy | Remove overlay and button layouts that block sections and tighten mobile spacing, focus states, and safe-area behavior
+AC:
+1) Sticky controls never cover content.
+2) Modal and drawer controls remain reachable.
+3) Keyboard and tap targets stay accessible on small screens.
+
 Suggested execution order:
-CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075 -> 076 -> 077 -> 078 -> 079 -> 080
+CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075 -> 076 -> 077 -> 078 -> 079 -> 080 -> 086 -> 087 -> 088 -> 089 -> 090

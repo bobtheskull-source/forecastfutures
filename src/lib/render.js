@@ -40,6 +40,13 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   const reviewItems = Array.isArray(review?.forecasts) ? review.forecasts : [];
   const reviewCsvText = forecastReviewToCsv({ review, archive });
   const reviewShareText = buildReviewShareText({ review, archiveSummary: summary });
+  const primarySignal = signalData[0] || null;
+  const statusTiles = [
+    { label: 'Markets loaded', value: markets.length },
+    { label: 'Ranked signals', value: outliers.length },
+    { label: 'Execution gates', value: guardrails?.metrics?.droppedCount ?? 0 },
+    { label: 'Signal p95', value: `${guardrails?.metrics?.p95LatencyMs ?? 0}ms` },
+  ];
 
   return `<!doctype html>
 <html lang="en">
@@ -52,7 +59,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:linear-gradient(180deg,#08111f,#050814);color:var(--text)}
 .app{max-width:980px;margin:0 auto;padding:16px;padding-bottom:220px}.hero,.card,.nav{background:rgba(17,26,46,.92);border:1px solid rgba(96,165,250,.16);border-radius:18px}
     .hero{padding:18px;margin-bottom:14px}.grid{display:grid;gap:12px}.section{margin:14px 0}.section h2{margin:0 0 10px;font-size:1rem;color:#c7d2fe}
-    .card{padding:14px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill,.chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:#172554;color:#bfdbfe;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border:1px solid rgba(148,163,184,.14)}
+    .card{padding:14px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill,.chip,.status-chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:#172554;color:#bfdbfe;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border:1px solid rgba(148,163,184,.14)}
     .chip{cursor:pointer}.muted{color:var(--muted);font-size:.88rem}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.stat{padding:12px;border-radius:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15)}
     .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20;backdrop-filter:blur(10px)}
     .nav button{background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:12px 10px}.nav button.active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}
@@ -68,25 +75,53 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     .inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.inputs label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:#cbd5e1}
     .inputs input,.inputs select{padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb}
     .list-inline{display:flex;flex-wrap:wrap;gap:8px}.ok{color:#86efac}.warn{color:#fde68a}.seg{display:flex;gap:8px;flex-wrap:wrap}.seg .active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}.sticky-trade{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(112px + env(safe-area-inset-bottom));z-index:30;width:min(980px,calc(100% - 24px));display:flex;justify-content:center;pointer-events:none}.sticky-trade .btn{pointer-events:auto}.fresh-badge{display:inline-flex;align-items:center;gap:4px}.fresh-badge[data-freshness="fresh"]{background:#0f3b27;color:#bbf7d0}.fresh-badge[data-freshness="warm"]{background:#4a2c0a;color:#fde68a}.fresh-badge[data-freshness="stale"]{background:#3b0b0b;color:#fecaca}
+    .command-center{background:linear-gradient(180deg,rgba(15,23,42,.98),rgba(7,12,24,.96))}.command-center h1{margin:6px 0 4px}.command-center-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:12px}.command-stack{display:grid;grid-template-columns:1.3fr .95fr;gap:12px;margin-top:12px}.primary-signal{background:linear-gradient(180deg,rgba(2,132,199,.2),rgba(15,23,42,.96));border-color:rgba(96,165,250,.28)}.signal-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.signal-summary .stat{padding:10px}.trust-strip{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}.trust-strip .status-chip{background:#0b2447;color:#bfdbfe}.market-row{padding:12px}.market-row .row{align-items:flex-start}.market-row-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px}.market-row-meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}.market-row-actions{display:flex;flex-wrap:wrap;gap:8px}.market-row .chart{height:48px}.chart-workspace{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:12px;align-items:start}.chart-frame{padding:14px;border-radius:16px;background:rgba(2,6,23,.3);border:1px solid rgba(148,163,184,.12)}.drawer-surface{position:sticky;top:16px}.detail-stack{display:grid;gap:12px}.detail-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}.detail-summary .stat{padding:10px}.safe-surface{padding-bottom:calc(18px + env(safe-area-inset-bottom))}
     .skip-link{position:absolute;left:-9999px;top:10px;z-index:80;background:#0f172a;color:#eef2ff;padding:10px 12px;border:1px solid rgba(148,163,184,.3);border-radius:10px}.skip-link:focus{left:12px}
     button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid #60a5fa;outline-offset:2px}
     .onboarding-banner{border-color:rgba(96,165,250,.24);background:linear-gradient(180deg,rgba(15,23,42,.95),rgba(7,12,24,.95))}.onboarding-steps{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-    @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}.modal{align-items:flex-start}.sticky-trade{bottom:calc(118px + env(safe-area-inset-bottom))}.app{padding-bottom:calc(248px + env(safe-area-inset-bottom))}}
+    @media (max-width:760px){.stats{grid-template-columns:repeat(2,1fr)}.command-center-grid,.command-stack,.chart-workspace,.detail-summary{grid-template-columns:1fr}.nav{grid-template-columns:repeat(2,1fr)}.inputs{grid-template-columns:1fr}.modal{align-items:flex-start}.sticky-trade{bottom:calc(118px + env(safe-area-inset-bottom))}.app{padding-bottom:calc(280px + env(safe-area-inset-bottom))}.drawer-surface{position:static}}
 
 </style>
 </head>
 <body>
 <a class="skip-link" href="#mainContent">Skip to content</a>
-<main class="app" id="mainContent">
-  <section class="hero">
-    <div class="row"><div><div class="pill">Kalshi market radar</div><h1>Forecast Futures</h1></div><div class="pill">mobile-ready</div></div>
-    <p class="muted">Flag big market moves, rank by edge and tradeability, inspect forecast confidence, and jump into trades fast.</p>
+<main class="app safe-surface" id="mainContent">
+  <section class="hero command-center">
+    <div class="row"><div><div class="pill">Market command center</div><h1>Forecast Futures</h1></div><div class="pill">mobile-first</div></div>
+    <p class="muted">Primary signal on top, compact watchlists below, and a detail workspace that stays visible while you scan.</p>
     <p class="muted">Snapshot: ${escapeHtml(snapshotSource)}</p>
-    <div class="stats">
-      <div class="stat"><strong>${markets.length}</strong><div class="muted">markets loaded</div></div>
-      <div class="stat"><strong>${outliers.length}</strong><div class="muted">ranked opportunities</div></div>
-      <div class="stat"><strong>${guardrails?.metrics?.droppedCount ?? 0}</strong><div class="muted">execution-gated</div></div>
-      <div class="stat"><strong>${guardrails?.metrics?.p95LatencyMs ?? 0}ms</strong><div class="muted">signal p95 latency</div></div>
+    <div class="command-center-grid">
+      ${statusTiles.map(function(tile){ return `<article class="stat status-chip"><strong>${escapeHtml(String(tile.value))}</strong><div class="muted">${escapeHtml(tile.label)}</div></article>`; }).join('')}
+    </div>
+    <div class="command-stack">
+      <article class="card primary-signal">
+        <div class="row"><strong>Primary signal</strong><span class="pill">${primarySignal ? escapeHtml(primarySignal.confidence) : 'none'}</span></div>
+        <p class="muted">${primarySignal ? escapeHtml(primarySignal.title) : 'No ranked signal yet.'}</p>
+        <div class="signal-summary">
+          <div class="stat"><strong>${primarySignal ? (primarySignal.edge * 100).toFixed(2) + '%' : '—'}</strong><div class="muted">Edge</div></div>
+          <div class="stat"><strong>${primarySignal ? Number(primarySignal.rankScore || 0).toFixed(1) : '—'}</strong><div class="muted">Score</div></div>
+          <div class="stat"><strong>${primarySignal ? freshnessBadgeHtml(primarySignal.freshnessSeconds || 0) : '<span class="muted">—</span>'}</strong><div class="muted">Freshness</div></div>
+        </div>
+        <div class="trust-strip">
+          <span class="status-chip">Read-only Pages UI</span>
+          <span class="status-chip">Server auth kept off browser</span>
+          <span class="status-chip">Compare + history one tap away</span>
+        </div>
+        <div class="actions">
+          <button class="btn hero-alert-controls" type="button">Tune alerts</button>
+          <button class="btn hero-refresh-snapshot" type="button">Refresh snapshot</button>
+          ${primarySignal ? `<button class="btn primary" data-action="view" data-id="${escapeHtml(primarySignal.id)}">Open primary signal</button>` : ''}
+        </div>
+      </article>
+      <article class="card">
+        <strong>Fast scan guide</strong>
+        <p class="muted">1. Search or sort the list. 2. Open detail for compare and history. 3. Run the pre-trade check before opening Kalshi.</p>
+        <div class="onboarding-steps">
+          <span class="pill">No section blocks another section</span>
+          <span class="pill">Compact rows stay touch-friendly</span>
+          <span class="pill">Sticky controls avoid overlap</span>
+        </div>
+      </article>
     </div>
   </section>
 
@@ -668,21 +703,19 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var trend = sparkline((item.probabilityHistory || []).slice(-5));
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
     var alertStatus = alertEntry ? alertEntry.status : (eligible ? 'surfaced' : 'quiet');
-    return '<article class="card" data-id="'+esc(item.id)+'">'
-      + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+' · '+esc(movement.label)+' · '+esc(trendSummary.badge)+'</span></div>'
-      + '<p class="muted">'+esc(item.event)+'</p>'
-      + '<div class="row" style="margin-top:6px;flex-wrap:wrap"><span class="muted">Move '+(item.move>0?'+':'')+item.move+' · Edge '+edgePct+'% · CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</span>'+freshnessBadge(item.freshnessSeconds)+'</div>'
-      + '<p class="muted">Movement drift '+(Number(movement.driftPp || 0) > 0 ? '+' : '')+Number(movement.driftPp || 0).toFixed(2)+'pp · reliability '+(Number(movement.reliability || 0)*100).toFixed(0)+'%</p>'
+    return '<article class="card market-row" data-id="'+esc(item.id)+'">'
+      + '<div class="market-row-head"><div><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+' · '+esc(movement.label)+'</span></div><p class="muted">'+esc(item.event)+'</p></div><div class="status-chip">'+esc(trendSummary.badge)+'</div></div>'
+      + '<div class="market-row-meta"><span class="status-chip">Move '+(item.move>0?'+':'')+item.move+'%</span><span class="status-chip">Edge '+edgePct+'%</span><span class="status-chip">CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</span>'+freshnessBadge(item.freshnessSeconds)+'</div>'
       + '<div style="margin-top:8px">'+trend+'</div>'
-      + '<p class="muted">Score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+' · history '+esc(alertStatus)+'</p>'
+      + '<p class="muted">Movement drift '+(Number(movement.driftPp || 0) > 0 ? '+' : '')+Number(movement.driftPp || 0).toFixed(2)+'pp · reliability '+(Number(movement.reliability || 0)*100).toFixed(0)+'% · score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+' · history '+esc(alertStatus)+'</p>'
       + explainabilityDrawer(item)
-      + '<div class="actions">'
+      + '<div class="market-row-actions">'
       + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">View detail</button>'
       + '<button class="btn" data-action="watch" data-id="'+esc(item.id)+'">'+(watchlisted ? 'Unwatch' : 'Watch')+'</button>'
       + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
-      + '<button class="btn" data-action="dismiss-alert" data-id="'+esc(item.id)+'">Dismiss alert</button>'
-      + '<button class="btn warn" data-action="archive-alert" data-id="'+esc(item.id)+'">Archive alert</button>'
-      + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
+      + '<button class="btn" data-action="dismiss-alert" data-id="'+esc(item.id)+'">Dismiss</button>'
+      + '<button class="btn warn" data-action="archive-alert" data-id="'+esc(item.id)+'">Archive</button>'
+      + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div></article>';
   }
@@ -900,21 +933,33 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var freshnessDelta = compare.deltas ? Number(compare.deltas.freshnessSeconds || 0).toFixed(0) : '0';
     var shareText = buildShareText(item);
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
-    detailPanel.innerHTML = '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
+    detailPanel.innerHTML = '<section class="chart-workspace">'
+      + '<article class="card detail-stack">'
+      + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
       + '<p class="muted">'+esc(item.event)+' · last updated '+esc(item.lastUpdated)+'</p>'
-      + '<div class="row" style="margin-top:8px;flex-wrap:wrap"><div>Market prob: <strong>'+(item.marketProb*100).toFixed(2)+'%</strong></div><div>Model prob: <strong>'+(item.modelProb*100).toFixed(2)+'%</strong></div>'+freshnessBadge(item.freshnessSeconds)+'</div>'
-      + '<p class="muted">Confidence interval: '+(lo*100).toFixed(2)+'% to '+(hi*100).toFixed(2)+'%</p>'
+      + '<div class="detail-summary">'
+      + '<div class="stat"><strong>'+(item.marketProb*100).toFixed(2)+'%</strong><div class="muted">Market prob</div></div>'
+      + '<div class="stat"><strong>'+(item.modelProb*100).toFixed(2)+'%</strong><div class="muted">Model prob</div></div>'
+      + '<div class="stat"><strong>'+selectedRecency.toFixed(0)+'</strong><div class="muted">Recency score</div></div>'
+      + '</div>'
+      + '<p class="muted" style="margin-top:8px">Confidence interval: '+(lo*100).toFixed(2)+'% to '+(hi*100).toFixed(2)+'%</p>'
       + '<div class="card" style="margin-top:10px"><strong>24h probability delta</strong><p class="muted">'+esc(trendSummary.summary)+' · acceleration '+esc(trendSummary.accelerationLabel)+'</p></div>'
-      + sparkline(item.probabilityHistory || [])
+      + '<div class="chart-frame">'+sparkline(item.probabilityHistory || [])+'</div>'
       + '<div class="drivers">'+drivers+'</div>'
       + explainabilityDrawer(item)
+      + '</article>'
+      + '<aside class="card drawer drawer-surface">'
+      + '<div class="row"><strong>Drawer surface</strong><span class="pill">compare + history</span></div>'
       + '<div class="card" style="margin-top:10px"><strong>Compare vs event median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median (Δ '+edgeDelta+'pp) · Depth '+selectedDepth+' vs '+medianDepth+' median (Δ '+depthDelta+') · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median (Δ '+freshnessDelta+'s)</p></div>'
+      + '<div class="card" style="margin-top:10px"><strong>Share summary</strong><p class="muted">'+esc(shareText)+'</p></div>'
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
       + '<button class="btn" data-action="share-summary" data-id="'+esc(item.id)+'">Share summary</button>'
       + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
-      + '</div>';
+      + '</div>'
+      + '</aside>'
+      + '</section>';
 
     stickyTradeCta.setAttribute('href', item.tradeUrl || '#');
     stickyTradeCta.setAttribute('data-id', item.id || '');
@@ -1003,6 +1048,9 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   sortChips.forEach(function(chip){chip.addEventListener('click', function(){state.sort = chip.dataset.sort || 'score'; renderList();});});
 
   document.getElementById('alertControlsBtn').addEventListener('click', openAlertPrefsModal);
+  Array.from(document.querySelectorAll('.hero-alert-controls')).forEach(function(button){
+    button.addEventListener('click', openAlertPrefsModal);
+  });
   if(refreshSnapshotBtn){
     refreshSnapshotBtn.addEventListener('click', function(){
       this.disabled = true;
@@ -1012,6 +1060,11 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       window.location.reload();
     });
   }
+  Array.from(document.querySelectorAll('.hero-refresh-snapshot')).forEach(function(button){
+    button.addEventListener('click', function(){
+      if(refreshSnapshotBtn){ refreshSnapshotBtn.click(); }
+    });
+  });
   if(dismissOnboardingBtn){
     dismissOnboardingBtn.addEventListener('click', function(){
       dismissOnboarding();
