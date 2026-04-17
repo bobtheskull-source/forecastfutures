@@ -324,5 +324,35 @@ AC:
 2) Modal and drawer controls remain reachable.
 3) Keyboard and tap targets stay accessible on small screens.
 
+CARD-091 | Ready to Deploy | Add a command palette and keyboard shortcuts for switching between list, detail, trends, and archive views
+AC:
+1) Keyboard shortcut hints are visible and a palette opens from the hero or a hotkey.
+2) Users can switch to each main view without touching the nav bar.
+3) Shortcuts do not interfere with typing in search or form controls.
+
+CARD-092 | Ready to Deploy | Restore the last selected market and selected view after reload while keeping URL state authoritative
+AC:
+1) The last selected market and active view restore after refresh when the URL does not override them.
+2) Clearing state falls back to safe defaults without breaking navigation.
+3) Restored state still respects the existing query-string controls.
+
+CARD-093 | Ready to Deploy | Add loading, empty, and error states for list, detail, and archive surfaces
+AC:
+1) Each main surface shows a readable empty or loading state instead of a blank panel.
+2) Missing selected market or empty datasets render a friendly callout.
+3) Error states do not block the rest of the app or break navigation.
+
+CARD-094 | Ready to Deploy | Add chart timeframe and compare-range controls in the detail workspace
+AC:
+1) The detail chart can switch between short and long compare windows.
+2) Median comparison text updates with the selected range.
+3) The default range is safe and does not break the existing compare view.
+
+CARD-095 | Ready to Deploy | Add quick section anchors and mobile jump controls so users can reach every surface
+AC:
+1) Users can jump to list, detail, trends, and archive from a compact anchor strip.
+2) The jump controls remain reachable on mobile without covering content.
+3) Anchors do not disrupt existing tab or URL-state behavior.
+
 Suggested execution order:
-CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075 -> 076 -> 077 -> 078 -> 079 -> 080 -> 086 -> 087 -> 088 -> 089 -> 090
+CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075 -> 076 -> 077 -> 078 -> 079 -> 080 -> 086 -> 087 -> 088 -> 089 -> 090 -> 091 -> 092 -> 093 -> 094 -> 095

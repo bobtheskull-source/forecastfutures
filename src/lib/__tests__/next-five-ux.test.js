@@ -42,6 +42,43 @@ test('renderApp surfaces onboarding and accessible modal scaffolding', () => {
   assert.match(html, /button:focus-visible/);
 });
 
+test('renderApp surfaces loading, empty, and error states across list detail and archive', () => {
+  const loadingHtml = renderApp({
+    guardrails,
+    rules: [],
+    edgeCases: [],
+  });
+
+  assert.match(loadingHtml, /Loading opportunities\.\.\./);
+  assert.match(loadingHtml, /Loading market detail\.\.\./);
+  assert.match(loadingHtml, /Loading archive results\.\.\./);
+
+  const emptyHtml = renderApp({
+    markets: [],
+    outliers: [],
+    archive: [],
+    rules: [],
+    edgeCases: [],
+    guardrails,
+  });
+
+  assert.match(emptyHtml, /No opportunities yet\. Add market data or relax filters/);
+  assert.match(emptyHtml, /No market selected yet\./);
+  assert.match(emptyHtml, /No archived forecasts yet\. Completed reviews will appear here once outcomes are recorded\./);
+  assert.match(emptyHtml, /No resolved archive items yet\./);
+
+  const errorHtml = renderApp({
+    markets: [baseSignal],
+    outliers: [baseSignal],
+    archive: 'broken',
+    rules: [],
+    edgeCases: [],
+    guardrails,
+  });
+
+  assert.match(errorHtml, /Error: archive data could not be rendered\./);
+});
+
 test('renderApp keeps alert history visible and renders large feeds without breaking', () => {
   const markets = Array.from({ length: 250 }, (_, index) => ({
     ...baseSignal,

@@ -60,8 +60,10 @@
         <div class="actions">
           <button class="btn hero-alert-controls" type="button">Tune alerts</button>
           <button class="btn hero-refresh-snapshot" type="button">Refresh snapshot</button>
+          <button class="btn" type="button" data-action="open-command-palette">Command palette · Ctrl+K</button>
           <button class="btn primary" data-action="view" data-id="inflation-cpi">Open primary signal</button>
         </div>
+        <p class="muted">Shortcut hints: Ctrl+K opens the palette; 1 list · 2 detail · 3 trends · 4 archive.</p>
       </article>
       <article class="card">
         <strong>Fast scan guide</strong>
@@ -111,12 +113,13 @@
     <div id="onboardingBanner" class="card onboarding-banner" hidden>
       <div class="row"><strong>Quick start</strong><button class="btn" id="dismissOnboardingBtn">Dismiss</button></div>
       <p class="muted">Use the list to scan opportunities, open detail for compare and history, then trade when the pre-trade check is green.</p>
-      <div class="onboarding-steps">
-        <span class="pill">1. Search or sort the list</span>
-        <span class="pill">2. Open detail for compare</span>
-        <span class="pill">3. Pre-trade check then open Kalshi</span>
-      </div>
+    <div class="onboarding-steps">
+      <button class="pill" type="button" data-action="goto-view" data-view="list">Go to list</button>
+      <button class="pill" type="button" data-action="goto-view" data-view="detail">Go to detail</button>
+      <button class="pill" type="button" data-action="goto-view" data-view="trends">Go to trends</button>
+      <button class="pill" type="button" data-action="goto-view" data-view="archive">Go to archive</button>
     </div>
+</div>
     <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
     <div class="card" style="margin-top:12px">
@@ -159,6 +162,7 @@
 
   <section class="view section" data-view="archive" hidden>
     <h2>Archive</h2>
+    <div id="archiveState" class="state" hidden></div>
     <div class="card">
       <div class="row"><strong>Review summary</strong><span class="pill">3 wins · 0 misses</span></div>
       <p class="muted">Top win: CPI surprise next print · Top miss: n/a</p>
@@ -169,8 +173,7 @@
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Forecast theses</strong>
-      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>1. CPI surprise next print</strong><span class="pill">score 79.48</span></div><p class="muted">BLS CPI release · up</p><p class="muted">Thesis: Large up move with market/model edge 28.33% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>2. Fed cuts at next meeting</strong><span class="pill">score 71.35</span></div><p class="muted">FOMC decision · down</p><p class="muted">Thesis: Large down move with market/model edge -18.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>3. Major storm makes landfall</strong><span class="pill">score 64.56</span></div><p class="muted">Weather event · up</p><p class="muted">Thesis: Large up move with market/model edge 30.00% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article>
-
+      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>1. CPI surprise next print</strong><span class="pill">score 79.48</span></div><p class="muted">BLS CPI release · up</p><p class="muted">Thesis: Large up move with market/model edge 28.33% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>2. Fed cuts at next meeting</strong><span class="pill">score 71.35</span></div><p class="muted">FOMC decision · down</p><p class="muted">Thesis: Large down move with market/model edge -18.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>3. Major storm makes landfall</strong><span class="pill">score 64.56</span></div><p class="muted">Weather event · up</p><p class="muted">Thesis: Large up move with market/model edge 30.00% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article></div>
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Resolved archive</strong>
@@ -211,6 +214,19 @@
   <div class="modal-card" id="paywallBody"></div>
 </div>
 
+<div class="modal" id="commandPaletteModal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="row"><strong>Command palette</strong><button class="btn" data-close="commandPaletteModal">Close</button></div>
+    <p class="muted">Use keyboard shortcuts or jump straight to a surface.</p>
+    <div class="grid" style="margin-top:10px">
+      <button class="btn" data-action="goto-view" data-view="list">Go to list</button>
+      <button class="btn" data-action="goto-view" data-view="detail">Go to detail</button>
+      <button class="btn" data-action="goto-view" data-view="trends">Go to trends</button>
+      <button class="btn" data-action="goto-view" data-view="archive">Go to archive</button>
+    </div>
+  </div>
+</div>
+
 <div class="sticky-trade"><a id="stickyTradeCta" class="btn primary" href="#" target="_blank" rel="noopener" data-action="trade">Trade selected on Kalshi</a></div>
 
 <nav class="nav" aria-label="Primary">
@@ -222,7 +238,7 @@
 
 <script>
 (function(){
-  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-17T22:34:51.324Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":79.48471541130587,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-17T22:34:51.324Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Elevated","direction":"up","driftPp":11,"amplitudePp":11,"reliability":0.911},"trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 28.33% edge · quality B · execution 82","reason":"28.33% edge · quality B · execution 82","edgePct":28.33,"execScore":81.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-17T22:36:51.324Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":71.35157967159027,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-17T22:36:51.324Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":-16,"amplitudePp":16,"reliability":0.675},"trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 18.00% edge · quality A · execution 69","reason":"18.00% edge · quality A · execution 69","edgePct":18,"execScore":69.1,"quality":"A"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-17T22:29:51.324Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":64.55656080200019,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-17T22:29:51.324Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":16,"amplitudePp":16,"reliability":0.378},"trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 30.00% edge · quality C · execution 39","reason":"30.00% edge · quality C · execution 39","edgePct":30,"execScore":38.6,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel"}];
+  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-17T23:28:38.498Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":79.48471541130587,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-17T23:28:38.498Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Elevated","direction":"up","driftPp":11,"amplitudePp":11,"reliability":0.911},"trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 28.33% edge · quality B · execution 82","reason":"28.33% edge · quality B · execution 82","edgePct":28.33,"execScore":81.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-17T23:30:38.498Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":71.35157967159027,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-17T23:30:38.498Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":-16,"amplitudePp":16,"reliability":0.675},"trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 18.00% edge · quality A · execution 69","reason":"18.00% edge · quality A · execution 69","edgePct":18,"execScore":69.1,"quality":"A"},"paywallHeadlineHint":"Start your trial for advanced market intel"},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-17T23:23:38.498Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":64.55656080200019,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-17T23:23:38.498Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":16,"amplitudePp":16,"reliability":0.378},"trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 30.00% edge · quality C · execution 39","reason":"30.00% edge · quality C · execution 39","edgePct":30,"execScore":38.6,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel"}];
   var morningBriefData = [{"id":"inflation-cpi","title":"CPI surprise next print","event":"BLS CPI release","tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","edgePct":28.33,"confidence":"medium","quality":"B","trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"fed-cut","title":"Fed cuts at next meeting","event":"FOMC decision","tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","edgePct":18,"confidence":"high","quality":"A","trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"storm-track","title":"Major storm makes landfall","event":"Weather event","tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","edgePct":30,"confidence":"medium","quality":"C","trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"}}];
   var calibrationData = {"total":3,"wins":3,"misses":0,"winRate":1,"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"]};
   var telemetryKey = 'ff_clicks_v1';
@@ -232,10 +248,11 @@
   var funnelKey = 'ff_funnel_events_v1';
   var paywallSeenKey = 'ff_paywall_seen_v1';
   var snapshotRefreshKey = 'ff_snapshot_refreshed_at_v1';
+  var uiStateKey = 'ff_ui_state_v1';
   var halfLifeMs = 6 * 60 * 60 * 1000;
   var defaultPrefs = { minEdgePercent: 4, confidenceFloor: 'medium', quietHoursStart: 22, quietHoursEnd: 7, cooldownMinutes: 30 };
   var confRank = { low: 1, medium: 2, high: 3 };
-  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null, breakoutOnly: false, executionReadyOnly: false };
+  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null, breakoutOnly: false, executionReadyOnly: false, chartRange: 20 };
 
   var buttons = Array.from(document.querySelectorAll('.nav button'));
   var views = Array.from(document.querySelectorAll('.view'));
@@ -262,6 +279,7 @@
   var preTradeBody = document.getElementById('preTradeBody');
   var alertModal = document.getElementById('alertModal');
   var paywallModal = document.getElementById('paywallModal');
+  var commandPaletteModal = document.getElementById('commandPaletteModal');
   var paywallBody = document.getElementById('paywallBody');
   var stickyTradeCta = document.getElementById('stickyTradeCta');
   var activeModalTrigger = null;
@@ -306,6 +324,13 @@
   }
   function saveSnapshotRefresh(value){
     try { localStorage.setItem(snapshotRefreshKey, value); } catch {}
+  }
+
+  function loadUiState(){
+    try { return JSON.parse(localStorage.getItem(uiStateKey) || '{}'); } catch { return {}; }
+  }
+  function saveUiState(patch){
+    try { localStorage.setItem(uiStateKey, JSON.stringify(Object.assign({}, loadUiState(), patch || {}))); } catch {}
   }
   function snapshotRefreshMeta(){
     var stamp = loadSnapshotRefresh();
@@ -375,6 +400,7 @@
       maxResolveHours: params.get('resolve') != null && params.get('resolve') !== '' ? Number(params.get('resolve')) : null,
       breakoutOnly: params.get('breakout') === '1',
       executionReadyOnly: params.get('exec') === '1',
+      selectedProvided: params.has('selected'),
     };
   }
   function syncListStateToUrl(tab){
@@ -791,8 +817,8 @@
     }
 
     var sorted = sortSignals(filtered);
-
-    if(!data.length){ listState.hidden=false; listState.textContent='Loading opportunities...'; listResults.innerHTML=''; return; }
+    if(!hasMarketData){ listState.hidden=false; listState.textContent='Loading opportunities...'; listResults.innerHTML=''; return; }
+    if(!data.length){ listState.hidden=false; listState.textContent='No opportunities yet. Add market data or relax filters to populate the list.'; listResults.innerHTML=''; return; }
     if(!sorted.length){ listState.hidden=false; listState.textContent='No results match this search/filter.'; listResults.innerHTML=''; return; }
 
     listState.hidden = true;
@@ -865,7 +891,9 @@
 
   function renderDetail(){
     var item = data.find(function(x){return x.id===state.selectedId;});
-    if(!item){ detailState.hidden=false; detailState.textContent='Error: selected market not found.'; detailPanel.innerHTML=''; return; }
+    if(!hasMarketData){ detailState.hidden=false; detailState.textContent='Loading market detail...'; detailPanel.innerHTML='<div class="muted">Waiting for market data to load.</div>'; return; }
+    if(!data.length){ detailState.hidden=false; detailState.textContent='No market selected yet.'; detailPanel.innerHTML='<div class="muted">Choose a market from the list to inspect detail, compare, and trade links.</div>'; return; }
+    if(!item){ detailState.hidden=false; detailState.textContent='Error: selected market not found.'; detailPanel.innerHTML='<div class="muted">Selected market is unavailable. Pick another market or clear the saved selection.</div>'; return; }
     detailState.hidden=true;
     var lo = item.confidenceInterval ? item.confidenceInterval[0] : 0;
     var hi = item.confidenceInterval ? item.confidenceInterval[1] : 0;
@@ -883,6 +911,8 @@
     var freshnessDelta = compare.deltas ? Number(compare.deltas.freshnessSeconds || 0).toFixed(0) : '0';
     var shareText = buildShareText(item);
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
+    var chartWindow = state.chartRange === 'all' ? (item.probabilityHistory || []) : (item.probabilityHistory || []).slice(-(Number(state.chartRange) || 20));
+    var chartWindowLabel = state.chartRange === 'all' ? 'all points' : 'last ' + Number(state.chartRange || 20) + ' points';
     detailPanel.innerHTML = '<section class="chart-workspace">'
       + '<article class="card detail-stack">'
       + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
@@ -892,9 +922,10 @@
       + '<div class="stat"><strong>'+(item.modelProb*100).toFixed(2)+'%</strong><div class="muted">Model prob</div></div>'
       + '<div class="stat"><strong>'+selectedRecency.toFixed(0)+'</strong><div class="muted">Recency score</div></div>'
       + '</div>'
+      + '<div class="card" style="margin-top:10px"><strong>Chart range</strong><p class="muted">Window: '+esc(chartWindowLabel)+' · compare text stays tied to the selected event.</p><div class="actions"><button class="btn" data-action="chart-range" data-range="5">5 points</button><button class="btn" data-action="chart-range" data-range="20">20 points</button><button class="btn" data-action="chart-range" data-range="all">All points</button></div></div>'
       + '<p class="muted" style="margin-top:8px">Confidence interval: '+(lo*100).toFixed(2)+'% to '+(hi*100).toFixed(2)+'%</p>'
       + '<div class="card" style="margin-top:10px"><strong>24h probability delta</strong><p class="muted">'+esc(trendSummary.summary)+' · acceleration '+esc(trendSummary.accelerationLabel)+'</p></div>'
-      + '<div class="chart-frame">'+sparkline(item.probabilityHistory || [])+'</div>'
+      + '<div class="chart-frame">'+sparkline(chartWindow)+'</div>'
       + '<div class="drivers">'+drivers+'</div>'
       + explainabilityDrawer(item)
       + '</article>'
@@ -914,6 +945,7 @@
     stickyTradeCta.setAttribute('href', item.tradeUrl || '#');
     stickyTradeCta.setAttribute('data-id', item.id || '');
     stickyTradeCta.textContent = 'Trade ' + item.title + ' on Kalshi';
+    saveUiState({ selectedId: state.selectedId, view: 'detail' });
     syncListStateToUrl('detail');
   }
 
@@ -922,6 +954,7 @@
     views.forEach(function(v){v.hidden = v.dataset.view !== tab;});
     buttons.forEach(function(b){b.classList.toggle('active', b.dataset.tab===tab);});
     history.replaceState(null,'','#'+tab);
+    saveUiState({ view: tab });
     syncListStateToUrl(tab);
   }
 
@@ -933,6 +966,10 @@
     document.getElementById('prefQuietEnd').value = prefs.quietHoursEnd;
     document.getElementById('prefCooldown').value = prefs.cooldownMinutes;
     openModal(alertModal, document.activeElement);
+  }
+
+  function openCommandPalette(){
+    openModal(commandPaletteModal, document.activeElement);
   }
 
   function openModal(modal, trigger){
@@ -956,7 +993,7 @@
   }
 
   function currentOpenModal(){
-    return [preTradeModal, alertModal, paywallModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
+    return [preTradeModal, alertModal, paywallModal, commandPaletteModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
   }
 
   function trapModalTabKey(event){
@@ -976,7 +1013,19 @@
   }
 
   window.addEventListener('keydown', function(event){
+    if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'){
+      event.preventDefault();
+      openCommandPalette();
+      return;
+    }
+    if(!event.ctrlKey && !event.metaKey && !event.altKey && !/input|textarea|select/i.test((event.target && event.target.tagName) || '')){
+      if(event.key === '1'){ show('list'); return; }
+      if(event.key === '2'){ show('detail'); renderDetail(); return; }
+      if(event.key === '3'){ show('trends'); return; }
+      if(event.key === '4'){ show('archive'); return; }
+    }
     if(event.key === 'Escape'){
+      if(commandPaletteModal.classList.contains('show')){ closeModal('commandPaletteModal'); return; }
       if(paywallModal.classList.contains('show')){ closeModal('paywallModal'); return; }
       if(alertModal.classList.contains('show')){ closeModal('alertModal'); return; }
       if(preTradeModal.classList.contains('show')){ closeModal('preTradeModal'); return; }
@@ -1119,9 +1168,16 @@
     var id = target.getAttribute('data-id');
     var item = data.find(function(x){ return x.id === id; });
 
-    if(action==='view'){ state.selectedId = id; show('detail'); renderDetail(); }
-    if(action==='watch' && item){ toggleWatchlist(id); renderList(); }
-    if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet(item); renderFunnel(); }
+        if(action==='view'){ state.selectedId = id; show('detail'); renderDetail(); }
+        if(action==='goto-view'){ show(target.getAttribute('data-view') || 'list'); if((target.getAttribute('data-view') || 'list') === 'detail') renderDetail(); closeModal('commandPaletteModal'); }
+        if(action==='open-command-palette'){ openCommandPalette(); }
+        if(action==='chart-range' && item){
+          state.chartRange = target.getAttribute('data-range') === 'all' ? 'all' : Number(target.getAttribute('data-range') || 20);
+          saveUiState({ chartRange: state.chartRange });
+          renderDetail();
+        }
+        if(action==='watch' && item){ toggleWatchlist(id); renderList(); }
+if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet(item); renderFunnel(); }
     if(action==='dismiss-alert' && item){ updateAlertHistoryStatus(id, 'dismissed'); renderAlertHistory(); renderList(); }
     if(action==='archive-alert' && item){ updateAlertHistoryStatus(id, 'archived'); renderAlertHistory(); renderList(); }
     if(action==='trade'){
@@ -1162,21 +1218,29 @@
     }
   });
 
-  state.tradeClicks = totalTradeClicks();
-  refreshSnapshotMetaText();
-  Object.assign(state, readListStateFromUrl());
-  renderList();
-  renderMorningBrief();
-  renderCalibrationSnapshot();
-  renderWatchlistHealth();
-  renderAlertHistory();
-  renderMostClicked();
-  renderMostExecuted();
-  renderRisingInterest();
-  renderDetail();
-  renderFunnel();
-  var tab = location.hash.replace('#','');
-  show(['list','detail','trends','archive'].includes(tab) ? tab : 'list');
+      state.tradeClicks = totalTradeClicks();
+      refreshSnapshotMetaText();
+      var initialUrlState = readListStateFromUrl();
+      var savedUiState = loadUiState();
+      Object.assign(state, initialUrlState);
+      if(!initialUrlState.selectedProvided && savedUiState.selectedId && data.some(function(item){ return String(item.id) === String(savedUiState.selectedId); })){
+        state.selectedId = savedUiState.selectedId;
+      }
+      if(savedUiState.chartRange != null){
+        state.chartRange = savedUiState.chartRange;
+      }
+      renderList();
+      renderMorningBrief();
+      renderCalibrationSnapshot();
+      renderWatchlistHealth();
+      renderAlertHistory();
+      renderMostClicked();
+      renderMostExecuted();
+      renderRisingInterest();
+      renderDetail();
+      renderFunnel();
+      var tab = location.hash.replace('#','');
+      show(['list','detail','trends','archive'].includes(tab) ? tab : (savedUiState.view || 'list'));
 })();
 </script>
 </body>

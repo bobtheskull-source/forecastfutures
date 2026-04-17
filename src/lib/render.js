@@ -15,10 +15,16 @@ import { forecastReviewToCsv } from './review-export.js';
 
 export function renderApp({ markets, outliers, review = {}, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails, infra = {} }) {
   const infrastructure = infra || {};
-  const summary = archiveSummary(archive);
-  const morningBrief = buildMorningBrief(outliers);
-  const calibrationReport = buildCalibrationReport(archive);
-  const signalData = outliers.map((s) => ({
+  const marketData = Array.isArray(markets) ? markets : [];
+  const signalSource = Array.isArray(outliers) ? outliers : [];
+  const archiveData = Array.isArray(archive) ? archive : [];
+  const reviewData = review && typeof review === 'object' ? review : {};
+  const hasMarketData = Array.isArray(markets);
+  const hasArchiveData = Array.isArray(archive);
+  const summary = archiveSummary(archiveData);
+  const morningBrief = buildMorningBrief(signalSource);
+  const calibrationReport = buildCalibrationReport(archiveData);
+  const signalData = signalSource.map((s) => ({
     ...s,
     marketProb: Number((s.marketProb ?? (s.price / 100)).toFixed(4)),
     modelProb: Number((s.modelProb ?? (s.price / 100)).toFixed(4)),
@@ -37,16 +43,23 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       edge: s.edge,
     })),
   }));
-  const reviewItems = Array.isArray(review?.forecasts) ? review.forecasts : [];
-  const reviewCsvText = forecastReviewToCsv({ review, archive });
-  const reviewShareText = buildReviewShareText({ review, archiveSummary: summary });
+  const reviewItems = Array.isArray(reviewData?.forecasts) ? reviewData.forecasts : [];
+  const reviewCsvText = forecastReviewToCsv({ review: reviewData, archive: archiveData });
+  const reviewShareText = buildReviewShareText({ review: reviewData, archiveSummary: summary });
   const primarySignal = signalData[0] || null;
   const statusTiles = [
-    { label: 'Markets loaded', value: markets.length },
-    { label: 'Ranked signals', value: outliers.length },
+    { label: 'Markets loaded', value: marketData.length },
+    { label: 'Ranked signals', value: signalData.length },
     { label: 'Execution gates', value: guardrails?.metrics?.droppedCount ?? 0 },
     { label: 'Signal p95', value: `${guardrails?.metrics?.p95LatencyMs ?? 0}ms` },
   ];
+  const archiveStateMessage = archive == null
+    ? 'Loading archive results...'
+    : !hasArchiveData
+      ? 'Error: archive data could not be rendered.'
+      : archiveData.length
+        ? ''
+        : 'No archived forecasts yet. Completed reviews will appear here once outcomes are recorded.';
 
   return `<!doctype html>
 <html lang="en">
@@ -110,8 +123,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
         <div class="actions">
           <button class="btn hero-alert-controls" type="button">Tune alerts</button>
           <button class="btn hero-refresh-snapshot" type="button">Refresh snapshot</button>
+          <button class="btn" type="button" data-action="open-command-palette">Command palette · Ctrl+K</button>
           ${primarySignal ? `<button class="btn primary" data-action="view" data-id="${escapeHtml(primarySignal.id)}">Open primary signal</button>` : ''}
         </div>
+        <p class="muted">Shortcut hints: Ctrl+K opens the palette; 1 list · 2 detail · 3 trends · 4 archive.</p>
       </article>
       <article class="card">
         <strong>Fast scan guide</strong>
@@ -161,12 +176,13 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     <div id="onboardingBanner" class="card onboarding-banner" hidden>
       <div class="row"><strong>Quick start</strong><button class="btn" id="dismissOnboardingBtn">Dismiss</button></div>
       <p class="muted">Use the list to scan opportunities, open detail for compare and history, then trade when the pre-trade check is green.</p>
-      <div class="onboarding-steps">
-        <span class="pill">1. Search or sort the list</span>
-        <span class="pill">2. Open detail for compare</span>
-        <span class="pill">3. Pre-trade check then open Kalshi</span>
-      </div>
+    <div class="onboarding-steps">
+      <button class="pill" type="button" data-action="goto-view" data-view="list">Go to list</button>
+      <button class="pill" type="button" data-action="goto-view" data-view="detail">Go to detail</button>
+      <button class="pill" type="button" data-action="goto-view" data-view="trends">Go to trends</button>
+      <button class="pill" type="button" data-action="goto-view" data-view="archive">Go to archive</button>
     </div>
+</div>
     <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
     <div class="card" style="margin-top:12px">
@@ -209,6 +225,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 
   <section class="view section" data-view="archive" hidden>
     <h2>Archive</h2>
+    <div id="archiveState" class="state"${archiveStateMessage ? '' : ' hidden'}>${archiveStateMessage ? escapeHtml(archiveStateMessage) : ''}</div>
     <div class="card">
       <div class="row"><strong>Review summary</strong><span class="pill">${summary.wins} wins · ${summary.misses} misses</span></div>
       <p class="muted">Top win: ${escapeHtml(summary.topWin?.market || 'n/a')} · Top miss: ${escapeHtml(summary.topMiss?.market || 'n/a')}</p>
@@ -219,12 +236,11 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Forecast theses</strong>
-      <div class="grid" style="margin-top:8px">${reviewItems.length ? reviewItems.map((item, index) => `<article class="card"><div class="row"><strong>${index + 1}. ${escapeHtml(item.market || item.title || 'Forecast')}</strong><span class="pill">score ${Number(item.score || 0).toFixed(2)}</span></div><p class="muted">${escapeHtml(item.event || 'No event')} · ${escapeHtml(item.direction || 'n/a')}</p><p class="muted">Thesis: ${escapeHtml(item.thesis || 'No thesis')}</p><p class="muted">Post-mortem prompt: ${escapeHtml(item.postMortem || 'No post-mortem prompt')}</p></article>`).join('') : '<div class="muted">No forecast review items yet.</div>'}
-
+      <div class="grid" style="margin-top:8px">${reviewItems.length ? reviewItems.map((item, index) => `<article class="card"><div class="row"><strong>${index + 1}. ${escapeHtml(item.market || item.title || 'Forecast')}</strong><span class="pill">score ${Number(item.score || 0).toFixed(2)}</span></div><p class="muted">${escapeHtml(item.event || 'No event')} · ${escapeHtml(item.direction || 'n/a')}</p><p class="muted">Thesis: ${escapeHtml(item.thesis || 'No thesis')}</p><p class="muted">Post-mortem prompt: ${escapeHtml(item.postMortem || 'No post-mortem prompt')}</p></article>`).join('') : '<div class="muted">No forecast review items yet.</div>'}</div>
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Resolved archive</strong>
-      <div class="grid" style="margin-top:8px">${archive.map((item) => `<article class="card"><div class="row"><strong>${escapeHtml(item.market)}</strong><span class="pill">${escapeHtml(item.correct ? 'correct' : 'missed')}</span></div><p>${escapeHtml(item.outcome.label)}</p><p class="muted">Forecast direction: ${escapeHtml(item.direction)} · Outcome: ${escapeHtml(item.outcome.direction)}</p><p class="muted">Score ${Number(item.score || 0).toFixed(2)} · accuracy ${escapeHtml(item.accuracyLabel || (item.correct ? 'correct' : 'missed'))}</p>${item.freshnessSeconds != null ? `<div class="row" style="margin-top:8px;flex-wrap:wrap">${freshnessBadgeHtml(item.freshnessSeconds)}</div>` : ''}</article>`).join('')}</div>
+      <div class="grid" style="margin-top:8px">${archiveData.length ? archiveData.map((item) => `<article class="card"><div class="row"><strong>${escapeHtml(item.market)}</strong><span class="pill">${escapeHtml(item.correct ? 'correct' : 'missed')}</span></div><p>${escapeHtml(item.outcome.label)}</p><p class="muted">Forecast direction: ${escapeHtml(item.direction)} · Outcome: ${escapeHtml(item.outcome.direction)}</p><p class="muted">Score ${Number(item.score || 0).toFixed(2)} · accuracy ${escapeHtml(item.accuracyLabel || (item.correct ? 'correct' : 'missed'))}</p>${item.freshnessSeconds != null ? `<div class="row" style="margin-top:8px;flex-wrap:wrap">${freshnessBadgeHtml(item.freshnessSeconds)}</div>` : ''}</article>`).join('') : '<div class="muted">No resolved archive items yet.</div>'}</div>
     </div>
     <div class="card" style="margin-top:12px"><p class="muted">Correct: ${summary.wins} · Missed: ${summary.misses}</p></div>
   </section>
@@ -261,6 +277,19 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   <div class="modal-card" id="paywallBody"></div>
 </div>
 
+<div class="modal" id="commandPaletteModal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="row"><strong>Command palette</strong><button class="btn" data-close="commandPaletteModal">Close</button></div>
+    <p class="muted">Use keyboard shortcuts or jump straight to a surface.</p>
+    <div class="grid" style="margin-top:10px">
+      <button class="btn" data-action="goto-view" data-view="list">Go to list</button>
+      <button class="btn" data-action="goto-view" data-view="detail">Go to detail</button>
+      <button class="btn" data-action="goto-view" data-view="trends">Go to trends</button>
+      <button class="btn" data-action="goto-view" data-view="archive">Go to archive</button>
+    </div>
+  </div>
+</div>
+
 <div class="sticky-trade"><a id="stickyTradeCta" class="btn primary" href="#" target="_blank" rel="noopener" data-action="trade">Trade selected on Kalshi</a></div>
 
 <nav class="nav" aria-label="Primary">
@@ -282,10 +311,11 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var funnelKey = 'ff_funnel_events_v1';
   var paywallSeenKey = 'ff_paywall_seen_v1';
   var snapshotRefreshKey = 'ff_snapshot_refreshed_at_v1';
+  var uiStateKey = 'ff_ui_state_v1';
   var halfLifeMs = 6 * 60 * 60 * 1000;
   var defaultPrefs = { minEdgePercent: 4, confidenceFloor: 'medium', quietHoursStart: 22, quietHoursEnd: 7, cooldownMinutes: 30 };
   var confRank = { low: 1, medium: 2, high: 3 };
-  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null, breakoutOnly: false, executionReadyOnly: false };
+  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null, breakoutOnly: false, executionReadyOnly: false, chartRange: 20 };
 
   var buttons = Array.from(document.querySelectorAll('.nav button'));
   var views = Array.from(document.querySelectorAll('.view'));
@@ -312,6 +342,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var preTradeBody = document.getElementById('preTradeBody');
   var alertModal = document.getElementById('alertModal');
   var paywallModal = document.getElementById('paywallModal');
+  var commandPaletteModal = document.getElementById('commandPaletteModal');
   var paywallBody = document.getElementById('paywallBody');
   var stickyTradeCta = document.getElementById('stickyTradeCta');
   var activeModalTrigger = null;
@@ -356,6 +387,13 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   }
   function saveSnapshotRefresh(value){
     try { localStorage.setItem(snapshotRefreshKey, value); } catch {}
+  }
+
+  function loadUiState(){
+    try { return JSON.parse(localStorage.getItem(uiStateKey) || '{}'); } catch { return {}; }
+  }
+  function saveUiState(patch){
+    try { localStorage.setItem(uiStateKey, JSON.stringify(Object.assign({}, loadUiState(), patch || {}))); } catch {}
   }
   function snapshotRefreshMeta(){
     var stamp = loadSnapshotRefresh();
@@ -425,6 +463,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       maxResolveHours: params.get('resolve') != null && params.get('resolve') !== '' ? Number(params.get('resolve')) : null,
       breakoutOnly: params.get('breakout') === '1',
       executionReadyOnly: params.get('exec') === '1',
+      selectedProvided: params.has('selected'),
     };
   }
   function syncListStateToUrl(tab){
@@ -841,8 +880,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     }
 
     var sorted = sortSignals(filtered);
-
-    if(!data.length){ listState.hidden=false; listState.textContent='Loading opportunities...'; listResults.innerHTML=''; return; }
+    if(!hasMarketData){ listState.hidden=false; listState.textContent='Loading opportunities...'; listResults.innerHTML=''; return; }
+    if(!data.length){ listState.hidden=false; listState.textContent='No opportunities yet. Add market data or relax filters to populate the list.'; listResults.innerHTML=''; return; }
     if(!sorted.length){ listState.hidden=false; listState.textContent='No results match this search/filter.'; listResults.innerHTML=''; return; }
 
     listState.hidden = true;
@@ -915,7 +954,9 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 
   function renderDetail(){
     var item = data.find(function(x){return x.id===state.selectedId;});
-    if(!item){ detailState.hidden=false; detailState.textContent='Error: selected market not found.'; detailPanel.innerHTML=''; return; }
+    if(!hasMarketData){ detailState.hidden=false; detailState.textContent='Loading market detail...'; detailPanel.innerHTML='<div class="muted">Waiting for market data to load.</div>'; return; }
+    if(!data.length){ detailState.hidden=false; detailState.textContent='No market selected yet.'; detailPanel.innerHTML='<div class="muted">Choose a market from the list to inspect detail, compare, and trade links.</div>'; return; }
+    if(!item){ detailState.hidden=false; detailState.textContent='Error: selected market not found.'; detailPanel.innerHTML='<div class="muted">Selected market is unavailable. Pick another market or clear the saved selection.</div>'; return; }
     detailState.hidden=true;
     var lo = item.confidenceInterval ? item.confidenceInterval[0] : 0;
     var hi = item.confidenceInterval ? item.confidenceInterval[1] : 0;
@@ -933,6 +974,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var freshnessDelta = compare.deltas ? Number(compare.deltas.freshnessSeconds || 0).toFixed(0) : '0';
     var shareText = buildShareText(item);
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
+    var chartWindow = state.chartRange === 'all' ? (item.probabilityHistory || []) : (item.probabilityHistory || []).slice(-(Number(state.chartRange) || 20));
+    var chartWindowLabel = state.chartRange === 'all' ? 'all points' : 'last ' + Number(state.chartRange || 20) + ' points';
     detailPanel.innerHTML = '<section class="chart-workspace">'
       + '<article class="card detail-stack">'
       + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
@@ -942,9 +985,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<div class="stat"><strong>'+(item.modelProb*100).toFixed(2)+'%</strong><div class="muted">Model prob</div></div>'
       + '<div class="stat"><strong>'+selectedRecency.toFixed(0)+'</strong><div class="muted">Recency score</div></div>'
       + '</div>'
+      + '<div class="card" style="margin-top:10px"><strong>Chart range</strong><p class="muted">Window: '+esc(chartWindowLabel)+' · compare text stays tied to the selected event.</p><div class="actions"><button class="btn" data-action="chart-range" data-range="5">5 points</button><button class="btn" data-action="chart-range" data-range="20">20 points</button><button class="btn" data-action="chart-range" data-range="all">All points</button></div></div>'
       + '<p class="muted" style="margin-top:8px">Confidence interval: '+(lo*100).toFixed(2)+'% to '+(hi*100).toFixed(2)+'%</p>'
       + '<div class="card" style="margin-top:10px"><strong>24h probability delta</strong><p class="muted">'+esc(trendSummary.summary)+' · acceleration '+esc(trendSummary.accelerationLabel)+'</p></div>'
-      + '<div class="chart-frame">'+sparkline(item.probabilityHistory || [])+'</div>'
+      + '<div class="chart-frame">'+sparkline(chartWindow)+'</div>'
       + '<div class="drivers">'+drivers+'</div>'
       + explainabilityDrawer(item)
       + '</article>'
@@ -964,6 +1008,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     stickyTradeCta.setAttribute('href', item.tradeUrl || '#');
     stickyTradeCta.setAttribute('data-id', item.id || '');
     stickyTradeCta.textContent = 'Trade ' + item.title + ' on Kalshi';
+    saveUiState({ selectedId: state.selectedId, view: 'detail' });
     syncListStateToUrl('detail');
   }
 
@@ -972,6 +1017,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     views.forEach(function(v){v.hidden = v.dataset.view !== tab;});
     buttons.forEach(function(b){b.classList.toggle('active', b.dataset.tab===tab);});
     history.replaceState(null,'','#'+tab);
+    saveUiState({ view: tab });
     syncListStateToUrl(tab);
   }
 
@@ -983,6 +1029,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     document.getElementById('prefQuietEnd').value = prefs.quietHoursEnd;
     document.getElementById('prefCooldown').value = prefs.cooldownMinutes;
     openModal(alertModal, document.activeElement);
+  }
+
+  function openCommandPalette(){
+    openModal(commandPaletteModal, document.activeElement);
   }
 
   function openModal(modal, trigger){
@@ -1006,7 +1056,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   }
 
   function currentOpenModal(){
-    return [preTradeModal, alertModal, paywallModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
+    return [preTradeModal, alertModal, paywallModal, commandPaletteModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
   }
 
   function trapModalTabKey(event){
@@ -1026,7 +1076,19 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   }
 
   window.addEventListener('keydown', function(event){
+    if((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k'){
+      event.preventDefault();
+      openCommandPalette();
+      return;
+    }
+    if(!event.ctrlKey && !event.metaKey && !event.altKey && !/input|textarea|select/i.test((event.target && event.target.tagName) || '')){
+      if(event.key === '1'){ show('list'); return; }
+      if(event.key === '2'){ show('detail'); renderDetail(); return; }
+      if(event.key === '3'){ show('trends'); return; }
+      if(event.key === '4'){ show('archive'); return; }
+    }
     if(event.key === 'Escape'){
+      if(commandPaletteModal.classList.contains('show')){ closeModal('commandPaletteModal'); return; }
       if(paywallModal.classList.contains('show')){ closeModal('paywallModal'); return; }
       if(alertModal.classList.contains('show')){ closeModal('alertModal'); return; }
       if(preTradeModal.classList.contains('show')){ closeModal('preTradeModal'); return; }
@@ -1169,9 +1231,16 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var id = target.getAttribute('data-id');
     var item = data.find(function(x){ return x.id === id; });
 
-    if(action==='view'){ state.selectedId = id; show('detail'); renderDetail(); }
-    if(action==='watch' && item){ toggleWatchlist(id); renderList(); }
-    if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet(item); renderFunnel(); }
+        if(action==='view'){ state.selectedId = id; show('detail'); renderDetail(); }
+        if(action==='goto-view'){ show(target.getAttribute('data-view') || 'list'); if((target.getAttribute('data-view') || 'list') === 'detail') renderDetail(); closeModal('commandPaletteModal'); }
+        if(action==='open-command-palette'){ openCommandPalette(); }
+        if(action==='chart-range' && item){
+          state.chartRange = target.getAttribute('data-range') === 'all' ? 'all' : Number(target.getAttribute('data-range') || 20);
+          saveUiState({ chartRange: state.chartRange });
+          renderDetail();
+        }
+        if(action==='watch' && item){ toggleWatchlist(id); renderList(); }
+if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet(item); renderFunnel(); }
     if(action==='dismiss-alert' && item){ updateAlertHistoryStatus(id, 'dismissed'); renderAlertHistory(); renderList(); }
     if(action==='archive-alert' && item){ updateAlertHistoryStatus(id, 'archived'); renderAlertHistory(); renderList(); }
     if(action==='trade'){
@@ -1212,21 +1281,29 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     }
   });
 
-  state.tradeClicks = totalTradeClicks();
-  refreshSnapshotMetaText();
-  Object.assign(state, readListStateFromUrl());
-  renderList();
-  renderMorningBrief();
-  renderCalibrationSnapshot();
-  renderWatchlistHealth();
-  renderAlertHistory();
-  renderMostClicked();
-  renderMostExecuted();
-  renderRisingInterest();
-  renderDetail();
-  renderFunnel();
-  var tab = location.hash.replace('#','');
-  show(['list','detail','trends','archive'].includes(tab) ? tab : 'list');
+      state.tradeClicks = totalTradeClicks();
+      refreshSnapshotMetaText();
+      var initialUrlState = readListStateFromUrl();
+      var savedUiState = loadUiState();
+      Object.assign(state, initialUrlState);
+      if(!initialUrlState.selectedProvided && savedUiState.selectedId && data.some(function(item){ return String(item.id) === String(savedUiState.selectedId); })){
+        state.selectedId = savedUiState.selectedId;
+      }
+      if(savedUiState.chartRange != null){
+        state.chartRange = savedUiState.chartRange;
+      }
+      renderList();
+      renderMorningBrief();
+      renderCalibrationSnapshot();
+      renderWatchlistHealth();
+      renderAlertHistory();
+      renderMostClicked();
+      renderMostExecuted();
+      renderRisingInterest();
+      renderDetail();
+      renderFunnel();
+      var tab = location.hash.replace('#','');
+      show(['list','detail','trends','archive'].includes(tab) ? tab : (savedUiState.view || 'list'));
 })();
 </script>
 </body>
