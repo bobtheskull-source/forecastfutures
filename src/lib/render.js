@@ -5,6 +5,8 @@ import { buildCalibrationReport } from './calibration-report.js';
 import { attentionVsAlpha } from './attention.js';
 import { classifyMovement } from './movement-flags.js';
 import { computePaywallIntent, paywallHeadlineByIntent } from './paywall-intent.js';
+import { applyScanPreset, compareMarketToMedian, loadScanPreset, saveScanPreset } from './scan-presets.js';
+import { buildShareText, copyShareText } from './share.js';
 
 export function renderApp({ markets, outliers, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails }) {
   const summary = archiveSummary(archive);
@@ -87,6 +89,10 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
         <button class="chip active" id="feedNowBtn">Feed: Now</button>
         <button class="chip" id="feedDiscoverBtn">Feed: Discover</button>
         <button class="chip" id="presetHighEdgeBtn">Preset: edge > 5%</button>
+        <button class="chip" id="presetBreakoutBtn">Preset: breakout</button>
+        <button class="chip" id="presetWatchlistBtn">Preset: watchlist</button>
+        <button class="chip" id="savePresetBtn">Save preset</button>
+        <button class="chip" id="restorePresetBtn">Restore preset</button>
         <button class="chip" id="presetExpiringBtn">Preset: resolves < 7d</button>
         <button class="chip" id="resetPresetBtn">Preset: clear</button>
         <button class="chip" id="exportCsvBtn">Export CSV</button>
@@ -181,7 +187,7 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
   var halfLifeMs = 6 * 60 * 60 * 1000;
   var defaultPrefs = { minEdgePercent: 4, confidenceFloor: 'medium', quietHoursStart: 22, quietHoursEnd: 7, cooldownMinutes: 30 };
   var confRank = { low: 1, medium: 2, high: 3 };
-  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null };
+  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null, breakoutOnly: false, executionReadyOnly: false };
 
   var buttons = Array.from(document.querySelectorAll('.nav button'));
   var views = Array.from(document.querySelectorAll('.view'));
@@ -411,16 +417,19 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     var eligible = isAlertEligible(item, loadAlertPrefs());
     var watchlisted = isWatchlisted(item.id);
     var movement = item.movementFlag || { label: 'Normal', driftPp: 0, reliability: 0 };
+    var trend = sparkline((item.probabilityHistory || []).slice(-5));
     return '<article class="card" data-id="'+esc(item.id)+'">'
       + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+' · '+esc(movement.label)+'</span></div>'
       + '<p class="muted">'+esc(item.event)+'</p>'
       + '<p class="muted">Move '+(item.move>0?'+':'')+item.move+' · Edge '+edgePct+'% · Freshness '+item.freshnessSeconds+'s · CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</p>'
       + '<p class="muted">Movement drift '+(Number(movement.driftPp || 0) > 0 ? '+' : '')+Number(movement.driftPp || 0).toFixed(2)+'pp · reliability '+(Number(movement.reliability || 0)*100).toFixed(0)+'%</p>'
+      + '<div style="margin-top:8px">'+trend+'</div>'
       + '<p class="muted">Score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+'</p>'
       + explainabilityDrawer(item)
       + '<div class="actions">'
       + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">View detail</button>'
       + '<button class="btn" data-action="watch" data-id="'+esc(item.id)+'">'+(watchlisted ? 'Unwatch' : 'Watch')+'</button>'
+      + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div></article>';
@@ -520,6 +529,14 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       filtered = filtered.filter(function(item){ return Number(item.hoursToResolve || 48) <= state.maxResolveHours; });
     }
 
+    if(state.breakoutOnly) {
+      filtered = filtered.filter(function(item){ return (item.movementFlag && item.movementFlag.label === 'Breakout') || Math.abs(Number(item.move || 0)) >= 12; });
+    }
+
+    if(state.executionReadyOnly) {
+      filtered = filtered.filter(function(item){ return item.isTradeable; });
+    }
+
     var sorted = sortSignals(filtered);
 
     if(!data.length){ listState.hidden=false; listState.textContent='Loading opportunities...'; listResults.innerHTML=''; return; }
@@ -581,6 +598,15 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     var lo = item.confidenceInterval ? item.confidenceInterval[0] : 0;
     var hi = item.confidenceInterval ? item.confidenceInterval[1] : 0;
     var drivers = (item.scenarioDrivers||[]).map(function(d){return '<span class="driver">'+esc(d)+'</span>';}).join('');
+    var compare = compareMarketToMedian(data, state.selectedId);
+    var selectedDepth = Number(item.depth || 0);
+    var selectedFreshness = Number(item.freshnessSeconds || 0);
+    var selectedEdge = Math.abs(Number(item.edge || 0)) * 100;
+    var selectedRecency = Math.max(0, 100 - selectedFreshness);
+    var medianEdge = Number(compare.median.edge || 0).toFixed(2);
+    var medianDepth = Number(compare.median.depth || 0).toFixed(0);
+    var medianFreshness = Number(compare.median.freshnessSeconds || 0).toFixed(0);
+    var shareText = buildShareText(item);
     detailPanel.innerHTML = '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
       + '<p class="muted">'+esc(item.event)+' · last updated '+esc(item.lastUpdated)+'</p>'
       + '<div class="row" style="margin-top:8px"><div>Market prob: <strong>'+(item.marketProb*100).toFixed(2)+'%</strong></div><div>Model prob: <strong>'+(item.modelProb*100).toFixed(2)+'%</strong></div></div>'
@@ -588,8 +614,10 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
       + sparkline(item.probabilityHistory || [])
       + '<div class="drivers">'+drivers+'</div>'
       + explainabilityDrawer(item)
+      + '<div class="card" style="margin-top:10px"><strong>Compare vs watchlist median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median · Depth '+selectedDepth+' vs '+medianDepth+' median · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median · Recency score '+selectedRecency.toFixed(0)+'</p></div>'
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
+      + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div>';
 
@@ -644,9 +672,13 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
     document.getElementById('feedNowBtn').classList.remove('active');
     renderList();
   });
-  document.getElementById('presetHighEdgeBtn').addEventListener('click', function(){ state.minEdgePreset = 5; renderList(); });
-  document.getElementById('presetExpiringBtn').addEventListener('click', function(){ state.maxResolveHours = 168; renderList(); });
-  document.getElementById('resetPresetBtn').addEventListener('click', function(){ state.minEdgePreset = null; state.maxResolveHours = null; renderList(); });
+  document.getElementById('presetHighEdgeBtn').addEventListener('click', function(){ state.minEdgePreset = 5; state.breakoutOnly = false; state.executionReadyOnly = false; renderList(); });
+  document.getElementById('presetBreakoutBtn').addEventListener('click', function(){ state = applyScanPreset(state, 'breakout'); renderList(); });
+  document.getElementById('presetWatchlistBtn').addEventListener('click', function(){ state = applyScanPreset(state, 'watchlist'); renderList(); });
+  document.getElementById('savePresetBtn').addEventListener('click', function(){ saveScanPreset(window.localStorage, 'last', state); this.textContent = 'Preset saved'; setTimeout(() => { this.textContent = 'Save preset'; }, 1200); });
+  document.getElementById('restorePresetBtn').addEventListener('click', function(){ var preset = loadScanPreset(window.localStorage, 'last'); if(preset){ state = Object.assign(state, preset); renderList(); this.textContent = 'Preset restored'; setTimeout(() => { this.textContent = 'Restore preset'; }, 1200); } });
+  document.getElementById('presetExpiringBtn').addEventListener('click', function(){ state.maxResolveHours = 168; state.breakoutOnly = false; state.executionReadyOnly = false; renderList(); });
+  document.getElementById('resetPresetBtn').addEventListener('click', function(){ state.minEdgePreset = null; state.maxResolveHours = null; state.breakoutOnly = false; state.executionReadyOnly = false; state.watchlistOnly = false; state.feedMode = 'now'; renderList(); });
   document.getElementById('exportCsvBtn').addEventListener('click', function(){
     var header = ['id','title','event','rankScore','edgePercent','quality','tradeUrl'];
     var rows = sortSignals(data).map(function(item){ return [item.id,item.title,item.event,Number(item.rankScore||0).toFixed(2),(Math.abs(Number(item.edge||0))*100).toFixed(2),item.signalQualityGrade||'C',item.tradeUrl||'']; });
@@ -704,6 +736,13 @@ export function renderApp({ markets, outliers, archive, rules = [], edgeCases = 
         localStorage.setItem(paywallSeenKey, String(Date.now()));
         openPaywall(item);
       }
+    }
+    if(action==='share' && item){
+      var payload = buildShareText(item);
+      Promise.resolve(copyShareText(payload)).then(function(done){
+        if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(payload); }
+        if(!done){ window.prompt('Copy trade link', payload); }
+      });
     }
     if(action==='startTrial'){
       recordFunnel('trial', id);
