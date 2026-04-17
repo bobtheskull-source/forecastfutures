@@ -9,6 +9,7 @@ from math import exp
 from pathlib import Path
 from typing import Any, Dict, List
 
+from .calibration import fit_calibration, apply_calibration, calibration_error_mae
 from .feature_store import fetch_rows, FEATURE_STORE_DB
 
 
@@ -20,8 +21,6 @@ def _sigmoid(x: float) -> float:
 
 
 def _fit_global_bias(rows: List[Dict[str, Any]]) -> float:
-    # Uses implied probability trend and microstructure proxies as a baseline score.
-    # No external ML dependency required.
     if not rows:
         return 0.0
     avg = sum(float(r["implied_prob"]) for r in rows) / len(rows)
@@ -32,7 +31,7 @@ def load_training_rows(db_path: Path = FEATURE_STORE_DB) -> List[Dict[str, Any]]
     return fetch_rows(db_path=db_path)
 
 
-def train_baseline(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+def train_baseline(rows: List[Dict[str, Any]], calibration_method: str = "platt") -> Dict[str, Any]:
     if not rows:
         raise ValueError("No training rows available")
 
@@ -49,16 +48,19 @@ def train_baseline(rows: List[Dict[str, Any]]) -> Dict[str, Any]:
         for market_id, vals in market_means.items()
     }
 
-    # Calibration: blend toward market mean to reduce over-confidence.
-    calibration_alpha = 0.25
+    calibration = fit_calibration(rows, method=calibration_method)
+    calibration_mae = calibration_error_mae(rows, calibration)
 
     artifact = {
         "model_name": "forecast_futures_baseline_v1",
         "trained_at": datetime.now(timezone.utc).isoformat(),
         "bias": bias,
-        "calibration_alpha": calibration_alpha,
         "market_params": market_params,
         "training_row_count": len(rows),
+        "calibration": calibration,
+        "metrics": {
+            "calibration_error_mae": calibration_mae,
+        },
     }
 
     digest = hashlib.sha256(json.dumps(artifact, sort_keys=True).encode("utf-8")).hexdigest()[:12]
@@ -70,10 +72,11 @@ def predict(artifact: Dict[str, Any], market_id: str, implied_prob: float) -> Di
     market_mean = artifact["market_params"].get(market_id, {}).get("mean_prob", implied_prob)
     raw_score = (implied_prob - 0.5) * 4 + artifact["bias"]
     raw_prob = _sigmoid(raw_score)
-    calibrated = (1 - artifact["calibration_alpha"]) * raw_prob + artifact["calibration_alpha"] * market_mean
+
+    calibrated = apply_calibration(raw_prob, artifact.get("calibration", {"method": "platt", "params": {}}))
+    calibrated = (calibrated + market_mean) / 2.0
     calibrated = max(0.0, min(1.0, calibrated))
 
-    # Simple confidence interval based on sample count for market.
     n = artifact["market_params"].get(market_id, {}).get("count", 1)
     radius = min(0.25, 1.0 / max(2.0, n ** 0.5))
     lo = max(0.0, calibrated - radius)
@@ -92,14 +95,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Train Forecast Futures baseline model")
     parser.add_argument("--db", default=str(FEATURE_STORE_DB))
     parser.add_argument("--output-dir", default=str(MODEL_DIR))
+    parser.add_argument("--calibration-method", default="platt", choices=["platt", "isotonic"])
     args = parser.parse_args()
 
     rows = load_training_rows(Path(args.db))
-    artifact = train_baseline(rows)
+    artifact = train_baseline(rows, calibration_method=args.calibration_method)
     path = save_artifact(artifact, Path(args.output_dir))
     print(json.dumps({
         "model_version": artifact["model_version"],
         "training_row_count": artifact["training_row_count"],
+        "calibration": artifact["calibration"],
+        "metrics": artifact["metrics"],
         "artifact_path": str(path),
     }, indent=2))
 
