@@ -20,6 +20,20 @@ export function savePinnedWatchlist(ids = [], storage = globalThis.localStorage)
   return next;
 }
 
+export function movePinnedWatchlist(marketId, direction = -1, storage = globalThis.localStorage) {
+  const id = String(marketId || '').trim();
+  if (!id) return loadPinnedWatchlist(storage);
+  const current = loadPinnedWatchlist(storage);
+  const index = current.indexOf(id);
+  if (index === -1) return current;
+  const targetIndex = Math.max(0, Math.min(current.length - 1, index + Number(direction || 0)));
+  if (targetIndex === index) return current;
+  const next = current.slice();
+  next.splice(index, 1);
+  next.splice(targetIndex, 0, id);
+  return savePinnedWatchlist(next, storage);
+}
+
 export function togglePinnedWatchlist(marketId, storage = globalThis.localStorage) {
   const current = loadPinnedWatchlist(storage);
   const id = String(marketId || '').trim();
@@ -33,12 +47,9 @@ export function isPinnedWatchlist(marketId, storage = globalThis.localStorage) {
 }
 
 export function groupMarketsByPin(markets = [], pinnedIds = []) {
-  const pins = new Set(unique(pinnedIds));
-  const pinned = [];
-  const unpinned = [];
-  (Array.isArray(markets) ? markets : []).forEach((market) => {
-    if (pins.has(String(market?.id || '').trim())) pinned.push(market);
-    else unpinned.push(market);
-  });
+  const pins = unique(pinnedIds);
+  const lookup = new Map((Array.isArray(markets) ? markets : []).map((market) => [String(market?.id || '').trim(), market]));
+  const pinned = pins.map((id) => lookup.get(id)).filter(Boolean);
+  const unpinned = (Array.isArray(markets) ? markets : []).filter((market) => !pins.includes(String(market?.id || '').trim()));
   return { pinned, unpinned };
 }

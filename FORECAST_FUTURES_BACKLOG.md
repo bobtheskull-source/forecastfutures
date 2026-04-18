@@ -70,6 +70,36 @@ AC:
 2) The active compare board can be swapped to a saved set without losing the current selection state.
 3) Management controls stay compact and keep the compare board usable on mobile.
 
+CARD-112 | Deployed Done | Add compare board snapshot saving so the active selection, note, and timestamp can be restored later
+AC:
+1) Users can save the current compare board as a named snapshot from the compare panel.
+2) Saving preserves the selected market IDs, note text, and updated timestamp locally.
+3) A restored snapshot reopens the same board without disturbing URL state or list filters.
+
+CARD-113 | Deployed Done | Add undo for compare board clears and removals so accidental changes can be reversed quickly
+AC:
+1) Clearing or removing a compare item stores the previous board state for one-step undo.
+2) Undo restores the prior compare IDs and re-renders the board immediately.
+3) The undo control stays compact and does not block the compare panel on mobile.
+
+CARD-114 | Deployed Done | Add watchlist pin ordering controls so favorite markets can be reordered and persisted
+AC:
+1) Pinned watchlist markets can move up or down within the pinned group.
+2) The pinned order persists after reload and remains stable while filtering the watchlist.
+3) Reordering keeps the existing watch, unwatch, and open-detail actions available.
+
+CARD-115 | Deployed Done | Add edit and delete controls for trade journal entries from detail and archive surfaces
+AC:
+1) Journal entries can be edited in place or reopened from the detail/archive panels.
+2) Deleting a journal entry removes only the note record and leaves the market surfaces intact.
+3) Edited timestamps and tags persist locally and remain visible in review.
+
+CARD-116 | Deployed Done | Add a compact overflow tray for share, export, and help actions on narrow layouts
+AC:
+1) Secondary actions collapse into an overflow tray when space is tight.
+2) Share, export, and help launch the correct surface-specific handlers from the tray.
+3) The tray remains keyboard accessible and does not cover the main market workspace.
+
 ## Done
 
 CARD-033 | Deployed Done | Add first-run onboarding guidance for list, detail, and trade actions

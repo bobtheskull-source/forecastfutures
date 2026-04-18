@@ -34,6 +34,13 @@ export function saveCompareBoard(storage, ids = []) {
   return next;
 }
 
+export function saveCompareSnapshot(storage, name, snapshot = {}) {
+  return saveCompareSet(storage, name, {
+    ids: snapshot.ids || [],
+    note: snapshot.note || '',
+  });
+}
+
 export function toggleCompareBoardId(ids = [], id, selectedId = null, maxSize = DEFAULT_MAX_COMPARE_IDS) {
   const value = String(id || '').trim();
   if (!value) return uniqueIds(ids, selectedId, maxSize);
@@ -48,8 +55,10 @@ export function saveCompareSet(storage, name, ids = []) {
   const key = String(name || '').trim();
   if (!key) return null;
   const store = loadCompareSets(storage);
+  const payload = Array.isArray(ids) ? { ids } : (ids || {});
   store[key] = {
-    ids: uniqueIds(ids),
+    ids: uniqueIds(payload.ids || []),
+    note: String(payload.note || '').trim(),
     updatedAt: new Date().toISOString(),
   };
   storage?.setItem(COMPARE_SETS_STORAGE_KEY, JSON.stringify(store));

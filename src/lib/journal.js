@@ -32,6 +32,13 @@ export function saveTradeJournal(entries = [], storage = globalThis.localStorage
   return next;
 }
 
+export function deleteTradeJournalEntry(marketId, storage = globalThis.localStorage) {
+  const id = String(marketId || '').trim();
+  if (!id) return loadTradeJournal(storage);
+  const next = loadTradeJournal(storage).filter((entry) => entry.marketId !== id);
+  return saveTradeJournal(next, storage);
+}
+
 export function upsertTradeJournalEntry(entry = {}, storage = globalThis.localStorage) {
   const current = loadTradeJournal(storage);
   const normalized = normalizeEntry({

@@ -11,6 +11,7 @@ import {
   renameCompareSet,
   saveCompareBoard,
   saveCompareSet,
+  saveCompareSnapshot,
   toggleCompareBoardId,
 } from '../compare-sets.js';
 
@@ -36,11 +37,12 @@ test('compare board storage round-trips through local storage', () => {
 test('saved compare sets round-trip and list in sorted order', () => {
   const storage = makeStorage();
   saveCompareSet(storage, 'Morning', ['m1', 'm2']);
-  saveCompareSet(storage, 'Evening', ['m3']);
+  saveCompareSnapshot(storage, 'Snapshot', { ids: ['m3', 'm4'], note: 'Watch the spread' });
   renameCompareSet(storage, 'Morning', 'Sunrise');
-  assert.deepEqual(listCompareSetNames(storage), ['Evening', 'Sunrise']);
+  assert.deepEqual(listCompareSetNames(storage), ['Snapshot', 'Sunrise']);
   assert.deepEqual(loadCompareSet(storage, 'Sunrise').ids, ['m1', 'm2']);
-  assert.equal(deleteCompareSet(storage, 'Evening'), true);
+  assert.equal(loadCompareSet(storage, 'Snapshot').note, 'Watch the spread');
+  assert.equal(deleteCompareSet(storage, 'Snapshot'), true);
   assert.deepEqual(listCompareSetNames(storage), ['Sunrise']);
 });
 

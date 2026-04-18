@@ -10,9 +10,9 @@ import { applyScanPreset, compareMarketToEventMedian, compareMarketToMedian, loa
 import { buildShareText, buildSummaryShareText, buildReviewShareText, buildOpportunityCsv, copyShareText, buildActiveOpportunityShareText } from './share.js';
 import { archiveAlertHistoryItem, markAlertHistoryItem, summarizeAlertHistory, upsertAlertHistoryItem } from './alerts.js';
 import { buildCalibrationFeedback, adjustOpportunityScores } from './odds-feedback.js';
-import { buildCompareScenario, compareBoardLabel, loadCompareBoard, loadCompareSet, listCompareSetNames, saveCompareBoard, saveCompareSet, toggleCompareBoardId, renameCompareSet, deleteCompareSet } from './compare-sets.js';
-import { loadTradeJournal, saveTradeJournal, upsertTradeJournalEntry, findTradeJournalEntry, journalSummary, buildJournalPrompt } from './journal.js';
-import { loadPinnedWatchlist, savePinnedWatchlist, togglePinnedWatchlist, isPinnedWatchlist, groupMarketsByPin } from './watchlist-pins.js';
+import { buildCompareScenario, compareBoardLabel, loadCompareBoard, loadCompareSet, listCompareSetNames, saveCompareBoard, saveCompareSet, saveCompareSnapshot, toggleCompareBoardId, renameCompareSet, deleteCompareSet } from './compare-sets.js';
+import { loadTradeJournal, saveTradeJournal, upsertTradeJournalEntry, deleteTradeJournalEntry, findTradeJournalEntry, journalSummary, buildJournalPrompt } from './journal.js';
+import { loadPinnedWatchlist, savePinnedWatchlist, movePinnedWatchlist, togglePinnedWatchlist, isPinnedWatchlist, groupMarketsByPin } from './watchlist-pins.js';
 import { morningBriefToCsv } from './brief-export.js';
 import { forecastReviewToCsv } from './review-export.js';
 
@@ -230,7 +230,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       <button class="pill" type="button" data-action="goto-view" data-view="archive">Go to archive</button>
     </div>
 </div>
-    <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
+    <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><details class="drawer"><summary>More utility actions</summary><div class="actions" style="margin-top:8px"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button><button class="btn" data-action="open-help-drawer">Help</button></div></details></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
     <div class="card" style="margin-top:12px">
       <div class="row"><strong>Backend readiness</strong><span class="pill">${infrastructure.ready ? 'ready' : 'needs secrets'}</span></div>
@@ -381,6 +381,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var uiStateKey = 'ff_ui_state_v1';
   var compareBoardKey = 'ff_compare_board_v1';
   var compareSetsKey = 'ff_compare_sets_v1';
+  var compareUndoKey = 'ff_compare_board_undo_v1';
+  var compareSnapshotKey = 'ff_compare_snapshot_v1';
   var halfLifeMs = 6 * 60 * 60 * 1000;
   var defaultPrefs = { minEdgePercent: 4, confidenceFloor: 'medium', quietHoursStart: 22, quietHoursEnd: 7, cooldownMinutes: 30 };
   var confRank = { low: 1, medium: 2, high: 3 };
@@ -508,10 +510,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   }
   function isPinnedWatchlistState(id){ return loadPinnedWatchlistState().includes(String(id)); }
   function groupMarketsByPinState(items){
-    var pins = new Set(loadPinnedWatchlistState());
-    var pinned = [];
-    var unpinned = [];
-    (items || []).forEach(function(item){ (pins.has(String(item.id)) ? pinned : unpinned).push(item); });
+    var pins = loadPinnedWatchlistState();
+    var lookup = new Map((items || []).map(function(item){ return [String(item.id), item]; }));
+    var pinned = pins.map(function(id){ return lookup.get(String(id)); }).filter(Boolean);
+    var unpinned = (items || []).filter(function(item){ return !pins.includes(String(item.id)); });
     return { pinned: pinned, unpinned: unpinned };
   }
 
@@ -570,6 +572,44 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     else list.unshift(key);
     saveCompareBoardState(list);
     return list;
+  }
+  function loadCompareUndoState(){
+    try { return JSON.parse(localStorage.getItem(compareUndoKey) || 'null'); } catch { return null; }
+  }
+  function saveCompareUndoState(value){
+    if(!value) localStorage.removeItem(compareUndoKey);
+    else localStorage.setItem(compareUndoKey, JSON.stringify(value));
+  }
+  function rememberCompareUndo(ids){
+    var list = Array.isArray(ids) ? ids.map(String).filter(Boolean) : [];
+    if(!list.length){ saveCompareUndoState(null); return null; }
+    var snapshot = { ids: list.slice(0, 4), updatedAt: new Date().toISOString() };
+    saveCompareUndoState(snapshot);
+    return snapshot;
+  }
+  function undoCompareBoard(){
+    var snapshot = loadCompareUndoState();
+    if(!snapshot || !Array.isArray(snapshot.ids)) return null;
+    saveCompareBoardState(snapshot.ids);
+    saveCompareUndoState(null);
+    return snapshot.ids;
+  }
+  function loadCompareSnapshotState(){
+    try { return JSON.parse(localStorage.getItem(compareSnapshotKey) || 'null'); } catch { return null; }
+  }
+  function saveCompareSnapshotState(value){
+    if(!value) localStorage.removeItem(compareSnapshotKey);
+    else localStorage.setItem(compareSnapshotKey, JSON.stringify(value));
+  }
+  function saveCurrentCompareSnapshot(name, note){
+    var ids = loadCompareBoard();
+    var selected = data.find(function(item){ return String(item.id) === String(state.selectedId); }) || null;
+    var payload = saveCompareSnapshot(window.localStorage, name, { ids: ids, note: String(note || (selected && selected.title ? selected.title : 'Snapshot')).trim() });
+    if(payload) saveCompareSnapshotState({ name: String(name || '').trim(), note: payload.note || '', updatedAt: payload.updatedAt || new Date().toISOString() });
+    return payload;
+  }
+  function loadCurrentCompareSnapshot(){
+    return loadCompareSnapshotState();
   }
   function loadCompareSetStore(){ try { return JSON.parse(localStorage.getItem(compareSetsKey) || '{}'); } catch { return {}; } }
   function saveCompareSetStore(value){ localStorage.setItem(compareSetsKey, JSON.stringify(value || {})); }
@@ -726,6 +766,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       watchlistHealthEl.innerHTML = '<div class="muted">Saved markets are not in the current feed.</div>';
       return;
     }
+    var pinnedIds = loadPinnedWatchlistState();
+    var pinned = pinnedIds.map(function(id){ return data.find(function(item){ return String(item.id) === String(id); }) || null; }).filter(Boolean);
     var median = function(values){
       var list = values.map(function(value){ return Number(value); }).filter(Number.isFinite).sort(function(a, b){ return a - b; });
       if(!list.length) return 0;
@@ -737,7 +779,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var medFresh = median(saved.map(function(item){ return Number(item.freshnessSeconds || 0); }));
     var tradeable = saved.filter(function(item){ return item.isTradeable !== false; }).length;
     var label = medEdge >= 5 && medDepth >= 500 && medFresh <= 900 ? 'healthy' : medEdge >= 3 ? 'watch' : 'thin';
-    watchlistHealthEl.innerHTML = '<div class="row"><span>'+saved.length+' saved markets</span><span class="pill">'+label+'</span></div><p class="muted">Median edge '+medEdge.toFixed(2)+'% · depth '+medDepth.toFixed(0)+' · freshness '+medFresh.toFixed(0)+'s · tradeable '+tradeable+'/'+saved.length+'</p>';
+    var pinnedMarkup = pinned.length ? '<div class="card" style="margin-top:10px"><div class="row"><strong>Pinned order</strong><span class="pill">'+pinned.length+' favorites</span></div><div class="grid" style="margin-top:8px">'+pinned.map(function(item, index){ return '<div class="row" style="gap:6px;flex-wrap:wrap"><span>'+esc(item.title)+'</span><span class="pill">#'+(index + 1)+'</span><button class="btn" data-action="move-pinned" data-id="'+esc(item.id)+'" data-dir="up">Up</button><button class="btn" data-action="move-pinned" data-id="'+esc(item.id)+'" data-dir="down">Down</button></div>'; }).join('')+'</div></div>' : '<div class="muted" style="margin-top:10px">Pin a few saved markets to reorder them.</div>';
+    watchlistHealthEl.innerHTML = '<div class="row"><span>'+saved.length+' saved markets</span><span class="pill">'+label+'</span></div><p class="muted">Median edge '+medEdge.toFixed(2)+'% · depth '+medDepth.toFixed(0)+' · freshness '+medFresh.toFixed(0)+'s · tradeable '+tradeable+'/'+saved.length+'</p>' + pinnedMarkup;
   }
 
   function renderCompareBoard(){
@@ -748,18 +791,21 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var savedNames = listCompareSetNamesLocal();
     var compareLabel = compareBoardLabel(scenario);
     var savedLabel = savedNames.length ? 'Saved compare sets: ' + savedNames.join(', ') : 'No saved compare sets yet.';
+    var compareSnapshot = loadCurrentCompareSnapshot();
+    var snapshotLabel = compareSnapshot && compareSnapshot.name ? 'Last snapshot: ' + compareSnapshot.name + (compareSnapshot.note ? ' · ' + compareSnapshot.note : '') + ' · ' + (compareSnapshot.updatedAt || '') : 'No snapshot saved yet.';
     if(!selected && !scenario.length){
       compareBoardPanel.innerHTML = '<div class="row"><strong>Scenario board</strong><span class="pill">0 markets</span></div><p class="muted">Select a market to start a comparison board.</p>';
       return;
     }
     compareBoardPanel.innerHTML = '<div class="row"><strong>Scenario board</strong><span class="pill">'+esc(compareLabel)+'</span></div>'
-      + '<p class="muted">'+esc(savedLabel)+' · pin markets from the list or detail view, then save a set for later.</p>'
+      + '<p class="muted">'+esc(savedLabel)+' · '+esc(snapshotLabel)+' · pin markets from the list or detail view, then save a set for later.</p>'
       + '<div class="actions">'
-      + '<button class="btn" data-action="compare-save">Save compare set</button>'
+      + '<button class="btn" data-action="compare-snapshot">Save snapshot</button>'
       + '<button class="btn" data-action="compare-restore">Restore compare set</button>'
       + '<button class="btn" data-action="compare-clear">Clear board</button>'
+      + '<button class="btn" data-action="compare-undo"'+(loadCompareUndoState() ? '' : ' disabled')+'>Undo clear</button>'
       + '</div>'
-      + '<details class="drawer" style="margin-top:10px"><summary>Manage saved compare sets</summary><div class="grid" style="margin-top:8px">'+(savedNames.length ? savedNames.map(function(name){ var saved = loadNamedCompareSet(name) || { ids: [] }; return '<article class="card"><div class="row"><strong>'+esc(name)+'</strong><span class="pill">'+esc(Array.isArray(saved.ids) ? saved.ids.length : 0)+' markets</span></div><p class="muted">Updated '+esc(saved.updatedAt || '')+'</p><div class="actions"><button class="btn" data-action="compare-swap" data-name="'+esc(name)+'">Swap in</button><button class="btn" data-action="compare-rename" data-name="'+esc(name)+'">Rename</button><button class="btn warn" data-action="compare-delete" data-name="'+esc(name)+'">Delete</button></div></article>'; }).join('') : '<div class="muted">No saved compare sets yet.</div>')+'</div></details>'
+      + '<details class="drawer" style="margin-top:10px"><summary>Manage saved compare sets</summary><div class="grid" style="margin-top:8px">'+(savedNames.length ? savedNames.map(function(name){ var saved = loadNamedCompareSet(name) || { ids: [] }; return '<article class="card"><div class="row"><strong>'+esc(name)+'</strong><span class="pill">'+esc(Array.isArray(saved.ids) ? saved.ids.length : 0)+' markets</span></div><p class="muted">Updated '+esc(saved.updatedAt || '')+(saved.note ? ' · note '+esc(saved.note) : '')+'</p><div class="actions"><button class="btn" data-action="compare-swap" data-name="'+esc(name)+'">Swap in</button><button class="btn" data-action="compare-rename" data-name="'+esc(name)+'">Rename</button><button class="btn warn" data-action="compare-delete" data-name="'+esc(name)+'">Delete</button></div></article>'; }).join('') : '<div class="muted">No saved compare sets yet.</div>')+'</div></details>'
       + '<div class="grid" style="margin-top:10px">'+scenario.map(function(item, index){
         return '<article class="card"><div class="row"><strong>'+(index===0 ? 'Selected' : 'Compare')+'</strong><span class="pill">'+esc(item.confidence || 'n/a')+'</span></div><p class="muted">'+esc(item.title || item.id || 'Unknown market')+'</p><p class="muted">'+esc(item.event || 'No event')+'</p><p class="muted">Odds '+(Number(item.marketProb || 0)*100).toFixed(1)+'% / '+(Number(item.modelProb || 0)*100).toFixed(1)+'% · edge '+(Math.abs(Number(item.edge || 0))*100).toFixed(2)+'% · score '+Number(item.adjustedRankScore || item.rankScore || 0).toFixed(1)+'</p><div class="actions"><button class="btn" data-action="compare-pin" data-id="'+esc(item.id)+'">'+(loadCompareBoard().includes(String(item.id)) ? 'Unpin' : 'Pin')+'</button><button class="btn" data-action="view" data-id="'+esc(item.id)+'">Open detail</button></div></article>';
       }).join('')+'</div>';
@@ -1209,6 +1255,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
     var chartWindow = state.chartRange === 'all' ? (item.probabilityHistory || []) : (item.probabilityHistory || []).slice(-(Number(state.chartRange) || 20));
     var chartWindowLabel = state.chartRange === 'all' ? 'all points' : 'last ' + Number(state.chartRange || 20) + ' points';
+    var journalEntriesMarkup = tradeJournalSummary.recent.length ? '<div class="grid" style="margin-top:8px">'+tradeJournalSummary.recent.map(function(entry){ return '<article class="card"><div class="row"><strong>'+esc(entry.title || entry.marketId)+'</strong><span class="pill">'+esc(entry.updatedAt || '')+'</span></div><p class="muted">'+esc(entry.event || 'No event')+' · tags '+esc(String(entry.tags || '').replaceAll(',', ', ') || 'none')+'</p><p class="muted">'+esc(entry.note || 'No note yet')+'</p><div class="actions"><button class="btn" data-action="edit-journal" data-id="'+esc(entry.marketId)+'">Edit</button><button class="btn warn" data-action="delete-journal" data-id="'+esc(entry.marketId)+'">Delete</button></div></article>'; }).join('')+'</div>' : '<div class="muted" style="margin-top:8px">No saved journal entries yet.</div>';
     detailPanel.innerHTML = '<section class="chart-workspace">'
       + '<article class="card detail-stack">'
       + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
@@ -1228,7 +1275,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<aside class="card drawer drawer-surface">'
       + '<div class="row"><strong>Drawer surface</strong><span class="pill">compare + history</span></div>'
       + '<div class="card" style="margin-top:10px"><strong>Compare vs event median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median (Δ '+edgeDelta+'pp) · Depth '+selectedDepth+' vs '+medianDepth+' median (Δ '+depthDelta+') · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median (Δ '+freshnessDelta+'s)</p></div>'
-      + '<div class="card" style="margin-top:10px"><strong>Trade journal</strong><p class="muted">Saved notes '+journalSummary.total+' · top tags '+(journalSummary.topTags.length ? journalSummary.topTags.map(function(entry){ return entry[0] + ' (' + entry[1] + ')'; }).join(', ') : 'none yet')+'</p><div class="inputs"><label>Note<textarea id="journalNoteInput" rows="4" style="padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb">'+esc(journalPrompt.note || '')+'</textarea></label><label>Reason tags<input id="journalTagsInput" type="text" value="'+esc((journalPrompt.tags || []).join(', '))+'" placeholder="rates, inflation, breakout" /></label></div><div class="actions"><button class="btn primary" data-action="save-journal" data-id="'+esc(item.id)+'">Save journal</button></div></div>'
+      + '<div class="card" style="margin-top:10px"><strong>Trade journal</strong><p class="muted">Saved notes '+journalSummary.total+' · top tags '+(journalSummary.topTags.length ? journalSummary.topTags.map(function(entry){ return entry[0] + ' (' + entry[1] + ')'; }).join(', ') : 'none yet')+'</p><div class="inputs"><label>Note<textarea id="journalNoteInput" rows="4" style="padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb">'+esc(journalPrompt.note || '')+'</textarea></label><label>Reason tags<input id="journalTagsInput" type="text" value="'+esc((journalPrompt.tags || []).join(', '))+'" placeholder="rates, inflation, breakout" /></label></div><div class="actions"><button class="btn primary" data-action="save-journal" data-id="'+esc(item.id)+'">Save journal</button></div>'+journalEntriesMarkup+'</div>'
       + '<div class="card" style="margin-top:10px"><strong>Share summary</strong><p class="muted">'+esc(shareText)+'</p></div>'
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
@@ -1492,15 +1539,19 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
     if(action==='dismiss-alert' && item){ updateAlertHistoryStatus(id, 'dismissed'); renderAlertHistory(); renderList(); }
     if(action==='archive-alert' && item){ updateAlertHistoryStatus(id, 'archived'); renderAlertHistory(); renderList(); }
     if(action==='compare-pin' && item){
+      rememberCompareUndo(loadCompareBoard());
       saveCompareBoardState(toggleCompareBoard(id));
       renderCompareBoard();
       renderList();
       renderDetail();
     }
-    if(action==='compare-save'){
-      var compareName = window.prompt('Save compare set as', 'Favorite compare set');
-      if(saveCurrentCompareSet(compareName, loadCompareBoard())){
-        renderCompareBoard();
+    if(action==='compare-save' || action==='compare-snapshot'){
+      var compareName = window.prompt('Save compare snapshot as', 'Favorite compare set');
+      if(compareName){
+        var compareNote = window.prompt('Snapshot note', 'Selected board snapshot');
+        if(saveCurrentCompareSnapshot(compareName, compareNote)){
+          renderCompareBoard();
+        }
       }
     }
     if(action==='compare-restore'){
@@ -1509,21 +1560,31 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
       var savedCompare = loadNamedCompareSet(compareChoice);
       if(savedCompare){
         saveCompareBoardState(Array.isArray(savedCompare.ids) ? savedCompare.ids : []);
+        saveCompareUndoState(null);
         renderCompareBoard();
         renderList();
         renderDetail();
       }
     }
     if(action==='compare-clear'){
+      rememberCompareUndo(loadCompareBoard());
       saveCompareBoardState([]);
       renderCompareBoard();
       renderList();
       renderDetail();
     }
+    if(action==='compare-undo'){
+      if(undoCompareBoard()){
+        renderCompareBoard();
+        renderList();
+        renderDetail();
+      }
+    }
     if(action==='compare-swap'){
       var swapSet = loadNamedCompareSet(target.getAttribute('data-name'));
       if(swapSet){
         saveCompareBoardState(Array.isArray(swapSet.ids) ? swapSet.ids : []);
+        saveCompareUndoState(null);
         renderCompareBoard(); renderList(); renderDetail();
       }
     }
@@ -1539,12 +1600,38 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
       savePinnedWatchlistState(togglePinnedWatchlistState(id));
       renderList();
     }
+    if(action==='move-pinned' && item){
+      var direction = target.getAttribute('data-dir') === 'down' ? 1 : -1;
+      savePinnedWatchlistState(movePinnedWatchlist(id, direction));
+      renderList();
+    }
     if(action==='save-journal' && item){
       var noteValue = String(document.getElementById('journalNoteInput')?.value || '').trim();
       var tagsValue = String(document.getElementById('journalTagsInput')?.value || '').split(',').map(function(tag){ return String(tag || '').trim(); }).filter(Boolean);
       saveTradeJournalState(upsertTradeJournalState({ marketId: id, title: item.title, event: item.event, note: noteValue, tags: tagsValue }));
       renderDetail();
       renderList();
+    }
+    if(action==='edit-journal'){
+      var journalId = id || target.getAttribute('data-id');
+      var journalMarket = data.find(function(x){ return String(x.id) === String(journalId); }) || { id: journalId, title: journalId, event: '' };
+      var existingEntry = findTradeJournalState(journalId) || { note: '', tags: [] };
+      var nextNote = window.prompt('Edit journal note', existingEntry.note || '');
+      if(nextNote !== null){
+        var nextTags = window.prompt('Edit reason tags', (existingEntry.tags || []).join(', '));
+        var tagsList = String(nextTags || '').split(',').map(function(tag){ return String(tag || '').trim(); }).filter(Boolean);
+        saveTradeJournalState(upsertTradeJournalState({ marketId: journalId, title: journalMarket.title, event: journalMarket.event, note: String(nextNote || '').trim(), tags: tagsList }));
+        renderDetail();
+        renderList();
+      }
+    }
+    if(action==='delete-journal'){
+      var deleteId = id || target.getAttribute('data-id');
+      if(window.confirm('Delete this journal entry?')){
+        saveTradeJournalState(deleteTradeJournalEntry(deleteId));
+        renderDetail();
+        renderList();
+      }
     }
     if(action==='open-help-drawer'){
       openHelpDrawer();

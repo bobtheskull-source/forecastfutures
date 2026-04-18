@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildJournalPrompt, findTradeJournalEntry, journalSummary, loadTradeJournal, saveTradeJournal, upsertTradeJournalEntry } from '../journal.js';
-import { groupMarketsByPin, isPinnedWatchlist, loadPinnedWatchlist, savePinnedWatchlist, togglePinnedWatchlist } from '../watchlist-pins.js';
+import { buildJournalPrompt, deleteTradeJournalEntry, findTradeJournalEntry, journalSummary, loadTradeJournal, saveTradeJournal, upsertTradeJournalEntry } from '../journal.js';
+import { groupMarketsByPin, isPinnedWatchlist, loadPinnedWatchlist, movePinnedWatchlist, savePinnedWatchlist, togglePinnedWatchlist } from '../watchlist-pins.js';
 
 function makeStorage() {
   const store = new Map();
@@ -26,17 +26,29 @@ test('journal entries round-trip and summarize tags', () => {
   assert.deepEqual(buildJournalPrompt(entry).tags.includes('inflation'), true);
 });
 
-test('watchlist pinning groups pinned markets first and persists state', () => {
+test('journal entries can be deleted without disturbing the rest of the journal', () => {
   const storage = makeStorage();
-  savePinnedWatchlist(['m2'], storage);
-  togglePinnedWatchlist('m1', storage);
-  assert.equal(isPinnedWatchlist('m1', storage), true);
-  assert.deepEqual(loadPinnedWatchlist(storage), ['m1', 'm2']);
+  saveTradeJournal([
+    { marketId: 'cpi', note: 'Watch inflation drift', tags: ['inflation'] },
+    { marketId: 'jobs', note: 'Check payrolls', tags: ['labor'] },
+  ], storage);
+  deleteTradeJournalEntry('cpi', storage);
+  assert.deepEqual(loadTradeJournal(storage).map((item) => item.marketId), ['jobs']);
+});
+
+test('pinned watchlist order can be moved up and down', () => {
+  const storage = makeStorage();
+  savePinnedWatchlist(['m1', 'm2', 'm3'], storage);
+  movePinnedWatchlist('m3', -1, storage);
+  assert.deepEqual(loadPinnedWatchlist(storage), ['m1', 'm3', 'm2']);
+  movePinnedWatchlist('m3', -1, storage);
+  assert.deepEqual(loadPinnedWatchlist(storage), ['m3', 'm1', 'm2']);
   const groups = groupMarketsByPin([
+    { id: 'm3' },
     { id: 'm1' },
     { id: 'm2' },
-    { id: 'm3' },
+    { id: 'm4' },
   ], loadPinnedWatchlist(storage));
-  assert.deepEqual(groups.pinned.map((item) => item.id), ['m1', 'm2']);
-  assert.deepEqual(groups.unpinned.map((item) => item.id), ['m3']);
+  assert.deepEqual(groups.pinned.map((item) => item.id), ['m3', 'm1', 'm2']);
+  assert.deepEqual(groups.unpinned.map((item) => item.id), ['m4']);
 });

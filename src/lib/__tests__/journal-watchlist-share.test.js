@@ -40,7 +40,12 @@ test('renderApp surfaces journal, pinned favorites, and help surfaces', () => {
   assert.match(html, /Trade journal/);
   assert.match(html, /Pin favorite/);
   assert.match(html, /Help and action legend/);
+  assert.match(html, /More utility actions/);
+  assert.match(html, /Pinned order/);
   assert.match(html, /data-action="save-journal"/);
+  assert.match(html, /data-action="edit-journal"/);
+  assert.match(html, /data-action="delete-journal"/);
+  assert.match(html, /data-action="move-pinned"/);
   assert.match(html, /data-action="open-help-drawer"/);
 });
 
