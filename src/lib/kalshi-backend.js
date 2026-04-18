@@ -154,6 +154,7 @@ export async function loadLiveKalshiSnapshot({
     .slice(0, marketLimit);
 
   let balanceResult = null;
+  let balanceError = null;
   if (hasAuth) {
     const balancePath = '/portfolio/balance';
     const timestamp = now();
@@ -164,21 +165,28 @@ export async function loadLiveKalshiSnapshot({
       path: balancePath,
       timestampMs: timestamp,
     });
-    balanceResult = await fetchJson(fetchImpl, `${baseUrl}${balancePath}`, { headers: balanceHeaders });
+    try {
+      balanceResult = await fetchJson(fetchImpl, `${baseUrl}${balancePath}`, { headers: balanceHeaders });
+    } catch (error) {
+      balanceError = error instanceof Error ? error.message : String(error);
+    }
   }
 
   const balance = balanceResult && typeof balanceResult === 'object' ? balanceResult : null;
 
   return {
     ready: true,
-    authReady: hasAuth,
-    source: hasAuth ? 'live-kalshi-backend' : 'live-kalshi-public',
+    authReady: hasAuth && !balanceError,
+    source: hasAuth ? (balanceError ? 'live-kalshi-backend-partial' : 'live-kalshi-backend') : 'live-kalshi-public',
     markets,
     balance,
     marketsCount: markets.length,
     balanceUpdatedTs: balance?.updated_ts || null,
+    readError: balanceError || null,
     snapshotSource: hasAuth
-      ? `live Kalshi API (${markets.length} markets, balance verified)`
+      ? (balanceError
+        ? `live Kalshi API (${markets.length} markets, balance skipped)`
+        : `live Kalshi API (${markets.length} markets, balance verified)`)
       : `live Kalshi API (${markets.length} markets, balance skipped)`,
   };
 }

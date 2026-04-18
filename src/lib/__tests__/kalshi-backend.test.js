@@ -150,3 +150,46 @@ test('loadLiveKalshiSnapshot returns live markets when authenticated requests su
   assert.ok(requests.some((request) => String(request.url).includes('/portfolio/balance')));
   assert.ok(requests.some((request) => String(request.url).includes('/markets?event_ticker=BLS-CPI')));
 });
+
+test('loadLiveKalshiSnapshot keeps live markets when the balance call fails', async () => {
+  const { privateKey } = makeTestKeyPair();
+  const requests = [];
+  const fetchImpl = async (url) => {
+    requests.push(String(url));
+    if (String(url).includes('/events?')) {
+      return new Response(JSON.stringify({
+        events: [{ event_ticker: 'BLS-CPI', title: 'CPI print', sub_title: 'Month-over-month CPI' }],
+      }), { status: 200 });
+    }
+    if (String(url).includes('/portfolio/balance')) {
+      return new Response(JSON.stringify({ message: 'unauthorized' }), { status: 401 });
+    }
+    return new Response(JSON.stringify({
+      markets: [{
+        ticker: 'CPI-APR',
+        event_ticker: 'BLS-CPI',
+        yes_sub_title: 'CPI above consensus',
+        last_price_dollars: 0.42,
+        previous_price_dollars: 0.4,
+        volume_24h_fp: 2500,
+        liquidity_dollars: 1000,
+        status: 'open',
+      }],
+    }), { status: 200 });
+  };
+
+  const live = await loadLiveKalshiSnapshot({
+    apiKeyId: 'test-key-id',
+    privateKeyPem: privateKey,
+    baseUrl: 'https://demo-api.kalshi.co/trade-api/v2',
+    fetchImpl,
+  });
+
+  assert.equal(live.source, 'live-kalshi-backend-partial');
+  assert.equal(live.ready, true);
+  assert.equal(live.authReady, false);
+  assert.equal(live.balance, null);
+  assert.equal(live.readError.includes('unauthorized'), true);
+  assert.equal(live.markets[0].id, 'CPI-APR');
+  assert.ok(requests.some((request) => request.includes('/portfolio/balance')));
+});

@@ -41,7 +41,7 @@
     <p class="muted">Big movers, outcome odds, current opportunity score, and calibration feedback on top, with the detail workspace staying visible while you scan.</p>
     <p class="muted">Snapshot: live Kalshi API (5 markets, balance skipped)</p>
     <div class="command-center-grid">
-      <article class="stat status-chip"><strong>-40 pts</strong><div class="muted">Big mover</div></article><article class="stat status-chip"><strong>10.0% / 10.0%</strong><div class="muted">Outcome odds</div></article><article class="stat status-chip"><strong>42.6</strong><div class="muted">Opportunity score</div></article><article class="stat status-chip"><strong>0%</strong><div class="muted">Calibration</div></article><article class="stat status-chip"><strong>95.12ms</strong><div class="muted">Signal p95</div></article>
+      <article class="stat status-chip"><strong>-40 pts</strong><div class="muted">Big mover</div></article><article class="stat status-chip"><strong>10.0% / 10.0%</strong><div class="muted">Outcome odds</div></article><article class="stat status-chip"><strong>42.4</strong><div class="muted">Opportunity score</div></article><article class="stat status-chip"><strong>0%</strong><div class="muted">Calibration</div></article><article class="stat status-chip"><strong>95.31ms</strong><div class="muted">Signal p95</div></article>
     </div>
     <div class="command-stack">
       <article class="card primary-signal">
@@ -49,7 +49,7 @@
         <p class="muted">Mars</p>
         <div class="signal-summary">
           <div class="stat"><strong>0.00%</strong><div class="muted">Edge</div></div>
-          <div class="stat"><strong>42.6</strong><div class="muted">Score</div></div>
+          <div class="stat"><strong>42.4</strong><div class="muted">Score</div></div>
           <div class="stat"><strong><span class="pill fresh-badge" data-freshness="fresh">Fresh · 0s</span></strong><div class="muted">Freshness</div></div>
         </div>
         <div class="trust-strip">
@@ -181,7 +181,7 @@
   <section class="view section" data-view="trends" hidden>
     <h2>Trend & execution guardrails</h2>
     <div class="grid">
-      <article class="card"><strong>Latency metrics</strong><p class="muted">p50: 95.12ms · p95: 95.12ms</p></article>
+      <article class="card"><strong>Latency metrics</strong><p class="muted">p50: 95.31ms · p95: 95.31ms</p></article>
       <article class="card"><strong>Quality gate</strong><p class="muted">Depth ≥ 250, Volume ≥ 200, Spread ≤ 0.06, Freshness ≤ 900s</p></article>
       <article class="card"><strong>Watchlist health</strong><p id="watchlistHealth" class="muted" style="margin-top:8px"></p></article>
       <article class="card"><strong>Gate reason counts</strong><p class="muted">low depth: 3 · low volume: 3 · wide spread: 0 · stale: 0</p></article>
@@ -203,7 +203,7 @@
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Forecast theses</strong>
-      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>1. Mars</strong><span class="pill">score 44.61</span></div><p class="muted">KXELONMARS-99 · down</p><p class="muted">Thesis: Large down move with market/model edge 0.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article></div>
+      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>1. Mars</strong><span class="pill">score 44.38</span></div><p class="muted">KXELONMARS-99 · down</p><p class="muted">Thesis: Large down move with market/model edge 0.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article></div>
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Trade journal</strong>
@@ -212,7 +212,7 @@
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Resolved archive</strong>
-      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>Mars</strong><span class="pill">missed</span></div><p>Real world confirmed the move</p><p class="muted">Forecast direction: down · Outcome: up</p><p class="muted">Score 44.61 · accuracy missed</p></article></div>
+      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>Mars</strong><span class="pill">missed</span></div><p>Real world confirmed the move</p><p class="muted">Forecast direction: down · Outcome: up</p><p class="muted">Score 44.38 · accuracy missed</p></article></div>
     </div>
     <div class="card" style="margin-top:12px"><p class="muted">Correct: 0 · Missed: 1</p></div>
   </section>
@@ -284,7 +284,7 @@
 
 <script>
 (function(){
-  var data = [{"id":"KXELONMARS-99","title":"Mars","event":"KXELONMARS-99","price":10,"move":-40,"volume":295.1,"depth":295.1,"spread":0.01,"updatedAt":"2026-04-18T18:07:50.953Z","scenarioDrivers":["If Elon Musk visits Mars before the earlier of his death or Aug 1, 2099, then the market resolves to Yes."],"probabilityHistory":[0.1,0.1],"tradeUrl":"https://kalshi.com/markets/KXELONMARS-99","marketProb":0.1,"modelProb":0.1,"confidence":"high","signalQualityGrade":"C","rankScore":42.61,"isTradeable":true,"status":"active","sourceUpdatedAt":"2026-04-09T09:31:16.616867Z","score":99.37768830569627,"direction":"down","rank":"A","reason":"watchlist drift with some momentum","edgeCase":"thin volume","freshnessSeconds":0,"edge":0,"uncertaintyHalfBand":0.02,"confidenceInterval":[0,0.22],"scoreBreakdown":{"move":15,"volumeAnomaly":0,"modelEdge":0,"liquidity":12.36,"recency":10,"confidence":13.5,"spreadQuality":8.75,"tradeabilityPenalty":0},"processingLatencyMs":95.12,"lastUpdated":"2026-04-18T18:07:50.953Z","executionQuality":{"score":44.77,"expectedSlippageBps":77.2,"guidance":["Refresh quote before execution"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":0,"amplitudePp":40,"reliability":0.648},"trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 0.00% edge · quality C · execution 45","reason":"0.00% edge · quality C · execution 45","edgePct":0,"execScore":44.8,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":44.6071920369465,"adjustedRankScore":42.61,"calibrationAdjustment":-2,"calibrationNote":"0/1 resolved correctly for this event","calibrationTrend":"needs review"}];
+  var data = [{"id":"KXELONMARS-99","title":"Mars","event":"KXELONMARS-99","price":10,"move":-40,"volume":265.1,"depth":265.1,"spread":0.01,"updatedAt":"2026-04-18T18:58:19.229Z","scenarioDrivers":["If Elon Musk visits Mars before the earlier of his death or Aug 1, 2099, then the market resolves to Yes."],"probabilityHistory":[0.1,0.1],"tradeUrl":"https://kalshi.com/markets/KXELONMARS-99","marketProb":0.1,"modelProb":0.1,"confidence":"high","signalQualityGrade":"C","rankScore":42.38,"isTradeable":true,"status":"active","sourceUpdatedAt":"2026-04-09T09:31:16.616867Z","score":97.57962361558734,"direction":"down","rank":"A","reason":"watchlist drift with some momentum","edgeCase":"thin volume","freshnessSeconds":0,"edge":0,"uncertaintyHalfBand":0.02,"confidenceInterval":[0,0.22],"scoreBreakdown":{"move":15,"volumeAnomaly":0,"modelEdge":0,"liquidity":12.13,"recency":10,"confidence":13.5,"spreadQuality":8.75,"tradeabilityPenalty":0},"processingLatencyMs":95.31,"lastUpdated":"2026-04-18T18:58:19.229Z","executionQuality":{"score":43.33,"expectedSlippageBps":80.5,"guidance":["Refresh quote before execution"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":0,"amplitudePp":40,"reliability":0.627},"trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 0.00% edge · quality C · execution 43","reason":"0.00% edge · quality C · execution 43","edgePct":0,"execScore":43.3,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":44.375224372756946,"adjustedRankScore":42.38,"calibrationAdjustment":-2,"calibrationNote":"0/1 resolved correctly for this event","calibrationTrend":"needs review"}];
   var morningBriefData = [{"id":"KXELONMARS-99","title":"Mars","event":"KXELONMARS-99","tradeUrl":"https://kalshi.com/markets/KXELONMARS-99","edgePct":0,"confidence":"high","quality":"C","trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"}}];
   var calibrationData = {"total":1,"wins":0,"misses":1,"winRate":0,"label":"needs calibration","buckets":[{"bucket":"high","count":0,"correct":0,"accuracy":0,"label":"high-confidence"},{"bucket":"medium","count":0,"correct":0,"accuracy":0,"label":"medium-confidence"},{"bucket":"low","count":1,"correct":0,"accuracy":0,"label":"low-confidence"}],"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"],"summaryText":"Historical outcomes: 0 wins, 1 miss (win rate 0.0%). low-confidence 0.0% correct (1) Feedback: needs calibration."};
   var backendReadError = "";
