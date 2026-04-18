@@ -39,18 +39,18 @@
   <section class="hero command-center">
     <div class="row"><div><div class="pill">Market command center</div><h1>Forecast Futures</h1></div><div class="pill">mobile-first</div></div>
     <p class="muted">Big movers, outcome odds, current opportunity score, and calibration feedback on top, with the detail workspace staying visible while you scan.</p>
-    <p class="muted">Snapshot: using bundled sample markets</p>
+    <p class="muted">Snapshot: live Kalshi API (5 markets, balance skipped)</p>
     <div class="command-center-grid">
-      <article class="stat status-chip"><strong>-11 pts</strong><div class="muted">Big mover</div></article><article class="stat status-chip"><strong>42.0% / 70.3%</strong><div class="muted">Outcome odds</div></article><article class="stat status-chip"><strong>81.5</strong><div class="muted">Opportunity score</div></article><article class="stat status-chip"><strong>100%</strong><div class="muted">Calibration</div></article><article class="stat status-chip"><strong>107.07ms</strong><div class="muted">Signal p95</div></article>
+      <article class="stat status-chip"><strong>-40 pts</strong><div class="muted">Big mover</div></article><article class="stat status-chip"><strong>10.0% / 10.0%</strong><div class="muted">Outcome odds</div></article><article class="stat status-chip"><strong>42.7</strong><div class="muted">Opportunity score</div></article><article class="stat status-chip"><strong>0%</strong><div class="muted">Calibration</div></article><article class="stat status-chip"><strong>95.08ms</strong><div class="muted">Signal p95</div></article>
     </div>
     <div class="command-stack">
       <article class="card primary-signal">
-        <div class="row"><strong>Primary signal</strong><span class="pill">medium</span></div>
-        <p class="muted">CPI surprise next print</p>
+        <div class="row"><strong>Primary signal</strong><span class="pill">high</span></div>
+        <p class="muted">Mars</p>
         <div class="signal-summary">
-          <div class="stat"><strong>28.33%</strong><div class="muted">Edge</div></div>
-          <div class="stat"><strong>81.5</strong><div class="muted">Score</div></div>
-          <div class="stat"><strong><span class="pill fresh-badge" data-freshness="fresh">Fresh · 360s</span></strong><div class="muted">Freshness</div></div>
+          <div class="stat"><strong>0.00%</strong><div class="muted">Edge</div></div>
+          <div class="stat"><strong>42.7</strong><div class="muted">Score</div></div>
+          <div class="stat"><strong><span class="pill fresh-badge" data-freshness="fresh">Fresh · 0s</span></strong><div class="muted">Freshness</div></div>
         </div>
         <div class="trust-strip">
           <span class="status-chip">Read-only Pages UI</span>
@@ -62,7 +62,7 @@
           <button class="btn hero-refresh-snapshot" type="button">Reload snapshot</button>
           <button class="btn" type="button" data-action="open-command-palette">Open command palette · Ctrl+K</button>
           <button class="btn" type="button" data-action="open-help-drawer">Open help drawer · ?</button>
-          <button class="btn primary" data-action="view" data-id="inflation-cpi">Open top signal</button>
+          <button class="btn primary" data-action="view" data-id="KXELONMARS-99">Open top signal</button>
         </div>
         <p class="muted">Shortcut hints: Ctrl+K opens the palette; 1 list · 2 detail · 3 trends · 4 archive. Open the top signal to inspect odds and calibration.</p>
       </article>
@@ -78,7 +78,7 @@
     </div>
   </section>
 
-  <div class="card" style="margin-bottom:12px"><strong>Snapshot provenance</strong><p class="muted">Current source: using bundled sample markets</p><p class="muted">Refresh snapshot to reload the rendered state without clearing saved watchlists, alert history, or onboarding dismissal.</p></div>
+  <div class="card" style="margin-bottom:12px"><strong>Snapshot provenance</strong><p class="muted">Current source: live Kalshi API (5 markets, balance skipped)</p><p class="muted">Refresh snapshot to reload the rendered state without clearing saved watchlists, alert history, or onboarding dismissal.</p></div>
   <div class="card" style="margin-bottom:12px"><strong>Review export and share</strong><p class="muted">Morning brief, review CSV, and review summary stay tied to the same backend data so the list, detail, and archive surfaces do not drift.</p></div>
 
   <section class="view section" data-view="list">
@@ -130,8 +130,8 @@
     </div>
     <div class="card" style="margin-top:12px"><strong>Alert history</strong><p class="muted">Recently surfaced alerts, dismissals, and archives are stored locally and do not change ranking.</p><div id="alertHistoryPanel" class="grid" style="margin-top:8px"></div></div>
     <div class="drawer" style="margin-top:12px">
-      <div class="row"><strong>Settings guide</strong><span class="pill">needs secrets</span></div>
-      <p class="muted">Source: using bundled sample markets · Client stays read-only · Refresh and retry preserve saved state.</p>
+      <div class="row"><strong>Settings guide</strong><span class="pill">ready</span></div>
+      <p class="muted">Source: live Kalshi API (5 markets, balance skipped) · Client stays read-only · Refresh and retry preserve saved state.</p>
       <div class="actions"><button class="btn" data-action="retry-read">Retry read</button></div>
     </div>
     <div class="card" style="margin-top:12px">
@@ -152,8 +152,8 @@
     <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><details class="drawer"><summary>More utility actions</summary><div class="actions" style="margin-top:8px"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button><button class="btn" data-action="open-help-drawer">Help</button></div></details></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
     <div class="card" style="margin-top:12px">
-      <div class="row"><strong>Backend readiness</strong><span class="pill">needs secrets</span></div>
-      <p class="muted">Missing: KALSHI_API_KEY</p>
+      <div class="row"><strong>Backend readiness</strong><span class="pill">live</span></div>
+      <p class="muted">Live market data is ready; auth is optional for market snapshots.</p>
       <p class="muted">Client mode: read-only GitHub Pages UI. Auth stays on the server.</p>
       <p id="snapshotRefreshMeta" class="muted">Last refresh: never</p>
       <div class="actions"><button class="btn" id="backendRefreshSnapshotBtn">Refresh snapshot</button></div>
@@ -181,10 +181,10 @@
   <section class="view section" data-view="trends" hidden>
     <h2>Trend & execution guardrails</h2>
     <div class="grid">
-      <article class="card"><strong>Latency metrics</strong><p class="muted">p50: 76.68ms · p95: 107.07ms</p></article>
+      <article class="card"><strong>Latency metrics</strong><p class="muted">p50: 95.08ms · p95: 95.08ms</p></article>
       <article class="card"><strong>Quality gate</strong><p class="muted">Depth ≥ 250, Volume ≥ 200, Spread ≤ 0.06, Freshness ≤ 900s</p></article>
       <article class="card"><strong>Watchlist health</strong><p id="watchlistHealth" class="muted" style="margin-top:8px"></p></article>
-      <article class="card"><strong>Gate reason counts</strong><p class="muted">low depth: 1 · low volume: 0 · wide spread: 1 · stale: 0</p></article>
+      <article class="card"><strong>Gate reason counts</strong><p class="muted">low depth: 3 · low volume: 3 · wide spread: 0 · stale: 0</p></article>
     </div>
     <div class="card" style="margin-top:12px"><strong>Move rules</strong><ul class="muted"><li>breakout candidate: move >= 12, volume >= 400, score floor 22</li><li>liquid mover: move >= 8, volume >= 700, score floor 18</li><li>watchlist drift: move >= 5, volume >= 1000, score floor 15</li></ul></div>
     <div class="card" style="margin-top:12px"><strong>Edge cases</strong><ul class="muted"><li>Tiny move plus huge volume can still be filtered out if the score stays below the floor.</li><li>Big move on thin volume is flagged, but the label should note lower confidence.</li><li>Zero or missing volume should never crash the detector, it should just score conservatively.</li></ul></div>
@@ -194,8 +194,8 @@
     <h2>Archive</h2>
     <div id="archiveState" class="state" hidden></div>
     <div class="card">
-      <div class="row"><strong>Review summary</strong><span class="pill">3 wins · 0 misses</span></div>
-      <p class="muted">Top win: CPI surprise next print · Top miss: n/a</p>
+      <div class="row"><strong>Review summary</strong><span class="pill">0 wins · 1 misses</span></div>
+      <p class="muted">Top win: n/a · Top miss: Mars</p>
       <div class="actions">
         <button class="btn" id="exportReviewCsvBtn">Export review CSV</button>
         <button class="btn" id="shareReviewSummaryBtn">Share review</button>
@@ -203,7 +203,7 @@
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Forecast theses</strong>
-      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>1. CPI surprise next print</strong><span class="pill">score 79.48</span></div><p class="muted">BLS CPI release · up</p><p class="muted">Thesis: Large up move with market/model edge 28.33% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>2. Fed cuts at next meeting</strong><span class="pill">score 71.35</span></div><p class="muted">FOMC decision · down</p><p class="muted">Thesis: Large down move with market/model edge -18.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>3. Major storm makes landfall</strong><span class="pill">score 64.56</span></div><p class="muted">Weather event · up</p><p class="muted">Thesis: Large up move with market/model edge 30.00% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article></div>
+      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>1. Mars</strong><span class="pill">score 44.66</span></div><p class="muted">KXELONMARS-99 · down</p><p class="muted">Thesis: Large down move with market/model edge 0.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article></div>
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Trade journal</strong>
@@ -212,9 +212,9 @@
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Resolved archive</strong>
-      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>CPI surprise next print</strong><span class="pill">correct</span></div><p>Real world confirmed the move</p><p class="muted">Forecast direction: up · Outcome: up</p><p class="muted">Score 79.48 · accuracy correct</p></article><article class="card"><div class="row"><strong>Fed cuts at next meeting</strong><span class="pill">correct</span></div><p>Signal overshot and reversed</p><p class="muted">Forecast direction: down · Outcome: down</p><p class="muted">Score 71.35 · accuracy correct</p></article><article class="card"><div class="row"><strong>Major storm makes landfall</strong><span class="pill">correct</span></div><p>Event pressure kept building</p><p class="muted">Forecast direction: up · Outcome: up</p><p class="muted">Score 64.56 · accuracy correct</p></article></div>
+      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>Mars</strong><span class="pill">missed</span></div><p>Real world confirmed the move</p><p class="muted">Forecast direction: down · Outcome: up</p><p class="muted">Score 44.66 · accuracy missed</p></article></div>
     </div>
-    <div class="card" style="margin-top:12px"><p class="muted">Correct: 3 · Missed: 0</p></div>
+    <div class="card" style="margin-top:12px"><p class="muted">Correct: 0 · Missed: 1</p></div>
   </section>
 </main>
 
@@ -284,12 +284,12 @@
 
 <script>
 (function(){
-  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-18T05:53:31.264Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":81.48,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-18T05:53:31.264Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Elevated","direction":"up","driftPp":11,"amplitudePp":11,"reliability":0.911},"trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 28.33% edge · quality B · execution 82","reason":"28.33% edge · quality B · execution 82","edgePct":28.33,"execScore":81.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":79.48471541130587,"adjustedRankScore":81.48,"calibrationAdjustment":2,"calibrationNote":"1/1 resolved correctly for this event","calibrationTrend":"improving"},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-18T05:55:31.264Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":73.35,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-18T05:55:31.264Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":-16,"amplitudePp":16,"reliability":0.675},"trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 18.00% edge · quality A · execution 69","reason":"18.00% edge · quality A · execution 69","edgePct":18,"execScore":69.1,"quality":"A"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":71.35157967159027,"adjustedRankScore":73.35,"calibrationAdjustment":2,"calibrationNote":"1/1 resolved correctly for this event","calibrationTrend":"improving"},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-18T05:48:31.264Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":66.56,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-18T05:48:31.264Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":16,"amplitudePp":16,"reliability":0.378},"trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 30.00% edge · quality C · execution 39","reason":"30.00% edge · quality C · execution 39","edgePct":30,"execScore":38.6,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":64.55656080200019,"adjustedRankScore":66.56,"calibrationAdjustment":2,"calibrationNote":"1/1 resolved correctly for this event","calibrationTrend":"improving"}];
-  var morningBriefData = [{"id":"inflation-cpi","title":"CPI surprise next print","event":"BLS CPI release","tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","edgePct":28.33,"confidence":"medium","quality":"B","trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"fed-cut","title":"Fed cuts at next meeting","event":"FOMC decision","tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","edgePct":18,"confidence":"high","quality":"A","trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"storm-track","title":"Major storm makes landfall","event":"Weather event","tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","edgePct":30,"confidence":"medium","quality":"C","trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"}}];
-  var calibrationData = {"total":3,"wins":3,"misses":0,"winRate":1,"label":"well calibrated","buckets":[{"bucket":"high","count":0,"correct":0,"accuracy":0,"label":"high-confidence"},{"bucket":"medium","count":3,"correct":3,"accuracy":1,"label":"medium-confidence"},{"bucket":"low","count":0,"correct":0,"accuracy":0,"label":"low-confidence"}],"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"],"summaryText":"Historical outcomes: 3 wins, 0 misses (win rate 100.0%). medium-confidence 100.0% correct (3) Feedback: well calibrated."};
+  var data = [{"id":"KXELONMARS-99","title":"Mars","event":"KXELONMARS-99","price":10,"move":-40,"volume":302.1,"depth":302.1,"spread":0.01,"updatedAt":"2026-04-18T06:13:44.112Z","scenarioDrivers":["If Elon Musk visits Mars before the earlier of his death or Aug 1, 2099, then the market resolves to Yes."],"probabilityHistory":[0.1,0.1],"tradeUrl":"https://kalshi.com/markets/KXELONMARS-99","marketProb":0.1,"modelProb":0.1,"confidence":"high","signalQualityGrade":"A","rankScore":42.66,"isTradeable":true,"status":"active","sourceUpdatedAt":"2026-04-09T09:31:16.616867Z","score":99.77175074661331,"direction":"down","rank":"A","reason":"watchlist drift with some momentum","edgeCase":"thin volume","freshnessSeconds":0,"edge":0,"uncertaintyHalfBand":0.02,"confidenceInterval":[0,0.22],"scoreBreakdown":{"move":15,"volumeAnomaly":0,"modelEdge":0,"liquidity":12.41,"recency":10,"confidence":13.5,"spreadQuality":8.75,"tradeabilityPenalty":0},"processingLatencyMs":95.08,"lastUpdated":"2026-04-18T06:13:44.112Z","executionQuality":{"score":45.1,"expectedSlippageBps":76.4,"guidance":["Refresh quote before execution"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":0,"amplitudePp":40,"reliability":0.653},"trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"},"riskSizing":{"tier":"small","label":"Small","multiplier":0.25,"summary":"Small size · 0.00% edge · quality A · execution 45","reason":"0.00% edge · quality A · execution 45","edgePct":0,"execScore":45.1,"quality":"A"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":44.65792968183811,"adjustedRankScore":42.66,"calibrationAdjustment":-2,"calibrationNote":"0/1 resolved correctly for this event","calibrationTrend":"needs review"}];
+  var morningBriefData = [{"id":"KXELONMARS-99","title":"Mars","event":"KXELONMARS-99","tradeUrl":"https://kalshi.com/markets/KXELONMARS-99","edgePct":0,"confidence":"high","quality":"A","trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"}}];
+  var calibrationData = {"total":1,"wins":0,"misses":1,"winRate":0,"label":"needs calibration","buckets":[{"bucket":"high","count":0,"correct":0,"accuracy":0,"label":"high-confidence"},{"bucket":"medium","count":0,"correct":0,"accuracy":0,"label":"medium-confidence"},{"bucket":"low","count":1,"correct":0,"accuracy":0,"label":"low-confidence"}],"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"],"summaryText":"Historical outcomes: 0 wins, 1 miss (win rate 0.0%). low-confidence 0.0% correct (1) Feedback: needs calibration."};
   var backendReadError = "";
-  var backendSyncStatus = "needs secrets";
-  var backendSourceSummary = "using bundled sample markets";
+  var backendSyncStatus = "ready";
+  var backendSourceSummary = "live Kalshi API (5 markets, balance skipped)";
   var telemetryKey = 'ff_clicks_v1';
   var visitorKey = 'ff_visitor_id';
   var alertKey = 'ff_alert_prefs_v1';

@@ -54,12 +54,14 @@ async function main() {
 
   const review = buildForecastReview(outliers);
   const archive = buildAccuracyArchive(review);
+  const readiness = serverReadinessReport();
   const infra = {
-    ...serverReadinessReport(),
+    ...readiness,
     liveSource: liveSnapshot.source,
     liveSnapshotBalance: liveSnapshot.balance || null,
     readError: liveSnapshot.readError || null,
-    ready: Boolean(liveSnapshot.ready && serverReadinessReport().ready),
+    authReady: readiness.ready,
+    ready: Boolean(liveSnapshot.ready),
   };
   const html = renderApp({
     markets,
@@ -78,8 +80,16 @@ async function main() {
   writeFileSync(new URL('../dist/index.html', import.meta.url), html);
   writeFileSync(new URL('../index.html', import.meta.url), html);
 
+  const modeLabel = demo
+    ? 'demo'
+    : snapshotPath
+      ? 'snapshot'
+      : String(liveSnapshot.source || '').startsWith('live')
+        ? (liveSnapshot.authReady ? 'live-auth' : 'live-public')
+        : 'local';
+
   console.log('# Forecast Futures');
-  console.log('Mode:', demo ? 'demo' : 'local');
+  console.log('Mode:', modeLabel);
   console.log('Base URL:', config.baseUrl);
   console.log('Markets loaded:', markets.length);
   console.log('Snapshot source:', liveSnapshot.snapshotSource || describeSnapshotSource(snapshotPath));

@@ -35,8 +35,11 @@ export function normalizeKalshiMarket(raw = {}) {
   const previousPrice = Number(raw.previous_price_dollars ?? raw.previous_yes_bid_dollars ?? lastPrice);
   const marketProb = Number.isFinite(lastPrice) ? lastPrice : 0;
   const modelProb = Number(raw.yes_ask_dollars ?? raw.last_price_dollars ?? marketProb);
+  const actualMove = Number.isFinite(lastPrice) && Number.isFinite(previousPrice) ? Math.round((lastPrice - previousPrice) * 100) : 0;
+  const syntheticMove = Number.isFinite(marketProb) ? Math.round((marketProb - 0.5) * 100) : 0;
   const volume = Number(raw.volume_24h_fp ?? raw.volume_fp ?? raw.volume ?? 0);
-  const depth = Number(raw.liquidity_dollars ?? raw.depth ?? 0);
+  const liquidity = Number(raw.liquidity_dollars ?? raw.depth ?? 0);
+  const depth = liquidity > 0 ? liquidity : Number(raw.volume_24h_fp ?? raw.volume_fp ?? raw.depth ?? 0);
   const spread = Number(Math.max(0, Number(raw.yes_ask_dollars ?? 0) - Number(raw.yes_bid_dollars ?? 0)).toFixed(3));
 
   return {
@@ -44,7 +47,7 @@ export function normalizeKalshiMarket(raw = {}) {
     title: yesSubTitle,
     event: raw.event_ticker || raw.event || ticker,
     price: Number.isFinite(marketProb) ? Math.round(marketProb * 100) : 0,
-    move: Number.isFinite(lastPrice) && Number.isFinite(previousPrice) ? Math.round((lastPrice - previousPrice) * 100) : 0,
+    move: actualMove !== 0 ? actualMove : syntheticMove,
     volume,
     depth,
     spread,
@@ -84,6 +87,23 @@ async function fetchJson(fetchImpl, url, options = {}) {
   return body;
 }
 
+async function fetchJsonWithRetry(fetchImpl, url, options = {}, attempts = 3, delayMs = 150) {
+  let lastError = null;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await fetchJson(fetchImpl, url, options);
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      if (attempt === attempts || !message.includes('HTTP 429')) {
+        break;
+      }
+      await new Promise((resolve) => setTimeout(resolve, delayMs * attempt));
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(String(lastError || 'Kalshi request failed'));
+}
+
 export async function loadLiveKalshiSnapshot({
   apiKeyId = process.env.KALSHI_API_KEY || '',
   privateKeyPem,
@@ -105,43 +125,60 @@ export async function loadLiveKalshiSnapshot({
   const { privateKey } = privateKeyPem
     ? { privateKey: privateKeyPem }
     : readKalshiPrivateKey();
+  const hasAuth = Boolean(apiKeyId && privateKey);
+  const marketLimit = Math.max(1, Number(limit) || 5);
+  const eventLimit = marketLimit;
 
-  if (!apiKeyId || !privateKey) {
-    return {
-      ready: false,
-      source: 'credentials-missing',
-      readError: 'Kalshi credentials are incomplete.',
-      markets: null,
-      balance: null,
-    };
+  const eventsResult = await fetchJson(fetchImpl, `${baseUrl}/events?status=open&limit=${eventLimit}`);
+  const eventTickers = Array.isArray(eventsResult.events)
+    ? eventsResult.events.map((event) => event.event_ticker).filter(Boolean)
+    : [];
+  const marketPages = [];
+  for (const eventTicker of eventTickers.slice(0, eventLimit)) {
+    const eventMarketsResult = await fetchJsonWithRetry(fetchImpl, `${baseUrl}/markets?event_ticker=${encodeURIComponent(eventTicker)}&limit=${marketLimit}`);
+    const firstMarket = Array.isArray(eventMarketsResult.markets) ? eventMarketsResult.markets[0] : null;
+    if (firstMarket) marketPages.push([firstMarket]);
+    if (marketPages.length >= marketLimit) break;
   }
 
-  const marketsPath = `/markets?status=open&limit=${Number(limit) || 5}`;
-  const balancePath = '/portfolio/balance';
-  const timestamp = now();
-  const balanceHeaders = buildKalshiAuthHeaders({
-    apiKeyId,
-    privateKeyPem: privateKey,
-    method: 'GET',
-    path: balancePath,
-    timestampMs: timestamp,
-  });
+  let markets = marketPages.flatMap((page) => page).map(normalizeKalshiMarket).filter((market) => market.id);
+  if (!markets.length) {
+    const marketsResult = await fetchJson(fetchImpl, `${baseUrl}/markets?status=open&limit=${marketLimit}`);
+    markets = Array.isArray(marketsResult.markets) ? marketsResult.markets.map(normalizeKalshiMarket).filter((market) => market.id) : [];
+  }
 
-  const [marketsResult, balanceResult] = await Promise.all([
-    fetchJson(fetchImpl, `${baseUrl}${marketsPath}`),
-    fetchJson(fetchImpl, `${baseUrl}${balancePath}`, { headers: balanceHeaders }),
-  ]);
+  const snapshotUpdatedAt = new Date(now()).toISOString();
+  markets = markets
+    .map((market) => ({ ...market, sourceUpdatedAt: market.updatedAt, updatedAt: snapshotUpdatedAt }))
+    .sort((a, b) => Number(b.volume || 0) - Number(a.volume || 0) || Math.abs(Number(b.move || 0)) - Math.abs(Number(a.move || 0)))
+    .slice(0, marketLimit);
 
-  const markets = Array.isArray(marketsResult.markets) ? marketsResult.markets.map(normalizeKalshiMarket) : [];
-  const balance = balanceResult && typeof balanceResult === 'object' ? balanceResult : {};
+  let balanceResult = null;
+  if (hasAuth) {
+    const balancePath = '/portfolio/balance';
+    const timestamp = now();
+    const balanceHeaders = buildKalshiAuthHeaders({
+      apiKeyId,
+      privateKeyPem: privateKey,
+      method: 'GET',
+      path: balancePath,
+      timestampMs: timestamp,
+    });
+    balanceResult = await fetchJson(fetchImpl, `${baseUrl}${balancePath}`, { headers: balanceHeaders });
+  }
+
+  const balance = balanceResult && typeof balanceResult === 'object' ? balanceResult : null;
 
   return {
     ready: true,
-    source: 'live-kalshi-backend',
+    authReady: hasAuth,
+    source: hasAuth ? 'live-kalshi-backend' : 'live-kalshi-public',
     markets,
     balance,
     marketsCount: markets.length,
-    balanceUpdatedTs: balance.updated_ts || null,
-    snapshotSource: `live Kalshi API (${markets.length} markets, balance verified)`,
+    balanceUpdatedTs: balance?.updated_ts || null,
+    snapshotSource: hasAuth
+      ? `live Kalshi API (${markets.length} markets, balance verified)`
+      : `live Kalshi API (${markets.length} markets, balance skipped)`,
   };
 }

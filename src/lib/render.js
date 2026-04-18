@@ -245,8 +245,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     <div class="card" style="margin-top:12px"><div class="row"><strong>Morning brief</strong><div class="actions" style="margin-top:0"><details class="drawer"><summary>More utility actions</summary><div class="actions" style="margin-top:8px"><button class="btn" id="exportBriefCsvBtn">Export CSV</button><button class="btn" id="shareBriefSummaryBtn">Share summary</button><button class="btn" data-action="open-help-drawer">Help</button></div></details></div></div><div id="morningBrief" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Calibration snapshot</strong><p id="calibrationSnapshot" class="muted" style="margin-top:8px"></p></div>
     <div class="card" style="margin-top:12px">
-      <div class="row"><strong>Backend readiness</strong><span class="pill">${infrastructure.ready ? 'ready' : 'needs secrets'}</span></div>
-      <p class="muted">${infrastructure.ready ? 'Server auth is ready for read-only market data.' : `Missing: ${escapeHtml((Array.isArray(infrastructure.missing) ? infrastructure.missing : []).join(', ') || 'none')}`}</p>
+      <div class="row"><strong>Backend readiness</strong><span class="pill">${infrastructure.ready ? 'live' : 'needs secrets'}</span></div>
+      <p class="muted">${infrastructure.ready ? `Live market data is ready${infrastructure.authReady ? ' and auth is ready for balance reads.' : '; auth is optional for market snapshots.'}` : `Missing: ${escapeHtml((Array.isArray(infrastructure.missing) ? infrastructure.missing : []).join(', ') || 'none')}`}</p>
       <p class="muted">Client mode: read-only GitHub Pages UI. Auth stays on the server.</p>
       <p id="snapshotRefreshMeta" class="muted">Last refresh: never</p>
       <div class="actions"><button class="btn" id="backendRefreshSnapshotBtn">Refresh snapshot</button></div>
