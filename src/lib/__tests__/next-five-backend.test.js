@@ -51,3 +51,45 @@ test('renderApp wires backend action rails and retry states through list detail 
   assert.match(html, /Open detail/);
   assert.match(html, /Open archive/);
 });
+
+test('renderApp surfaces big mover odds calibration and unique refresh controls', () => {
+  const html = renderApp({
+    markets: [signal],
+    outliers: [signal],
+    archive: [
+      {
+        id: 'resolved-1',
+        market: 'CPI surprise next print',
+        event: 'BLS CPI release',
+        direction: 'up',
+        score: 81.22,
+        thesis: 'Estimated odds aligned with the realized move.',
+        postMortem: 'Outcome confirmed the model signal.',
+        outcome: { direction: 'up', label: 'Resolved up' },
+        correct: true,
+        accuracyLabel: 'correct',
+        freshnessSeconds: 240,
+      },
+    ],
+    rules: [],
+    edgeCases: [],
+    guardrails,
+    snapshotSource: 'loaded from ./fixtures/latest-markets.json',
+    infra: {
+      ready: true,
+      missing: [],
+      deploymentNotes: ['Keep Kalshi auth on the server side only.'],
+    },
+  });
+
+  assert.match(html, /Big mover/);
+  assert.match(html, /Outcome odds/);
+  assert.match(html, /Opportunity score/);
+  assert.match(html, /Calibration/);
+  assert.match(html, /Big movers/);
+  assert.match(html, /Broad scan/);
+  assert.match(html, /Open alert controls/);
+  assert.match(html, /Reload snapshot/);
+  assert.match(html, /id="backendRefreshSnapshotBtn"/);
+  assert.equal((html.match(/id="refreshSnapshotBtn"/g) || []).length, 1);
+});

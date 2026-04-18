@@ -1,7 +1,6 @@
 import { archiveSummary } from './archive-view.js';
 import { executionQualityScore } from './execution-quality.js';
 import { buildMorningBrief } from './digest.js';
-import { buildCalibrationReport } from './calibration-report.js';
 import { attentionVsAlpha } from './attention.js';
 import { classifyMovement } from './movement-flags.js';
 import { summarizeProbabilityTrend } from './trend.js';
@@ -10,6 +9,7 @@ import { computePaywallIntent, paywallHeadlineByIntent } from './paywall-intent.
 import { applyScanPreset, compareMarketToEventMedian, compareMarketToMedian, loadScanPreset, saveScanPreset } from './scan-presets.js';
 import { buildShareText, buildSummaryShareText, buildReviewShareText, buildOpportunityCsv, copyShareText } from './share.js';
 import { archiveAlertHistoryItem, markAlertHistoryItem, summarizeAlertHistory, upsertAlertHistoryItem } from './alerts.js';
+import { buildCalibrationFeedback, adjustOpportunityScores } from './odds-feedback.js';
 import { morningBriefToCsv } from './brief-export.js';
 import { forecastReviewToCsv } from './review-export.js';
 
@@ -25,8 +25,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   const backendSyncStatus = infrastructure.ready ? 'ready' : 'needs secrets';
   const backendSourceSummary = snapshotSource || 'using bundled sample markets';
   const summary = archiveSummary(archiveData);
-  const morningBrief = buildMorningBrief(signalSource);
-  const calibrationReport = buildCalibrationReport(archiveData);
+  let morningBrief = [];
+  const calibrationFeedback = buildCalibrationFeedback(archiveData);
   const signalData = signalSource.map((s) => ({
     ...s,
     marketProb: Number((s.marketProb ?? (s.price / 100)).toFixed(4)),
@@ -46,14 +46,23 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       edge: s.edge,
     })),
   }));
+  const calibratedSignalData = adjustOpportunityScores(signalData, archiveData);
+  morningBrief = buildMorningBrief(calibratedSignalData);
   const reviewItems = Array.isArray(reviewData?.forecasts) ? reviewData.forecasts : [];
   const reviewCsvText = forecastReviewToCsv({ review: reviewData, archive: archiveData });
   const reviewShareText = buildReviewShareText({ review: reviewData, archiveSummary: summary });
-  const primarySignal = signalData[0] || null;
+  const primarySignal = calibratedSignalData[0] || null;
+  const bigMoverSignal = calibratedSignalData.reduce((best, item) => {
+    if (!item) return best;
+    if (!best) return item;
+    return Math.abs(Number(item.move || 0)) > Math.abs(Number(best.move || 0)) ? item : best;
+  }, null);
+  const calibrationWinRate = Number(calibrationFeedback?.winRate || 0) * 100;
   const statusTiles = [
-    { label: 'Markets loaded', value: marketData.length },
-    { label: 'Ranked signals', value: signalData.length },
-    { label: 'Execution gates', value: guardrails?.metrics?.droppedCount ?? 0 },
+    { label: 'Big mover', value: bigMoverSignal ? `${Number(bigMoverSignal.move || 0).toFixed(0)} pts` : '—' },
+    { label: 'Outcome odds', value: primarySignal ? `${(Number(primarySignal.marketProb || 0) * 100).toFixed(1)}% / ${(Number(primarySignal.modelProb || 0) * 100).toFixed(1)}%` : '—' },
+    { label: 'Opportunity score', value: primarySignal ? `${Number(primarySignal.adjustedRankScore || primarySignal.rankScore || 0).toFixed(1)}` : '—' },
+    { label: 'Calibration', value: calibrationFeedback ? `${calibrationWinRate.toFixed(0)}%` : '—' },
     { label: 'Signal p95', value: `${guardrails?.metrics?.p95LatencyMs ?? 0}ms` },
   ];
   const listStateHtml = backendReadError
@@ -89,7 +98,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 .app{max-width:980px;margin:0 auto;padding:16px;padding-bottom:220px}.hero,.card,.nav{background:rgba(17,26,46,.92);border:1px solid rgba(96,165,250,.16);border-radius:18px}
     .hero{padding:18px;margin-bottom:14px}.grid{display:grid;gap:12px}.section{margin:14px 0}.section h2{margin:0 0 10px;font-size:1rem;color:#c7d2fe}
     .card{padding:14px}.row{display:flex;justify-content:space-between;gap:10px;align-items:center}.pill,.chip,.status-chip{display:inline-flex;padding:4px 8px;border-radius:999px;background:#172554;color:#bfdbfe;font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;border:1px solid rgba(148,163,184,.14)}
-    .chip{cursor:pointer}.muted{color:var(--muted);font-size:.88rem}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.stat{padding:12px;border-radius:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15)}
+    .chip{cursor:pointer}.muted{color:var(--muted);font-size:.88rem}.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:12px}.stat{padding:12px;border-radius:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15)}
     .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20;backdrop-filter:blur(10px)}
     .nav button{background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:12px 10px}.nav button.active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}
     .section{scroll-margin-bottom:220px}.view[hidden]{display:none}.state{padding:12px;border-radius:12px;border:1px dashed rgba(148,163,184,.35)}.drivers{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
@@ -117,7 +126,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 <main class="app safe-surface" id="mainContent">
   <section class="hero command-center">
     <div class="row"><div><div class="pill">Market command center</div><h1>Forecast Futures</h1></div><div class="pill">mobile-first</div></div>
-    <p class="muted">Primary signal on top, compact watchlists below, and a detail workspace that stays visible while you scan.</p>
+    <p class="muted">Big movers, outcome odds, current opportunity score, and calibration feedback on top, with the detail workspace staying visible while you scan.</p>
     <p class="muted">Snapshot: ${escapeHtml(snapshotSource)}</p>
     <div class="command-center-grid">
       ${statusTiles.map(function(tile){ return `<article class="stat status-chip"><strong>${escapeHtml(String(tile.value))}</strong><div class="muted">${escapeHtml(tile.label)}</div></article>`; }).join('')}
@@ -137,12 +146,12 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
           <span class="status-chip">Compare + history one tap away</span>
         </div>
         <div class="actions">
-          <button class="btn hero-alert-controls" type="button">Tune alerts</button>
-          <button class="btn hero-refresh-snapshot" type="button">Refresh snapshot</button>
-          <button class="btn" type="button" data-action="open-command-palette">Command palette · Ctrl+K</button>
-          ${primarySignal ? `<button class="btn primary" data-action="view" data-id="${escapeHtml(primarySignal.id)}">Open primary signal</button>` : ''}
+          <button class="btn hero-alert-controls" type="button">Open alert controls</button>
+          <button class="btn hero-refresh-snapshot" type="button">Reload snapshot</button>
+          <button class="btn" type="button" data-action="open-command-palette">Open command palette · Ctrl+K</button>
+          ${primarySignal ? `<button class="btn primary" data-action="view" data-id="${escapeHtml(primarySignal.id)}">Open top signal</button>` : ''}
         </div>
-        <p class="muted">Shortcut hints: Ctrl+K opens the palette; 1 list · 2 detail · 3 trends · 4 archive.</p>
+        <p class="muted">Shortcut hints: Ctrl+K opens the palette; 1 list · 2 detail · 3 trends · 4 archive. Open the top signal to inspect odds and calibration.</p>
       </article>
       <article class="card">
         <strong>Fast scan guide</strong>
@@ -164,27 +173,35 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     <div class="card">
       <div class="row" style="flex-wrap:wrap;gap:8px">
         <input id="marketSearch" aria-label="Search markets" placeholder="Search markets/events" style="flex:1;min-width:220px;padding:10px;border-radius:12px;border:1px solid rgba(148,163,184,.2);background:#0f172a;color:#eef2ff" />
-        <button class="chip" data-sort="score">Sort: score</button>
-        <button class="chip" data-sort="recency">Sort: recency</button>
-        <button class="chip" data-sort="mostClicked">Sort: most clicked</button>
-        <button class="chip" id="watchlistBtn">Watchlist only: off</button>
-        <button class="chip" id="saveWatchlistBtn">Save watchlist</button>
-        <button class="chip" id="restoreWatchlistBtn">Restore watchlist</button>
-        <button class="chip" id="alertControlsBtn">Alert controls</button>
-        <button class="chip" id="refreshSnapshotBtn">Refresh snapshot</button>
+        <button class="chip" data-sort="score">Sort: big movers</button>
+        <button class="chip" data-sort="recency">Sort: freshest</button>
+        <button class="chip" data-sort="mostClicked">Sort: trader interest</button>
       </div>
-      <div class="seg" style="margin-top:8px">
-        <button class="chip active" id="feedNowBtn">Feed: Now</button>
-        <button class="chip" id="feedDiscoverBtn">Feed: Discover</button>
-        <button class="chip" id="presetHighEdgeBtn">Preset: edge > 5%</button>
-        <button class="chip" id="presetBreakoutBtn">Preset: breakout</button>
-        <button class="chip" id="presetWatchlistBtn">Preset: watchlist</button>
-        <button class="chip" id="savePresetBtn">Save preset</button>
-        <button class="chip" id="restorePresetBtn">Restore preset</button>
-        <button class="chip" id="presetExpiringBtn">Preset: resolves < 7d</button>
-        <button class="chip" id="resetPresetBtn">Preset: clear</button>
-        <button class="chip" id="exportCsvBtn">Export CSV</button>
-      </div>
+      <details class="drawer" style="margin-top:8px">
+        <summary>More list controls</summary>
+        <div class="seg" style="margin-top:8px">
+          <button class="chip" id="watchlistBtn">Watchlist only: off</button>
+          <button class="chip" id="saveWatchlistBtn">Save current watchlist</button>
+          <button class="chip" id="restoreWatchlistBtn">Restore saved watchlist</button>
+          <button class="chip" id="alertControlsBtn">Open alert controls</button>
+          <button class="chip" id="refreshSnapshotBtn">Reload snapshot</button>
+        </div>
+      </details>
+      <details class="drawer" style="margin-top:8px">
+        <summary>Scan presets</summary>
+        <div class="seg" style="margin-top:8px">
+          <button class="chip active" id="feedNowBtn">Big movers</button>
+          <button class="chip" id="feedDiscoverBtn">Broad scan</button>
+          <button class="chip" id="presetHighEdgeBtn">Edge > 5%</button>
+          <button class="chip" id="presetBreakoutBtn">Breakouts</button>
+          <button class="chip" id="presetWatchlistBtn">Watchlist scan</button>
+          <button class="chip" id="savePresetBtn">Save preset</button>
+          <button class="chip" id="restorePresetBtn">Restore preset</button>
+          <button class="chip" id="presetExpiringBtn">Resolves < 7d</button>
+          <button class="chip" id="resetPresetBtn">Clear filters</button>
+          <button class="chip" id="exportCsvBtn">Export CSV</button>
+        </div>
+      </details>
       <p class="muted" id="alertsSummary" style="margin-top:8px"></p>
     </div>
     <div class="card" style="margin-top:12px"><strong>Alert history</strong><p class="muted">Recently surfaced alerts, dismissals, and archives are stored locally and do not change ranking.</p><div id="alertHistoryPanel" class="grid" style="margin-top:8px"></div></div>
@@ -215,7 +232,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       <p class="muted">${infrastructure.ready ? 'Server auth is ready for read-only market data.' : `Missing: ${escapeHtml((Array.isArray(infrastructure.missing) ? infrastructure.missing : []).join(', ') || 'none')}`}</p>
       <p class="muted">Client mode: read-only GitHub Pages UI. Auth stays on the server.</p>
       <p id="snapshotRefreshMeta" class="muted">Last refresh: never</p>
-      <div class="actions"><button class="btn" id="refreshSnapshotBtn">Refresh snapshot</button></div>
+      <div class="actions"><button class="btn" id="backendRefreshSnapshotBtn">Refresh snapshot</button></div>
       <details class="drawer">
         <summary>API host vs GitHub Pages</summary>
         <p class="muted">The Pages client only renders market data and trade links. Credentials stay on the API host or local server, never in the browser.</p>
@@ -326,9 +343,9 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 
 <script>
 (function(){
-  var data = ${JSON.stringify(signalData)};
+  var data = ${JSON.stringify(calibratedSignalData)};
   var morningBriefData = ${JSON.stringify(morningBrief)};
-  var calibrationData = ${JSON.stringify(calibrationReport)};
+  var calibrationData = ${JSON.stringify(calibrationFeedback)};
   var backendReadError = ${JSON.stringify(backendReadError)};
   var backendSyncStatus = ${JSON.stringify(backendSyncStatus)};
   var backendSourceSummary = ${JSON.stringify(backendSourceSummary)};
@@ -364,6 +381,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var onboardingBanner = document.getElementById('onboardingBanner');
   var dismissOnboardingBtn = document.getElementById('dismissOnboardingBtn');
   var refreshSnapshotBtn = document.getElementById('refreshSnapshotBtn');
+  var backendRefreshSnapshotBtn = document.getElementById('backendRefreshSnapshotBtn');
   var sortChips = Array.from(document.querySelectorAll('[data-sort]'));
 
   var preTradeModal = document.getElementById('preTradeModal');
@@ -547,13 +565,13 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       return;
     }
     morningBriefEl.innerHTML = morningBriefData.map(function(item){
-      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.quality)+' · '+esc(item.trendSummary?.badge || '0.00pp')+'</span></div><p class="muted">Edge '+Number(item.edgePct).toFixed(2)+'% · confidence '+esc(item.confidence)+' · '+esc(item.trendSummary?.summary || 'No 24h history yet')+'</p></article>';
+      return '<article class="card"><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.quality)+' · '+esc(item.trendSummary?.badge || '0.00pp')+'</span></div><p class="muted">Edge '+Number(item.edgePct).toFixed(2)+'% · odds '+(Number(item.marketProb || 0)*100).toFixed(1)+'% / '+(Number(item.modelProb || 0)*100).toFixed(1)+'% · confidence '+esc(item.confidence)+' · '+esc(item.trendSummary?.summary || 'No 24h history yet')+'</p></article>';
     }).join('');
   }
 
 
   function renderCalibrationSnapshot(){
-    calibrationSnapshotEl.textContent = 'Historical outcomes: ' + calibrationData.wins + ' wins, ' + calibrationData.misses + ' misses (win rate ' + (Number(calibrationData.winRate || 0) * 100).toFixed(1) + '%).';
+    calibrationSnapshotEl.textContent = calibrationFeedback.summaryText;
   }
 
   function renderWatchlistHealth(){
@@ -780,17 +798,17 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var alertStatus = alertEntry ? alertEntry.status : (eligible ? 'surfaced' : 'quiet');
     return '<article class="card market-row" data-id="'+esc(item.id)+'">'
       + '<div class="market-row-head"><div><div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+' · '+esc(movement.label)+'</span></div><p class="muted">'+esc(item.event)+'</p></div><div class="status-chip">'+esc(trendSummary.badge)+'</div></div>'
-      + '<div class="market-row-meta"><span class="status-chip">Move '+(item.move>0?'+':'')+item.move+'%</span><span class="status-chip">Edge '+edgePct+'%</span><span class="status-chip">CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</span>'+freshnessBadge(item.freshnessSeconds)+'</div>'
+      + '<div class="market-row-meta"><span class="status-chip">Move '+(item.move>0?'+':'')+item.move+'%</span><span class="status-chip">Edge '+edgePct+'%</span><span class="status-chip">Outcome odds '+(Number(item.marketProb || 0)*100).toFixed(1)+'% / '+(Number(item.modelProb || 0)*100).toFixed(1)+'%</span><span class="status-chip">Opportunity score '+Number(item.adjustedRankScore || item.rankScore || 0).toFixed(1)+'</span><span class="status-chip">CI ±'+((Number(item.uncertaintyHalfBand || 0)*100).toFixed(1))+'%</span>'+freshnessBadge(item.freshnessSeconds)+'</div>'
       + '<div style="margin-top:8px">'+trend+'</div>'
-      + '<p class="muted">Movement drift '+(Number(movement.driftPp || 0) > 0 ? '+' : '')+Number(movement.driftPp || 0).toFixed(2)+'pp · reliability '+(Number(movement.reliability || 0)*100).toFixed(0)+'% · score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+' · history '+esc(alertStatus)+'</p>'
+      + '<p class="muted">Movement drift '+(Number(movement.driftPp || 0) > 0 ? '+' : '')+Number(movement.driftPp || 0).toFixed(2)+'pp · reliability '+(Number(movement.reliability || 0)*100).toFixed(0)+'% · score '+Number(item.rankScore||0).toFixed(2)+' · tradeable '+(item.isTradeable?'yes':'no')+' · alerts '+(eligible?'eligible':'muted')+' · history '+esc(alertStatus)+' · calibration '+esc(item.calibrationTrend || 'unproven')+' · '+esc(item.calibrationNote || 'No resolved outcomes yet')+'</p>'
       + explainabilityDrawer(item)
       + '<div class="market-row-actions">'
-      + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">View detail</button>'
+      + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">Open detail</button>'
       + '<button class="btn" data-action="watch" data-id="'+esc(item.id)+'">'+(watchlisted ? 'Unwatch' : 'Watch')+'</button>'
-      + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
-      + '<button class="btn" data-action="dismiss-alert" data-id="'+esc(item.id)+'">Dismiss</button>'
-      + '<button class="btn warn" data-action="archive-alert" data-id="'+esc(item.id)+'">Archive</button>'
-      + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade</button>'
+      + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Copy trade link</button>'
+      + '<button class="btn" data-action="dismiss-alert" data-id="'+esc(item.id)+'">Dismiss alert</button>'
+      + '<button class="btn warn" data-action="archive-alert" data-id="'+esc(item.id)+'">Archive alert</button>'
+      + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div></article>';
   }
@@ -984,7 +1002,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     paywallBody.innerHTML = '<div class="row"><strong>'+esc(offer.headline)+'</strong><button class="btn" data-close="paywallModal">Close</button></div>'
       + '<p class="muted">Plan: '+esc(offer.tier)+' · Variant '+esc(offer.variant)+' · intent '+Number(offer.intentScore || 0).toFixed(2)+' ('+esc(offer.intentTier || 'cold')+')</p>'
       + '<p class="muted">'+esc(offer.body)+'</p>'
-      + '<div class="card"><strong>Proof panel</strong><p class="muted">Historical outcomes: '+calibrationData.wins+' wins / '+calibrationData.misses+' misses (win rate '+(Number(calibrationData.winRate || 0) * 100).toFixed(1)+'%).</p><ul class="muted">'+(calibrationData.methodology || []).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul><p class="muted">Forecasts are probabilistic and not financial advice.</p></div>'
+      + '<div class="card"><strong>Proof panel</strong><p class="muted">Historical outcomes: '+calibrationFeedback.wins+' wins / '+calibrationFeedback.misses+' misses (win rate '+(Number(calibrationFeedback.winRate || 0) * 100).toFixed(1)+'%).</p><ul class="muted">'+(calibrationFeedback.methodology || []).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul><p class="muted">Forecasts are probabilistic and not financial advice.</p></div>'
       + '<div class="card"><strong>Onboarding to trial</strong><ol class="muted">'+offer.steps.map(function(s){return '<li>'+esc(s)+'</li>';}).join('')+'</ol></div>'
       + '<div class="actions"><button class="btn primary" data-action="startTrial">'+esc(offer.cta)+'</button></div>';
     openModal(paywallModal, document.activeElement);
@@ -1039,7 +1057,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
       + '<button class="btn" data-action="share-summary" data-id="'+esc(item.id)+'">Share summary</button>'
-      + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Share link</button>'
+      + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Copy trade link</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div>'
       + '</aside>'
@@ -1160,6 +1178,11 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       saveSnapshotRefresh(new Date().toISOString());
       refreshSnapshotMetaText();
       window.location.reload();
+    });
+  }
+  if(backendRefreshSnapshotBtn){
+    backendRefreshSnapshotBtn.addEventListener('click', function(){
+      if(refreshSnapshotBtn){ refreshSnapshotBtn.click(); }
     });
   }
   Array.from(document.querySelectorAll('.hero-refresh-snapshot')).forEach(function(button){

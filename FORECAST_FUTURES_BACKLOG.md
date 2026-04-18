@@ -1,388 +1,78 @@
-FORECAST FUTURES - CARD DECOMPOSITION + ACCEPTANCE CRITERIA
+# Forecast Futures Backlog
 
-Parent cards reviewed: CARD-006..CARD-010
-Result: All 5 were Medium/Large and split into small executable backlog cards.
+This file tracks the Forecast Futures backlog for the Dev & Donut topic. Keep work scoped to Forecast Futures only.
 
-PARENT TRACKING
-- CARD-006 Data ingestion and feature store (split)
-- CARD-007 Forecast model service (split)
-- CARD-008 Backtesting and evaluation (split)
-- CARD-009 Real-time signal engine (split)
-- CARD-010 Forecast Futures UI (split)
+## Ready to Work
 
-CHILD CARDS
-
-CARD-011 | Backlog | Define market data schema + feature store contracts
+CARD-101 | Ready to Deploy | Create a trade-insight command center that wires backend metrics into the front end for big movers, outcome odds, and current opportunity score
 AC:
-1) Canonical schema includes market_id, event_id, timestamp, implied_prob, volume, spread, depth, source, freshness_seconds.
-2) JSON schema validation exists and rejects malformed records.
-3) Contract doc committed and referenced by ingestion + model services.
+1) The home surface shows a clear top summary with big movers, current odds, and an opportunity score.
+2) The data shown comes from the same backend snapshot used by list/detail views.
+3) The new hero/summary area remains readable on mobile and does not block other sections.
 
-CARD-012 | Backlog | Build historical backfill pipeline
+CARD-102 | Ready to Deploy | Connect live action buttons for list, detail, and trade surfaces so every primary control launches a real backend or UI handler
 AC:
-1) Backfill job imports at least 12 months (or max available) for selected markets.
-2) Idempotent rerun does not duplicate rows.
-3) Job output includes per-market row counts + missing interval report.
+1) Every visible primary button has an explicit action and a working click handler.
+2) Buttons either navigate, refresh, open detail, or launch the correct backend-linked action.
+3) Buttons that are decorative or redundant are removed or demoted so the UI is not misleading.
 
-CARD-013 | Backlog | Build live market ingestion pipeline
+CARD-103 | Ready to Deploy | Add historical calibration feedback showing how accurate estimated odds were versus resolved outcomes
 AC:
-1) Live ingest updates records at configured polling/stream interval.
-2) freshness_seconds computed on each record.
-3) Retry with exponential backoff on transient failures.
+1) The app shows a calibration summary comparing estimated odds versus actual resolved outcomes.
+2) Historical accuracy is visible in a concise panel and can be reviewed from the detail or archive flow.
+3) The copy clearly explains how accurate prior estimates were without exposing internal secrets.
 
-CARD-014 | Backlog | Add data quality checks for ingestion
+CARD-104 | Ready to Deploy | Add adaptive odds adjustment feedback that updates opportunity ranking from successful forecast outcomes
 AC:
-1) DQ checks cover nulls, monotonic timestamps, out-of-range probabilities, negative volume/spread/depth.
-2) Failed checks produce structured error logs.
-3) Daily DQ summary artifact generated.
+1) Historical success and failure outcomes influence displayed ranking or confidence feedback.
+2) The adjustment logic is deterministic and testable, not hidden in the renderer.
+3) The app explains why an opportunity moved up or down in a way a user can understand.
 
-CARD-015 | Backlog | Train baseline probability model
+CARD-105 | Ready to Deploy | Redesign the front end to reduce clutter, clarify button purpose, and keep sticky controls from blocking content
 AC:
-1) Baseline model trains from feature store and outputs calibrated probabilities in [0,1].
-2) Model artifact is versioned.
-3) Training run is reproducible via single command.
+1) The primary surfaces are reorganized into a simpler hierarchy with fewer competing sections.
+2) Sticky controls, overlays, and drawers do not cover core content on desktop or mobile.
+3) Button labels are rewritten so users can tell what each action does before clicking.
 
-CARD-016 | Backlog | Add calibration + confidence interval module
-AC:
-1) Calibration method implemented (Platt or isotonic) and selectable by config.
-2) Prediction response includes confidence interval bounds.
-3) Calibration error metric logged per run.
+## Done
 
-CARD-017 | Backlog | Expose model inference API
-AC:
-1) Endpoint returns market_prob, model_prob, confidence_interval, model_version, computed_at.
-2) p95 response time <= 250ms on cached path.
-3) Input validation rejects unknown market IDs with typed error.
-
-CARD-018 | Backlog | Build historical backtest engine
-AC:
-1) Backtest runs across configurable date range and market subset.
-2) Reports Brier score + log loss.
-3) Net edge includes fees/slippage parameters.
-
-CARD-019 | Backlog | Build walk-forward evaluation pipeline
-AC:
-1) Time-sliced train/validate/test windows implemented with no leakage.
-2) Outputs calibration curve and drift indicators.
-3) Run summary compares model vs market baseline.
-
-CARD-020 | Backlog | Implement large-move detector
-AC:
-1) Detector flags moves by configurable thresholds (absolute and z-score).
-2) Emits event payload with movement context and freshness.
-3) Duplicate suppression window prevents alert spam.
-
-CARD-021 | Deployed Done | Implement edge/ranking engine
-AC:
-1) Rank score combines edge, confidence, liquidity, spread quality, recency.
-2) Low-tradeability markets are penalized or gated.
-3) Ranking output includes score breakdown fields.
-
-CARD-022 | Deployed Done | Add latency + stale-signal guardrails
-AC:
-1) End-to-end latency measured from ingest to emitted signal.
-2) Signals older than freshness threshold are auto-suppressed.
-3) Monitoring exposes p50/p95 latency and stale-drop counts.
-
-CARD-023 | Deployed Done | Build Forecast Futures list screen
-AC:
-1) List shows top opportunities with market move, model edge, confidence, freshness.
-2) Supports sort by score, recency, and most-clicked.
-3) Empty/loading/error states implemented.
-
-CARD-024 | Deployed Done | Build Forecast detail screen
-AC:
-1) Detail view shows probability trend chart + scenario driver tags.
-2) Displays market_prob vs model_prob with confidence interval.
-3) Last updated timestamp visible.
-
-CARD-025 | Deployed Done | Add trade deep-link + click telemetry
-AC:
-1) "Open in Kalshi" deep-link launches target market reliably.
-2) Click telemetry records unique clicks per market for trending.
-3) Most-clicked module renders from telemetry with time decay window.
-
-CARD-026 | Backlog | Add saved watchlists + focused market filters
-AC:
-1) Users can save and restore named watchlists in local storage.
-2) List view can filter to selected watchlists and preserve the active set.
-3) Watchlist state survives refresh and does not break existing sort/search controls.
-
-CARD-027 | Backlog | Add URL-shareable list state and deep links
-AC:
-1) Search, sort, feed mode, and selected market can be encoded in the URL.
-2) Opening a shared link restores the same list/detail state.
-3) Invalid or missing query params fall back safely to defaults.
-
-CARD-028 | Backlog | Improve export/share helpers for briefs and reviews
-AC:
-1) CSV and share text exports include score breakdown, confidence, and timestamp fields.
-2) Export actions work from list, detail, and archive surfaces.
-3) Exported text stays concise enough for mobile sharing and clipboard fallback.
-
-CARD-029 | Backlog | Add model/market freshness indicators and staleness badges
-AC:
-1) Every surfaced market shows freshness and update age in a visible badge.
-2) Stale signals are labeled consistently across list, detail, and archive views.
-3) Badge thresholds match guardrail settings and are tested directly.
-
-CARD-030 | Backlog | Clean up mobile layout spacing and blocking controls
-AC:
-1) Fixed/sticky controls never cover the main content on mobile or desktop.
-2) Buttons, chips, and modals have safe spacing and accessible tap targets.
-3) No primary section becomes unreachable after scrolling or opening overlays.
-
-CARD-031 | Backlog | Add selected-market compare panel with event median deltas
-AC:
-1) Detail view shows selected market vs event median edge, depth, and freshness.
-2) Comparison uses the same data model as list sort/share flows.
-3) Missing comparison data falls back safely without breaking the detail panel.
-
-CARD-032 | Backlog | Add alert history and dismiss/archive state for surfaced opportunities
-AC:
-1) Users can see recently surfaced alerts with timestamps and reasons.
-2) Alerts can be dismissed or archived per market without affecting rankings.
-3) Alert history persists locally and survives refresh.
-
-CARD-033 | Backlog | Add first-run onboarding guidance for list, detail, and trade actions
-AC:
-1) New users see a concise guided intro for list, detail, and trade CTA usage.
-2) Onboarding state persists locally after dismissal.
-3) Guidance does not block core screens or cover important controls.
-
-CARD-034 | Backlog | Add accessibility and keyboard navigation fixes for all primary surfaces
-AC:
-1) All primary controls are reachable via keyboard and have visible focus states.
-2) Modal open/close and tab navigation work without trapping the user.
-3) Contrast and tap-target issues are remediated on mobile and desktop.
-
-CARD-035 | Backlog | Improve feed performance for larger market sets
-AC:
-1) List rendering remains responsive with larger arrays of markets.
-2) Expensive derived calculations are cached or minimized.
-3) Filtering, sorting, and detail selection still work after performance changes.
-
-CARD-036 | Backlog | Add dismissible onboarding banner with local persistence
-AC:
-1) New users see a compact banner that explains list, detail, and trade flows.
-2) Dismissing the banner persists locally and restores on reload only for first-time visitors.
-3) Banner never blocks core controls or covers the sticky trade action.
-
-CARD-037 | Backlog | Add keyboard focus management and escape handling for modals
-AC:
-1) Primary controls have visible focus states and are reachable via keyboard.
-2) Escape closes open modals and returns focus to the triggering control.
-3) Modal tab order stays contained while open and releases cleanly on close.
-
-CARD-066 | Backlog | Surface server readiness and missing credential status in the UI
-AC:
-1) App shows a clear backend readiness card with ready/missing state from the server report.
-2) Missing credentials and private-key issues are visible to the operator without opening code or logs.
-3) Deployment notes explain that auth stays server-side and the Pages client remains read-only.
-
-CARD-067 | Backlog | Add backend sync health, refresh, and retry status for data reads
-AC:
-1) The UI shows last refresh time, retry state, and a visible error banner when data reads fail.
-2) A retry action reruns the read path without requiring a full page reload.
-3) Health state does not block normal list, detail, or archive navigation.
-
-CARD-068 | Backlog | Wire infrastructure guidance into onboarding and settings surfaces
-AC:
-1) Onboarding or settings surfaces explain the API host vs GitHub Pages split.
-2) Guidance includes the read-only client rule and where credentials live.
-3) The guidance is dismissible and does not cover primary controls.
-
-CARD-069 | Backlog | Unblock sticky controls and overlay layers across list/detail/archive
-AC:
-1) Sticky trade and nav controls never cover list rows, detail panels, or archive cards.
-2) Overlay z-index and bottom spacing are adjusted so modal and action layers stay usable.
-3) The fix is verified on narrow and tall viewports.
-
-CARD-070 | Backlog | Tighten responsive spacing and safe-area padding for mobile controls
-AC:
-1) Button groups, chips, and action rows keep safe tap targets on mobile.
-2) Safe-area padding prevents content from sitting under fixed controls.
-3) Horizontal scrolling is not introduced on the primary views.
-
-CARD-071 | Backlog | Surface backend readiness panel and missing credential status in the app
-AC:
-1) List or hero surfaces a visible backend readiness card with ready/missing state from the server report.
-2) Missing credentials and private-key issues are visible without opening code or logs.
-3) Deployment notes reinforce that auth stays server-side and the client remains read-only.
-
-CARD-072 | Backlog | Add refresh snapshot affordance for stateful UI screens
-AC:
-1) A refresh action is visible from the list surface and reloads the current snapshot/state.
-2) Refresh does not clear saved watchlists, alert history, or onboarding dismissal state.
-3) The control is labeled clearly so it reads as a snapshot/status refresh, not a destructive reset.
-
-CARD-073 | Backlog | Add backend split guidance for Pages client and API host
-AC:
-1) Onboarding or settings surfaces explain the API host vs GitHub Pages split in plain language.
-2) Guidance includes where credentials live and why the client stays read-only.
-3) The guidance is dismissible and does not cover or block primary controls.
-
-CARD-074 | Backlog | Prevent fixed trade/nav controls from covering content on small screens
-AC:
-1) Sticky trade and nav controls never cover list rows, detail panels, or archive cards.
-2) Safe-area spacing is applied so notched devices keep actions reachable.
-3) Narrow viewport layout remains scrollable without hidden sections.
-
-CARD-075 | Backlog | Add UI tests for readiness, guidance, refresh, and safe-area behavior
-AC:
-1) Render tests assert the readiness card, backend guidance, and refresh label appear.
-2) Render tests assert the safe-area / sticky spacing styles are present.
-3) Tests cover the non-blocking overlay behavior introduced by the layout fix.
-
-CARD-076 | Backlog | Show last snapshot refresh time and snapshot age in the backend card
-AC:
-1) Backend readiness surfaces the last successful refresh timestamp.
-2) Snapshot age is visible and updates after refresh.
-3) Missing/unknown refresh state falls back to clear copy instead of a blank field.
-
-CARD-077 | Backlog | Make snapshot refresh stateful and prevent duplicate reload taps
-AC:
-1) Refresh action records a local refresh marker before reload.
-2) Refresh button briefly reflects that a refresh is in flight or has just run.
-3) Repeated taps do not produce duplicate state writes or broken UI.
-
-CARD-078 | Backlog | Surface backend env and deployment notes in a compact settings drawer
-AC:
-1) Settings drawer shows API host and auth boundary notes in plain language.
-2) Read-only client guidance is visible without opening the source.
-3) Sensitive secret values are never rendered, only environment names and policy text.
-
-CARD-079 | Backlog | Harden ultra-narrow viewport spacing around sticky trade and nav controls
-AC:
-1) Sticky trade and nav controls keep clear of the safe area on very small screens.
-2) Content remains visible above fixed controls when browser chrome changes height.
-3) No primary content is hidden behind the bottom controls at mobile zoom levels.
-
-CARD-080 | Backlog | Add regression tests for snapshot metadata and safe-area layout behavior
-AC:
-1) Tests assert the backend card shows refresh metadata and env guidance.
-2) Tests assert refresh state is persisted and rendered.
-3) Tests assert the safe-area layout styles remain in place after edits.
-
-CARD-081 | Backlog | Add snapshot provenance card for backend/import source and safe refresh copy
-AC:
-1) Hero/list surfaces show where the current markets snapshot came from.
-2) Refresh copy explains that saved state is preserved on reload.
-3) Missing or bundled-source states fall back to clear copy instead of a blank field.
-
-CARD-082 | Backlog | Add review export and share summary card that stays tied to backend review data
-AC:
-1) Review/export actions are grouped in one visible surface.
-2) CSV and share summary remain aligned with the same review/archive data.
-3) Mobile copy stays concise enough to share or copy manually.
-
-CARD-083 | Backlog | Connect morning brief, calibration, and archive review surfaces to one backend summary flow
-AC:
-1) Morning brief and review summary reference the same backend-derived story.
-2) Calibration and archive text make the data linkage obvious.
-3) The summary does not block the list, detail, or archive sections.
-
-CARD-084 | Backlog | Harden sticky trade and nav spacing so buttons do not block content sections
-AC:
-1) Sticky controls and nav stay clear of the main content on small screens.
-2) Safe-area padding keeps cards reachable on mobile browsers and zoomed layouts.
-3) Modal padding prevents action buttons from covering the underlying sheet content.
-
-CARD-085 | Backlog | Verify backend-linked surfaces and layout fixes with regression tests
-AC:
-1) Tests assert snapshot provenance and review/export card labels appear.
-2) Tests assert safe-area and sticky spacing remain in the generated markup.
-3) Tests cover the new summary/card copy so future UI changes do not break the backend bridge.
-
-CARD-086 | Ready to Deploy | Redesign the home screen into a market command center with top status tiles, one primary signal block, and a tighter hierarchy for watchlists and scans
-AC:
-1) Key metrics appear above secondary modules.
-2) The mobile layout stays readable and does not block any section.
-3) The home screen clearly separates primary signal, watchlist, and scan areas.
-
-CARD-087 | Ready to Deploy | Rebuild watchlist and scan result rows with compact symbols, change, freshness, tiny sparklines, and quick actions
-AC:
-1) Every row shows title, delta, freshness, and one-tap open.
-2) Rows remain touch-friendly on mobile.
-3) Filters and sort chips stay visible while browsing results.
-
-CARD-088 | Ready to Deploy | Create a chart-centered market workspace with a contextual detail drawer that stays in place while users switch markets
-AC:
-1) The chart is the primary center surface.
-2) Detail panel updates without full navigation.
-3) Compare and history remain one tap away.
-
-CARD-089 | Ready to Deploy | Add trust-first onboarding and status surfaces with plain-language guidance, clear state chips, and obvious next actions
-AC:
-1) First-run guidance explains what to do next.
-2) Status cards show freshness and readiness.
-3) Disclosures and helper copy stay concise and readable.
-
-CARD-090 | Ready to Deploy | Remove overlay and button layouts that block sections and tighten mobile spacing, focus states, and safe-area behavior
-AC:
-1) Sticky controls never cover content.
-2) Modal and drawer controls remain reachable.
-3) Keyboard and tap targets stay accessible on small screens.
-
-CARD-091 | Ready to Deploy | Add a command palette and keyboard shortcuts for switching between list, detail, trends, and archive views
-AC:
-1) Keyboard shortcut hints are visible and a palette opens from the hero or a hotkey.
-2) Users can switch to each main view without touching the nav bar.
-3) Shortcuts do not interfere with typing in search or form controls.
-
-CARD-092 | Ready to Deploy | Restore the last selected market and selected view after reload while keeping URL state authoritative
-AC:
-1) The last selected market and active view restore after refresh when the URL does not override them.
-2) Clearing state falls back to safe defaults without breaking navigation.
-3) Restored state still respects the existing query-string controls.
-
-CARD-093 | Ready to Deploy | Add loading, empty, and error states for list, detail, and archive surfaces
-AC:
-1) Each main surface shows a readable empty or loading state instead of a blank panel.
-2) Missing selected market or empty datasets render a friendly callout.
-3) Error states do not block the rest of the app or break navigation.
-
-CARD-094 | Ready to Deploy | Add chart timeframe and compare-range controls in the detail workspace
-AC:
-1) The detail chart can switch between short and long compare windows.
-2) Median comparison text updates with the selected range.
-3) The default range is safe and does not break the existing compare view.
-
-CARD-095 | Ready to Deploy | Add quick section anchors and mobile jump controls so users can reach every surface
-AC:
-1) Users can jump to list, detail, trends, and archive from a compact anchor strip.
-2) The jump controls remain reachable on mobile without covering content.
-3) Anchors do not disrupt existing tab or URL-state behavior.
-
-CARD-096 | Ready to Deploy | Connect remaining backend action rails to the list, detail, and archive surfaces
-AC:
-1) Morning brief, review export, archive, and detail actions all read from the same backend snapshot/data source.
-2) Action buttons launch the correct handler without duplicating state or breaking selection.
-3) Missing data falls back safely so one surface can fail without blanking the others.
-
-CARD-097 | Ready to Deploy | Surface backend fetch, retry, and error states without blocking the app
-AC:
-1) List, detail, and archive each show a readable error state when their read path fails.
-2) Retry actions rerun the current fetch/snapshot path without clearing saved UI state.
-3) A failed surface does not block navigation or hide the remaining app sections.
-
-CARD-098 | Ready to Deploy | Add backend provenance and sync status to the compact settings drawer
-AC:
-1) The settings drawer shows API host, read-only client guidance, and snapshot age/last refresh.
-2) Secret values are never rendered; only environment names and policy text appear.
-3) The drawer stays dismissible and never covers primary controls.
-
-CARD-099 | Ready to Deploy | Audit and remove any remaining overlay or sticky buttons that block content sections
-AC:
-1) Sticky trade/nav controls never cover list, detail, archive, or modal content on narrow viewports.
-2) Safe-area spacing and z-index are adjusted so all controls remain reachable.
-3) No primary section becomes unreachable after scrolling or opening overlays.
-
-CARD-100 | Ready to Deploy | Add regression tests for backend wiring, retry states, and blocker-free layout
-AC:
-1) Tests verify the shared backend action rails and provenance copy render correctly.
-2) Tests verify inline error/retry states and safe fallback copy for missing data.
-3) Tests verify sticky control spacing and overlay behavior keep content sections visible.
-
-Suggested execution order:
-CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075 -> 076 -> 077 -> 078 -> 079 -> 080 -> 086 -> 087 -> 088 -> 089 -> 090 -> 091 -> 092 -> 093 -> 094 -> 095 -> 096 -> 097 -> 098 -> 099 -> 100
+CARD-033 | Deployed Done | Add first-run onboarding guidance for list, detail, and trade actions
+CARD-034 | Deployed Done | Add accessibility and keyboard navigation fixes for all primary surfaces
+CARD-035 | Deployed Done | Improve feed performance for larger market sets
+CARD-036 | Deployed Done | Add dismissible onboarding banner with local persistence
+CARD-037 | Deployed Done | Add keyboard focus management and escape handling for modals
+CARD-066 | Deployed Done | Surface server readiness and missing credential status in the UI
+CARD-067 | Deployed Done | Add backend sync health, refresh, and retry status for data reads
+CARD-068 | Deployed Done | Wire infrastructure guidance into onboarding and settings surfaces
+CARD-069 | Deployed Done | Unblock sticky controls and overlay layers across list/detail/archive
+CARD-070 | Deployed Done | Tighten responsive spacing and safe-area padding for mobile controls
+CARD-071 | Deployed Done | Surface backend readiness panel and missing credential status in the app
+CARD-072 | Deployed Done | Add refresh snapshot affordance for stateful UI screens
+CARD-073 | Deployed Done | Add backend split guidance for Pages client and API host
+CARD-074 | Deployed Done | Prevent fixed trade/nav controls from covering content on small screens
+CARD-075 | Deployed Done | Add UI tests for readiness, guidance, refresh, and safe-area behavior
+CARD-076 | Deployed Done | Show last snapshot refresh time and snapshot age in the backend card
+CARD-077 | Deployed Done | Make snapshot refresh stateful and prevent duplicate reload taps
+CARD-078 | Deployed Done | Surface backend env and deployment notes in a compact settings drawer
+CARD-079 | Deployed Done | Harden ultra-narrow viewport spacing around sticky trade and nav controls
+CARD-080 | Deployed Done | Add regression tests for snapshot metadata and safe-area layout behavior
+CARD-081 | Deployed Done | Add snapshot provenance card for backend/import source and safe refresh copy
+CARD-082 | Deployed Done | Add review export and share summary card that stays tied to backend review data
+CARD-083 | Deployed Done | Connect morning brief, calibration, and archive review surfaces to one backend summary flow
+CARD-084 | Deployed Done | Harden sticky trade and nav spacing so buttons do not block content sections
+CARD-085 | Deployed Done | Verify backend-linked surfaces and layout fixes with regression tests
+CARD-086 | Deployed Done | Redesign the home screen into a market command center with top status tiles, one primary signal block, and a tighter hierarchy for watchlists and scans.
+CARD-087 | Deployed Done | Rebuild watchlist and scan result rows with compact symbols, change, freshness, and tiny sparklines plus quick actions.
+CARD-088 | Deployed Done | Create a chart-centered market workspace with a contextual detail drawer that stays in place while users switch markets.
+CARD-089 | Deployed Done | Add trust-first onboarding and status surfaces with plain-language guidance, clear state chips, and obvious next actions.
+CARD-090 | Deployed Done | Remove overlay/button layouts that block sections and tighten mobile spacing, focus states, and safe-area behavior.
+CARD-091 | Deployed Done | Add a command palette and keyboard shortcuts for switching between list, detail, trends, and archive views.
+CARD-092 | Deployed Done | Restore the last selected market and selected view after reload while keeping URL state authoritative.
+CARD-093 | Deployed Done | Add loading, empty, and error states for list, detail, and archive surfaces.
+CARD-094 | Deployed Done | Add chart timeframe and compare-range controls in the detail workspace.
+CARD-095 | Deployed Done | Add quick section anchors and mobile jump controls so users can reach every surface.
+CARD-096 | Deployed Done | Connect remaining backend action rails to the list, detail, and archive surfaces
+CARD-097 | Deployed Done | Surface backend fetch, retry, and error states without blocking the app
+CARD-098 | Deployed Done | Add backend provenance and sync status to the compact settings drawer
+CARD-099 | Deployed Done | Audit and remove any remaining overlay or sticky buttons that block content sections
+CARD-100 | Deployed Done | Add regression tests for backend wiring, retry states, and blocker-free layout
