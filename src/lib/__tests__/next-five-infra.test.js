@@ -70,4 +70,5 @@ test('renderApp keeps safe-area spacing and sticky controls outside content flow
   assert.match(html, /env\(safe-area-inset-bottom\)/);
   assert.match(html, /sticky-trade\{position:fixed[^}]*bottom:calc\(112px \+ env\(safe-area-inset-bottom\)\)/s);
   assert.match(html, /\.app\{max-width:980px;margin:0 auto;padding:16px;padding-bottom:220px\}/s);
+  assert.match(html, /scroll-margin-bottom:220px/);
 });

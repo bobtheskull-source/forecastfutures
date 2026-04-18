@@ -50,7 +50,7 @@ test('renderApp surfaces loading, empty, and error states across list detail and
   });
 
   assert.match(loadingHtml, /Loading opportunities\.\.\./);
-  assert.match(loadingHtml, /Loading market detail\.\.\./);
+  assert.match(loadingHtml, /Waiting for market data to load\./);
   assert.match(loadingHtml, /Loading archive results\.\.\./);
 
   const emptyHtml = renderApp({
@@ -63,7 +63,7 @@ test('renderApp surfaces loading, empty, and error states across list detail and
   });
 
   assert.match(emptyHtml, /No opportunities yet\. Add market data or relax filters/);
-  assert.match(emptyHtml, /No market selected yet\./);
+  assert.match(emptyHtml, /Choose a market from the list to inspect detail, compare, and trade links\./);
   assert.match(emptyHtml, /No archived forecasts yet\. Completed reviews will appear here once outcomes are recorded\./);
   assert.match(emptyHtml, /No resolved archive items yet\./);
 

@@ -354,5 +354,35 @@ AC:
 2) The jump controls remain reachable on mobile without covering content.
 3) Anchors do not disrupt existing tab or URL-state behavior.
 
+CARD-096 | Ready to Deploy | Connect remaining backend action rails to the list, detail, and archive surfaces
+AC:
+1) Morning brief, review export, archive, and detail actions all read from the same backend snapshot/data source.
+2) Action buttons launch the correct handler without duplicating state or breaking selection.
+3) Missing data falls back safely so one surface can fail without blanking the others.
+
+CARD-097 | Ready to Deploy | Surface backend fetch, retry, and error states without blocking the app
+AC:
+1) List, detail, and archive each show a readable error state when their read path fails.
+2) Retry actions rerun the current fetch/snapshot path without clearing saved UI state.
+3) A failed surface does not block navigation or hide the remaining app sections.
+
+CARD-098 | Ready to Deploy | Add backend provenance and sync status to the compact settings drawer
+AC:
+1) The settings drawer shows API host, read-only client guidance, and snapshot age/last refresh.
+2) Secret values are never rendered; only environment names and policy text appear.
+3) The drawer stays dismissible and never covers primary controls.
+
+CARD-099 | Ready to Deploy | Audit and remove any remaining overlay or sticky buttons that block content sections
+AC:
+1) Sticky trade/nav controls never cover list, detail, archive, or modal content on narrow viewports.
+2) Safe-area spacing and z-index are adjusted so all controls remain reachable.
+3) No primary section becomes unreachable after scrolling or opening overlays.
+
+CARD-100 | Ready to Deploy | Add regression tests for backend wiring, retry states, and blocker-free layout
+AC:
+1) Tests verify the shared backend action rails and provenance copy render correctly.
+2) Tests verify inline error/retry states and safe fallback copy for missing data.
+3) Tests verify sticky control spacing and overlay behavior keep content sections visible.
+
 Suggested execution order:
-CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075 -> 076 -> 077 -> 078 -> 079 -> 080 -> 086 -> 087 -> 088 -> 089 -> 090 -> 091 -> 092 -> 093 -> 094 -> 095
+CARD-011 -> 012 -> 013 -> 014 -> 015 -> 016 -> 017 -> 018 -> 019 -> 020 -> 021 -> 022 -> 023 -> 024 -> 025 -> 026 -> 027 -> 028 -> 029 -> 030 -> 031 -> 032 -> 033 -> 034 -> 035 -> 036 -> 037 -> 066 -> 067 -> 068 -> 069 -> 070 -> 071 -> 072 -> 073 -> 074 -> 075 -> 076 -> 077 -> 078 -> 079 -> 080 -> 086 -> 087 -> 088 -> 089 -> 090 -> 091 -> 092 -> 093 -> 094 -> 095 -> 096 -> 097 -> 098 -> 099 -> 100

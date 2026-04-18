@@ -21,6 +21,9 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   const reviewData = review && typeof review === 'object' ? review : {};
   const hasMarketData = Array.isArray(markets);
   const hasArchiveData = Array.isArray(archive);
+  const backendReadError = String(infrastructure.readError || infrastructure.fetchError || infrastructure.error || '');
+  const backendSyncStatus = infrastructure.ready ? 'ready' : 'needs secrets';
+  const backendSourceSummary = snapshotSource || 'using bundled sample markets';
   const summary = archiveSummary(archiveData);
   const morningBrief = buildMorningBrief(signalSource);
   const calibrationReport = buildCalibrationReport(archiveData);
@@ -53,13 +56,26 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     { label: 'Execution gates', value: guardrails?.metrics?.droppedCount ?? 0 },
     { label: 'Signal p95', value: `${guardrails?.metrics?.p95LatencyMs ?? 0}ms` },
   ];
-  const archiveStateMessage = archive == null
-    ? 'Loading archive results...'
-    : !hasArchiveData
-      ? 'Error: archive data could not be rendered.'
-      : archiveData.length
-        ? ''
-        : 'No archived forecasts yet. Completed reviews will appear here once outcomes are recorded.';
+  const listStateHtml = backendReadError
+    ? '<div class="row"><strong>Backend read error</strong><button class="btn" data-action="retry-read">Retry read</button></div><p class="muted">' + escapeHtml(backendReadError) + ' · Retry read to keep list results and navigation available.</p>'
+    : '';
+  const detailStateHtml = backendReadError
+    ? '<div class="row"><strong>Backend read error</strong><button class="btn" data-action="retry-read">Retry read</button></div><p class="muted">' + escapeHtml(backendReadError) + ' · Retry read to keep the current market detail available.</p>'
+    : '';
+  const archiveStateMessage = backendReadError
+    ? 'Error: ' + backendReadError + ' · Retry read to keep archive and review surfaces available.'
+    : archive == null
+      ? 'Loading archive results...'
+      : !hasArchiveData
+        ? 'Error: archive data could not be rendered.'
+        : archiveData.length
+          ? ''
+          : 'No archived forecasts yet. Completed reviews will appear here once outcomes are recorded.';
+  const archiveStateHtml = backendReadError
+    ? '<div class="row"><strong>Backend read error</strong><button class="btn" data-action="retry-read">Retry read</button></div><p class="muted">' + escapeHtml(backendReadError) + ' · Retry read to keep archive and review surfaces available.</p>'
+    : archiveStateMessage
+      ? escapeHtml(archiveStateMessage)
+      : '';
 
   return `<!doctype html>
 <html lang="en">
@@ -76,7 +92,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     .chip{cursor:pointer}.muted{color:var(--muted);font-size:.88rem}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}.stat{padding:12px;border-radius:14px;background:#0f172a;border:1px solid rgba(148,163,184,.15)}
     .nav{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom));width:min(980px,calc(100% - 24px));display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding:8px;z-index:20;backdrop-filter:blur(10px)}
     .nav button{background:#0f172a;color:var(--text);border:1px solid rgba(148,163,184,.12);border-radius:14px;padding:12px 10px}.nav button.active{border-color:#60a5fa;box-shadow:0 0 0 1px rgba(96,165,250,.2) inset}
-    .view[hidden]{display:none}.state{padding:12px;border-radius:12px;border:1px dashed rgba(148,163,184,.35)}.drivers{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .section{scroll-margin-bottom:220px}.view[hidden]{display:none}.state{padding:12px;border-radius:12px;border:1px dashed rgba(148,163,184,.35)}.drivers{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
     .driver{background:#0b2447;border:1px solid rgba(148,163,184,.2);border-radius:999px;padding:4px 8px;font-size:.75rem;color:#bfdbfe}.chart{width:100%;height:72px}
     .actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}.btn{border:1px solid rgba(148,163,184,.22);border-radius:10px;padding:10px 12px;background:#0f172a;color:#e2e8f0;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center}
     .btn.primary{border-color:rgba(34,197,94,.45);background:#052e1f;color:#bbf7d0}.btn.warn{border-color:rgba(245,158,11,.5);background:#3a2404;color:#fde68a}
@@ -172,7 +188,16 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       <p class="muted" id="alertsSummary" style="margin-top:8px"></p>
     </div>
     <div class="card" style="margin-top:12px"><strong>Alert history</strong><p class="muted">Recently surfaced alerts, dismissals, and archives are stored locally and do not change ranking.</p><div id="alertHistoryPanel" class="grid" style="margin-top:8px"></div></div>
-    <div class="drawer" style="margin-top:12px"><strong>Settings guide</strong><p class="muted">Use the API host for auth and market reads. Keep the Pages client read-only, and use the refresh snapshot button when you want the current rendered state to reload.</p></div>
+    <div class="drawer" style="margin-top:12px">
+      <div class="row"><strong>Settings guide</strong><span class="pill">${backendSyncStatus}</span></div>
+      <p class="muted">Source: ${escapeHtml(backendSourceSummary)} · Client stays read-only · Refresh and retry preserve saved state.</p>
+      <div class="actions"><button class="btn" data-action="retry-read">Retry read</button></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="row"><strong>Backend action rail</strong><span class="pill">${backendReadError ? 'degraded' : 'synced'}</span></div>
+      <p class="muted">${backendReadError ? `Read path error: ${escapeHtml(backendReadError)}` : 'Morning brief, review export, and archive actions stay wired to the shared backend snapshot.'}</p>
+      <div class="actions"><button class="btn" data-action="retry-read">Retry current read</button><button class="btn" data-action="goto-view" data-view="detail">Open detail</button><button class="btn" data-action="goto-view" data-view="archive">Open archive</button></div>
+    </div>
     <div id="onboardingBanner" class="card onboarding-banner" hidden>
       <div class="row"><strong>Quick start</strong><button class="btn" id="dismissOnboardingBtn">Dismiss</button></div>
       <p class="muted">Use the list to scan opportunities, open detail for compare and history, then trade when the pre-trade check is green.</p>
@@ -197,7 +222,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
         <ul class="muted"><li>Environment: ${escapeHtml('KALSHI_BASE_URL')}</li><li>Auth secret: ${escapeHtml('KALSHI_API_KEY')}</li><li>Private key path: ${escapeHtml('KALSHI_PRIVATE_KEY_PATH')}</li>${(Array.isArray(infrastructure.deploymentNotes) ? infrastructure.deploymentNotes : []).map((note) => `<li>${escapeHtml(note)}</li>`).join('')}</ul>
       </details>
     </div>
-    <div id="listState" class="state" hidden></div>
+    <div id="listState" class="state"${listStateHtml ? '' : ' hidden'}>${listStateHtml}</div>
     <div id="listResults" class="grid" style="margin-top:10px"></div>
     <div class="card" style="margin-top:12px"><strong>Most clicked (time-decay)</strong><div id="mostClicked" class="grid" style="margin-top:8px"></div></div>
     <div class="card" style="margin-top:12px"><strong>Most executed (24h trades)</strong><div id="mostExecuted" class="grid" style="margin-top:8px"></div></div>
@@ -207,7 +232,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 
   <section class="view section" data-view="detail" hidden>
     <h2>Forecast detail</h2>
-    <div id="detailState" class="state" hidden></div>
+    <div id="detailState" class="state"${detailStateHtml ? '' : ' hidden'}>${detailStateHtml}</div>
     <div id="detailPanel" class="card"></div>
   </section>
 
@@ -225,7 +250,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 
   <section class="view section" data-view="archive" hidden>
     <h2>Archive</h2>
-    <div id="archiveState" class="state"${archiveStateMessage ? '' : ' hidden'}>${archiveStateMessage ? escapeHtml(archiveStateMessage) : ''}</div>
+    <div id="archiveState" class="state"${archiveStateHtml ? '' : ' hidden'}>${archiveStateHtml}</div>
     <div class="card">
       <div class="row"><strong>Review summary</strong><span class="pill">${summary.wins} wins · ${summary.misses} misses</span></div>
       <p class="muted">Top win: ${escapeHtml(summary.topWin?.market || 'n/a')} · Top miss: ${escapeHtml(summary.topMiss?.market || 'n/a')}</p>
@@ -304,6 +329,9 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var data = ${JSON.stringify(signalData)};
   var morningBriefData = ${JSON.stringify(morningBrief)};
   var calibrationData = ${JSON.stringify(calibrationReport)};
+  var backendReadError = ${JSON.stringify(backendReadError)};
+  var backendSyncStatus = ${JSON.stringify(backendSyncStatus)};
+  var backendSourceSummary = ${JSON.stringify(backendSourceSummary)};
   var telemetryKey = 'ff_clicks_v1';
   var visitorKey = 'ff_visitor_id';
   var alertKey = 'ff_alert_prefs_v1';
@@ -349,6 +377,14 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 
   function refreshSnapshotMetaText(){
     if(snapshotRefreshMetaEl) snapshotRefreshMetaEl.textContent = snapshotRefreshMeta();
+  }
+
+  function retryCurrentRead(){
+    if(refreshSnapshotBtn){ refreshSnapshotBtn.click(); }
+  }
+
+  function backendStatusNotice(title, body){
+    return '<div class="row"><strong>'+esc(title)+'</strong><button class="btn" data-action="retry-read">Retry read</button></div><p class="muted">'+esc(body)+'</p>';
   }
 
   function esc(v){return String(v).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#39;');}
@@ -880,11 +916,13 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     }
 
     var sorted = sortSignals(filtered);
-    if(!hasMarketData){ listState.hidden=false; listState.textContent='Loading opportunities...'; listResults.innerHTML=''; return; }
-    if(!data.length){ listState.hidden=false; listState.textContent='No opportunities yet. Add market data or relax filters to populate the list.'; listResults.innerHTML=''; return; }
-    if(!sorted.length){ listState.hidden=false; listState.textContent='No results match this search/filter.'; listResults.innerHTML=''; return; }
+    var backendNotice = backendReadError ? backendStatusNotice('Backend read error', backendReadError + ' Retry read to keep list results and navigation available.') : '';
+    if(!hasMarketData){ listState.hidden=false; listState.innerHTML=(backendNotice || '') + '<div class="muted">Loading opportunities...</div>'; listResults.innerHTML=''; return; }
+    if(!data.length){ listState.hidden=false; listState.innerHTML=(backendNotice || '') + '<div class="muted">No opportunities yet. Add market data or relax filters to populate the list.</div>'; listResults.innerHTML=''; return; }
+    if(!sorted.length){ listState.hidden=false; listState.innerHTML=(backendNotice || '') + '<div class="muted">No results match this search/filter.</div>'; listResults.innerHTML=''; return; }
 
-    listState.hidden = true;
+    listState.hidden = !backendNotice;
+    listState.innerHTML = backendNotice;
     var alertPrefs = loadAlertPrefs();
     var alertHistory = loadAlertHistory();
     var alertEntryMap = alertHistory.reduce(function(map, entry){ map[String(entry.marketId)] = entry; return map; }, {});
@@ -954,10 +992,12 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 
   function renderDetail(){
     var item = data.find(function(x){return x.id===state.selectedId;});
-    if(!hasMarketData){ detailState.hidden=false; detailState.textContent='Loading market detail...'; detailPanel.innerHTML='<div class="muted">Waiting for market data to load.</div>'; return; }
-    if(!data.length){ detailState.hidden=false; detailState.textContent='No market selected yet.'; detailPanel.innerHTML='<div class="muted">Choose a market from the list to inspect detail, compare, and trade links.</div>'; return; }
-    if(!item){ detailState.hidden=false; detailState.textContent='Error: selected market not found.'; detailPanel.innerHTML='<div class="muted">Selected market is unavailable. Pick another market or clear the saved selection.</div>'; return; }
-    detailState.hidden=true;
+    var backendNotice = backendReadError ? backendStatusNotice('Backend read error', backendReadError + ' Retry read to keep the current market detail available.') : '';
+    if(!hasMarketData){ detailState.hidden=false; detailState.innerHTML=(backendNotice || '') + '<div class="muted">Waiting for market data to load.</div>'; detailPanel.innerHTML='<div class="muted">Waiting for market data to load.</div>'; return; }
+    if(!data.length){ detailState.hidden=false; detailState.innerHTML=(backendNotice || '') + '<div class="muted">Choose a market from the list to inspect detail, compare, and trade links.</div>'; detailPanel.innerHTML='<div class="muted">Choose a market from the list to inspect detail, compare, and trade links.</div>'; return; }
+    if(!item){ detailState.hidden=false; detailState.innerHTML=(backendNotice || '') + '<div class="muted">Selected market is unavailable. Pick another market or clear the saved selection.</div>'; detailPanel.innerHTML='<div class="muted">Selected market is unavailable. Pick another market or clear the saved selection.</div>'; return; }
+    detailState.hidden = !backendNotice;
+    detailState.innerHTML = backendNotice;
     var lo = item.confidenceInterval ? item.confidenceInterval[0] : 0;
     var hi = item.confidenceInterval ? item.confidenceInterval[1] : 0;
     var drivers = (item.scenarioDrivers||[]).map(function(d){return '<span class="driver">'+esc(d)+'</span>';}).join('');
@@ -1234,6 +1274,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
         if(action==='view'){ state.selectedId = id; show('detail'); renderDetail(); }
         if(action==='goto-view'){ show(target.getAttribute('data-view') || 'list'); if((target.getAttribute('data-view') || 'list') === 'detail') renderDetail(); closeModal('commandPaletteModal'); }
         if(action==='open-command-palette'){ openCommandPalette(); }
+        if(action==='retry-read'){ retryCurrentRead(); }
         if(action==='chart-range' && item){
           state.chartRange = target.getAttribute('data-range') === 'all' ? 'all' : Number(target.getAttribute('data-range') || 20);
           saveUiState({ chartRange: state.chartRange });
