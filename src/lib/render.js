@@ -152,7 +152,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
         </div>
         <div class="actions">
           <button class="btn hero-alert-controls" type="button">Open alert controls</button>
-          <button class="btn hero-refresh-snapshot" type="button">Reload snapshot</button>
+          <button class="btn hero-refresh-snapshot" id="refreshDataBtn" type="button">Refresh data</button>
           <button class="btn" type="button" data-action="open-command-palette">Open command palette · Ctrl+K</button>
           <button class="btn" type="button" data-action="open-help-drawer">Open help drawer · ?</button>
           ${primarySignal ? `<button class="btn primary" data-action="view" data-id="${escapeHtml(primarySignal.id)}">Open top signal</button>` : ''}

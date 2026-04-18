@@ -89,7 +89,8 @@ test('renderApp surfaces big mover odds calibration and unique refresh controls'
   assert.match(html, /Big movers/);
   assert.match(html, /Broad scan/);
   assert.match(html, /Open alert controls/);
-  assert.match(html, /Reload snapshot/);
+  assert.match(html, /Refresh data/);
+  assert.match(html, /id="refreshDataBtn"/);
   assert.match(html, /id="backendRefreshSnapshotBtn"/);
   assert.equal((html.match(/id="refreshSnapshotBtn"/g) || []).length, 1);
 });
