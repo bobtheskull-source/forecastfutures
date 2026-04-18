@@ -34,7 +34,7 @@ AC:
 2) Sticky controls, overlays, and drawers do not cover core content on desktop or mobile.
 3) Button labels are rewritten so users can tell what each action does before clicking.
 
-CARD-106 | Ready to Deploy | Add saved compare sets and scenario board for side-by-side market review
+CARD-106 | Deployed Done | Add saved compare sets and scenario board for side-by-side market review
 AC:
 1) Users can pin two or more markets into a saved compare set from list or detail surfaces.
 2) Compare sets persist locally and restore after reload without breaking URL state.
