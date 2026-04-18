@@ -20,7 +20,7 @@ import { forecastReviewToCsv } from './review-export.js';
 export function renderApp({ markets, outliers, review = {}, archive, rules = [], edgeCases = [], snapshotSource = 'using bundled sample markets', guardrails, infra = {} }) {
   const infrastructure = infra || {};
   const marketData = Array.isArray(markets) ? markets : [];
-  const signalSource = Array.isArray(outliers) ? outliers : [];
+  const signalSource = Array.isArray(outliers) && outliers.length ? outliers : marketData;
   const archiveData = Array.isArray(archive) ? archive : [];
   const reviewData = review && typeof review === 'object' ? review : {};
   const hasMarketData = Array.isArray(markets);
@@ -152,10 +152,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
         </div>
         <div class="actions">
           <button class="btn hero-alert-controls" type="button">Open alert controls</button>
-          <button class="btn hero-refresh-snapshot" id="refreshDataBtn" type="button">Refresh data</button>
+          <button class="btn hero-refresh-snapshot" id="refreshDataBtn" type="button" onclick="window.ffRefreshSnapshot && window.ffRefreshSnapshot(); return false;">Refresh data</button>
           <button class="btn" type="button" data-action="open-command-palette">Open command palette · Ctrl+K</button>
           <button class="btn" type="button" data-action="open-help-drawer">Open help drawer · ?</button>
-          ${primarySignal ? `<button class="btn primary" data-action="view" data-id="${escapeHtml(primarySignal.id)}">Open top signal</button>` : ''}
+          ${primarySignal ? `<a class="btn primary" href="${escapeHtml(primarySignal.tradeUrl || '#')}" target="_blank" rel="noopener">Open top signal on Kalshi</a>` : ''}
         </div>
         <p class="muted">Shortcut hints: Ctrl+K opens the palette; 1 list · 2 detail · 3 trends · 4 archive. Open the top signal to inspect odds and calibration.</p>
       </article>
@@ -230,7 +230,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     <div class="card" style="margin-top:12px">
       <div class="row"><strong>Backend action rail</strong><span class="pill">${backendReadError ? 'degraded' : 'synced'}</span></div>
       <p class="muted">${backendReadError ? `Read path error: ${escapeHtml(backendReadError)}` : 'Morning brief, review export, and archive actions stay wired to the shared backend snapshot.'}</p>
-      <div class="actions"><button class="btn" data-action="retry-read">Retry current read</button><button class="btn" data-action="goto-view" data-view="detail">Open detail</button><button class="btn" data-action="goto-view" data-view="archive">Open archive</button></div>
+      <div class="actions"><button class="btn" data-action="retry-read">Retry current read</button><button class="btn" data-action="goto-view" data-view="detail" onclick="window.ffGotoView && window.ffGotoView('detail'); return false;">Open detail</button><button class="btn" data-action="goto-view" data-view="archive" onclick="window.ffGotoView && window.ffGotoView('archive'); return false;">Open archive</button></div>
     </div>
     <div id="onboardingBanner" class="card onboarding-banner" hidden>
       <div class="row"><strong>Quick start</strong><button class="btn" id="dismissOnboardingBtn">Dismiss</button></div>
@@ -249,7 +249,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       <p class="muted">${infrastructure.ready ? `Live market data is ready${infrastructure.authReady ? ' and auth is ready for balance reads.' : '; auth is optional for market snapshots.'}` : `Missing: ${escapeHtml((Array.isArray(infrastructure.missing) ? infrastructure.missing : []).join(', ') || 'none')}`}</p>
       <p class="muted">Client mode: read-only GitHub Pages UI. Auth stays on the server.</p>
       <p id="snapshotRefreshMeta" class="muted">Last refresh: never</p>
-      <div class="actions"><button class="btn" id="backendRefreshSnapshotBtn">Refresh snapshot</button></div>
+      <div class="actions"><button class="btn" id="backendRefreshSnapshotBtn" onclick="window.ffRefreshSnapshot && window.ffRefreshSnapshot(); return false;">Refresh snapshot</button></div>
       <details class="drawer">
         <summary>API host vs GitHub Pages</summary>
         <p class="muted">The Pages client only renders market data and trade links. Credentials stay on the API host or local server, never in the browser.</p>
@@ -366,13 +366,13 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   </div>
 </div>
 
-<div class="sticky-trade"><a id="stickyTradeCta" class="btn primary" href="#" target="_blank" rel="noopener" data-action="trade">Trade selected on Kalshi</a></div>
+  <div class="sticky-trade"><a id="stickyTradeCta" class="btn primary" href="${escapeHtml(primarySignal ? primarySignal.tradeUrl || '#' : '#')}" target="_blank" rel="noopener" data-action="trade">Trade selected on Kalshi</a></div>
 
 <nav class="nav" aria-label="Primary">
-  <button class="active" data-tab="list">List</button>
-  <button data-tab="detail">Detail</button>
-  <button data-tab="trends">Trends</button>
-  <button data-tab="archive">Archive</button>
+  <button class="active" data-tab="list" onclick="window.ffGotoView && window.ffGotoView('list'); return false;">List</button>
+  <button data-tab="detail" onclick="window.ffGotoView && window.ffGotoView('detail'); return false;">Detail</button>
+  <button data-tab="trends" onclick="window.ffGotoView && window.ffGotoView('trends'); return false;">Trends</button>
+  <button data-tab="archive" onclick="window.ffGotoView && window.ffGotoView('archive'); return false;">Archive</button>
 </nav>
 
 <script>
@@ -422,6 +422,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var dismissOnboardingBtn = document.getElementById('dismissOnboardingBtn');
   var refreshSnapshotBtn = document.getElementById('refreshSnapshotBtn');
   var backendRefreshSnapshotBtn = document.getElementById('backendRefreshSnapshotBtn');
+  var snapshotRefreshMetaEl = document.getElementById('snapshotRefreshMeta');
   var sortChips = Array.from(document.querySelectorAll('[data-sort]'));
 
   var preTradeModal = document.getElementById('preTradeModal');
@@ -437,6 +438,14 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   function refreshSnapshotMetaText(){
     if(snapshotRefreshMetaEl) snapshotRefreshMetaEl.textContent = snapshotRefreshMeta();
   }
+
+  window.ffGotoView = function(tab){
+    show(tab);
+    if(tab === 'detail') renderDetail();
+  };
+  window.ffRefreshSnapshot = function(){
+    if(refreshSnapshotBtn){ refreshSnapshotBtn.click(); }
+  };
 
   function retryCurrentRead(){
     if(refreshSnapshotBtn){ refreshSnapshotBtn.click(); }

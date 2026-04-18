@@ -41,15 +41,15 @@
     <p class="muted">Big movers, outcome odds, current opportunity score, and calibration feedback on top, with the detail workspace staying visible while you scan.</p>
     <p class="muted">Snapshot: live Kalshi API (5 markets, balance skipped)</p>
     <div class="command-center-grid">
-      <article class="stat status-chip"><strong>-40 pts</strong><div class="muted">Big mover</div></article><article class="stat status-chip"><strong>10.0% / 10.0%</strong><div class="muted">Outcome odds</div></article><article class="stat status-chip"><strong>42.4</strong><div class="muted">Opportunity score</div></article><article class="stat status-chip"><strong>0%</strong><div class="muted">Calibration</div></article><article class="stat status-chip"><strong>95.31ms</strong><div class="muted">Signal p95</div></article>
+      <article class="stat status-chip"><strong>-45 pts</strong><div class="muted">Big mover</div></article><article class="stat status-chip"><strong>10.0% / 10.0%</strong><div class="muted">Outcome odds</div></article><article class="stat status-chip"><strong>0.0</strong><div class="muted">Opportunity score</div></article><article class="stat status-chip"><strong>0%</strong><div class="muted">Calibration</div></article><article class="stat status-chip"><strong>0ms</strong><div class="muted">Signal p95</div></article>
     </div>
     <div class="command-stack">
       <article class="card primary-signal">
-        <div class="row"><strong>Primary signal</strong><span class="pill">high</span></div>
+        <div class="row"><strong>Primary signal</strong><span class="pill">medium</span></div>
         <p class="muted">Mars</p>
         <div class="signal-summary">
           <div class="stat"><strong>0.00%</strong><div class="muted">Edge</div></div>
-          <div class="stat"><strong>42.4</strong><div class="muted">Score</div></div>
+          <div class="stat"><strong>0.0</strong><div class="muted">Score</div></div>
           <div class="stat"><strong><span class="pill fresh-badge" data-freshness="fresh">Fresh · 0s</span></strong><div class="muted">Freshness</div></div>
         </div>
         <div class="trust-strip">
@@ -59,10 +59,10 @@
         </div>
         <div class="actions">
           <button class="btn hero-alert-controls" type="button">Open alert controls</button>
-          <button class="btn hero-refresh-snapshot" id="refreshDataBtn" type="button">Refresh data</button>
+          <button class="btn hero-refresh-snapshot" id="refreshDataBtn" type="button" onclick="window.ffRefreshSnapshot && window.ffRefreshSnapshot(); return false;">Refresh data</button>
           <button class="btn" type="button" data-action="open-command-palette">Open command palette · Ctrl+K</button>
           <button class="btn" type="button" data-action="open-help-drawer">Open help drawer · ?</button>
-          <button class="btn primary" data-action="view" data-id="KXELONMARS-99">Open top signal</button>
+          <a class="btn primary" href="https://kalshi.com/markets/KXELONMARS-99" target="_blank" rel="noopener">Open top signal on Kalshi</a>
         </div>
         <p class="muted">Shortcut hints: Ctrl+K opens the palette; 1 list · 2 detail · 3 trends · 4 archive. Open the top signal to inspect odds and calibration.</p>
       </article>
@@ -137,7 +137,7 @@
     <div class="card" style="margin-top:12px">
       <div class="row"><strong>Backend action rail</strong><span class="pill">synced</span></div>
       <p class="muted">Morning brief, review export, and archive actions stay wired to the shared backend snapshot.</p>
-      <div class="actions"><button class="btn" data-action="retry-read">Retry current read</button><button class="btn" data-action="goto-view" data-view="detail">Open detail</button><button class="btn" data-action="goto-view" data-view="archive">Open archive</button></div>
+      <div class="actions"><button class="btn" data-action="retry-read">Retry current read</button><button class="btn" data-action="goto-view" data-view="detail" onclick="window.ffGotoView && window.ffGotoView('detail'); return false;">Open detail</button><button class="btn" data-action="goto-view" data-view="archive" onclick="window.ffGotoView && window.ffGotoView('archive'); return false;">Open archive</button></div>
     </div>
     <div id="onboardingBanner" class="card onboarding-banner" hidden>
       <div class="row"><strong>Quick start</strong><button class="btn" id="dismissOnboardingBtn">Dismiss</button></div>
@@ -156,7 +156,7 @@
       <p class="muted">Live market data is ready; auth is optional for market snapshots.</p>
       <p class="muted">Client mode: read-only GitHub Pages UI. Auth stays on the server.</p>
       <p id="snapshotRefreshMeta" class="muted">Last refresh: never</p>
-      <div class="actions"><button class="btn" id="backendRefreshSnapshotBtn">Refresh snapshot</button></div>
+      <div class="actions"><button class="btn" id="backendRefreshSnapshotBtn" onclick="window.ffRefreshSnapshot && window.ffRefreshSnapshot(); return false;">Refresh snapshot</button></div>
       <details class="drawer">
         <summary>API host vs GitHub Pages</summary>
         <p class="muted">The Pages client only renders market data and trade links. Credentials stay on the API host or local server, never in the browser.</p>
@@ -181,7 +181,7 @@
   <section class="view section" data-view="trends" hidden>
     <h2>Trend & execution guardrails</h2>
     <div class="grid">
-      <article class="card"><strong>Latency metrics</strong><p class="muted">p50: 95.31ms · p95: 95.31ms</p></article>
+      <article class="card"><strong>Latency metrics</strong><p class="muted">p50: 0ms · p95: 0ms</p></article>
       <article class="card"><strong>Quality gate</strong><p class="muted">Depth ≥ 250, Volume ≥ 200, Spread ≤ 0.06, Freshness ≤ 900s</p></article>
       <article class="card"><strong>Watchlist health</strong><p id="watchlistHealth" class="muted" style="margin-top:8px"></p></article>
       <article class="card"><strong>Gate reason counts</strong><p class="muted">low depth: 3 · low volume: 3 · wide spread: 0 · stale: 0</p></article>
@@ -192,10 +192,10 @@
 
   <section class="view section" data-view="archive" hidden>
     <h2>Archive</h2>
-    <div id="archiveState" class="state" hidden></div>
+    <div id="archiveState" class="state">No archived forecasts yet. Completed reviews will appear here once outcomes are recorded.</div>
     <div class="card">
-      <div class="row"><strong>Review summary</strong><span class="pill">0 wins · 1 misses</span></div>
-      <p class="muted">Top win: n/a · Top miss: Mars</p>
+      <div class="row"><strong>Review summary</strong><span class="pill">0 wins · 0 misses</span></div>
+      <p class="muted">Top win: n/a · Top miss: n/a</p>
       <div class="actions">
         <button class="btn" id="exportReviewCsvBtn">Export review CSV</button>
         <button class="btn" id="shareReviewSummaryBtn">Share review</button>
@@ -203,7 +203,7 @@
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Forecast theses</strong>
-      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>1. Mars</strong><span class="pill">score 44.38</span></div><p class="muted">KXELONMARS-99 · down</p><p class="muted">Thesis: Large down move with market/model edge 0.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article></div>
+      <div class="grid" style="margin-top:8px"><div class="muted">No forecast review items yet.</div></div>
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Trade journal</strong>
@@ -212,9 +212,9 @@
     </div>
     <div class="card" style="margin-top:12px">
       <strong>Resolved archive</strong>
-      <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>Mars</strong><span class="pill">missed</span></div><p>Real world confirmed the move</p><p class="muted">Forecast direction: down · Outcome: up</p><p class="muted">Score 44.38 · accuracy missed</p></article></div>
+      <div class="grid" style="margin-top:8px"><div class="muted">No resolved archive items yet.</div></div>
     </div>
-    <div class="card" style="margin-top:12px"><p class="muted">Correct: 0 · Missed: 1</p></div>
+    <div class="card" style="margin-top:12px"><p class="muted">Correct: 0 · Missed: 0</p></div>
   </section>
 </main>
 
@@ -273,20 +273,20 @@
   </div>
 </div>
 
-<div class="sticky-trade"><a id="stickyTradeCta" class="btn primary" href="#" target="_blank" rel="noopener" data-action="trade">Trade selected on Kalshi</a></div>
+  <div class="sticky-trade"><a id="stickyTradeCta" class="btn primary" href="https://kalshi.com/markets/KXELONMARS-99" target="_blank" rel="noopener" data-action="trade">Trade selected on Kalshi</a></div>
 
 <nav class="nav" aria-label="Primary">
-  <button class="active" data-tab="list">List</button>
-  <button data-tab="detail">Detail</button>
-  <button data-tab="trends">Trends</button>
-  <button data-tab="archive">Archive</button>
+  <button class="active" data-tab="list" onclick="window.ffGotoView && window.ffGotoView('list'); return false;">List</button>
+  <button data-tab="detail" onclick="window.ffGotoView && window.ffGotoView('detail'); return false;">Detail</button>
+  <button data-tab="trends" onclick="window.ffGotoView && window.ffGotoView('trends'); return false;">Trends</button>
+  <button data-tab="archive" onclick="window.ffGotoView && window.ffGotoView('archive'); return false;">Archive</button>
 </nav>
 
 <script>
 (function(){
-  var data = [{"id":"KXELONMARS-99","title":"Mars","event":"KXELONMARS-99","price":10,"move":-40,"volume":265.1,"depth":265.1,"spread":0.01,"updatedAt":"2026-04-18T18:58:19.229Z","scenarioDrivers":["If Elon Musk visits Mars before the earlier of his death or Aug 1, 2099, then the market resolves to Yes."],"probabilityHistory":[0.1,0.1],"tradeUrl":"https://kalshi.com/markets/KXELONMARS-99","marketProb":0.1,"modelProb":0.1,"confidence":"high","signalQualityGrade":"C","rankScore":42.38,"isTradeable":true,"status":"active","sourceUpdatedAt":"2026-04-09T09:31:16.616867Z","score":97.57962361558734,"direction":"down","rank":"A","reason":"watchlist drift with some momentum","edgeCase":"thin volume","freshnessSeconds":0,"edge":0,"uncertaintyHalfBand":0.02,"confidenceInterval":[0,0.22],"scoreBreakdown":{"move":15,"volumeAnomaly":0,"modelEdge":0,"liquidity":12.13,"recency":10,"confidence":13.5,"spreadQuality":8.75,"tradeabilityPenalty":0},"processingLatencyMs":95.31,"lastUpdated":"2026-04-18T18:58:19.229Z","executionQuality":{"score":43.33,"expectedSlippageBps":80.5,"guidance":["Refresh quote before execution"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":0,"amplitudePp":40,"reliability":0.627},"trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 0.00% edge · quality C · execution 43","reason":"0.00% edge · quality C · execution 43","edgePct":0,"execScore":43.3,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":44.375224372756946,"adjustedRankScore":42.38,"calibrationAdjustment":-2,"calibrationNote":"0/1 resolved correctly for this event","calibrationTrend":"needs review"}];
-  var morningBriefData = [{"id":"KXELONMARS-99","title":"Mars","event":"KXELONMARS-99","tradeUrl":"https://kalshi.com/markets/KXELONMARS-99","edgePct":0,"confidence":"high","quality":"C","trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"}}];
-  var calibrationData = {"total":1,"wins":0,"misses":1,"winRate":0,"label":"needs calibration","buckets":[{"bucket":"high","count":0,"correct":0,"accuracy":0,"label":"high-confidence"},{"bucket":"medium","count":0,"correct":0,"accuracy":0,"label":"medium-confidence"},{"bucket":"low","count":1,"correct":0,"accuracy":0,"label":"low-confidence"}],"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"],"summaryText":"Historical outcomes: 0 wins, 1 miss (win rate 0.0%). low-confidence 0.0% correct (1) Feedback: needs calibration."};
+  var data = [{"id":"KXELONMARS-99","title":"Mars","event":"KXELONMARS-99","price":10,"move":2,"volume":235.1,"depth":235.1,"spread":0.01,"updatedAt":"2026-04-18T21:19:29.925Z","scenarioDrivers":["If Elon Musk visits Mars before the earlier of his death or Aug 1, 2099, then the market resolves to Yes."],"probabilityHistory":[0.08,0.1],"tradeUrl":"https://kalshi.com/markets/KXELONMARS-99","marketProb":0.1,"modelProb":0.1,"confidence":"medium","signalQualityGrade":"B","rankScore":0,"isTradeable":false,"status":"active","sourceUpdatedAt":"2026-04-09T09:31:16.616867Z","edge":0,"confidenceInterval":[0,0.22],"lastUpdated":"2026-04-18T21:19:29.925Z","executionQuality":{"score":41.89,"expectedSlippageBps":83.9,"guidance":["Reduce size due to shallow depth","Refresh quote before execution"]},"movementFlag":{"label":"Normal","direction":"up","driftPp":2,"amplitudePp":2,"reliability":0.605},"trendSummary":{"delta24hPp":2,"accelerationPp":2,"direction":"up","label":"Rising","badge":"+2.00pp","summary":"+2.00pp over 24h · accelerating 2.00pp","accelerationLabel":"accelerating 2.00pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 0.00% edge · quality B · execution 42 · not tradeable","reason":"0.00% edge · quality B · execution 42 · not tradeable","edgePct":0,"execScore":41.9,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":0,"adjustedRankScore":0,"calibrationAdjustment":0,"calibrationNote":"No resolved outcomes yet","calibrationTrend":"unproven"},{"id":"KXERUPTSUPER-0-50JAN01","title":"Before Jan 1, 2050","event":"KXERUPTSUPER-0","price":19,"move":-3,"volume":164.45,"depth":164.45,"spread":0.03,"updatedAt":"2026-04-18T21:19:29.925Z","scenarioDrivers":["If a supervolcano erupts before Jan 1, 2050, then the market resolves to Yes."],"probabilityHistory":[0.218,0.19],"tradeUrl":"https://kalshi.com/markets/KXERUPTSUPER-0-50JAN01","marketProb":0.19,"modelProb":0.22,"confidence":"medium","signalQualityGrade":"B","rankScore":0,"isTradeable":false,"status":"active","sourceUpdatedAt":"2026-04-09T09:31:34.36679Z","edge":0,"confidenceInterval":[0.1,0.34],"lastUpdated":"2026-04-18T21:19:29.925Z","executionQuality":{"score":29.75,"expectedSlippageBps":275.2,"guidance":["Reduce size due to shallow depth","Refresh quote before execution"]},"movementFlag":{"label":"Normal","direction":"down","driftPp":-2.8,"amplitudePp":3,"reliability":0.43},"trendSummary":{"delta24hPp":-2.8,"accelerationPp":-2.8,"direction":"down","label":"Falling","badge":"-2.80pp","summary":"-2.80pp over 24h · cooling 2.80pp","accelerationLabel":"cooling 2.80pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 0.00% edge · quality B · execution 30 · not tradeable","reason":"0.00% edge · quality B · execution 30 · not tradeable","edgePct":0,"execScore":29.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":0,"adjustedRankScore":0,"calibrationAdjustment":0,"calibrationNote":"No resolved outcomes yet","calibrationTrend":"unproven"},{"id":"KXMARSVRAIL-50","title":"Before 2050","event":"KXMARSVRAIL-50","price":24,"move":-26,"volume":34.22,"depth":34.22,"spread":0.05,"updatedAt":"2026-04-18T21:19:29.925Z","scenarioDrivers":["If a human lands on Mars before California starts its high speed rail service for the public before Jan 1, 2050, then the market resolves to Yes."],"probabilityHistory":[0.24,0.24],"tradeUrl":"https://kalshi.com/markets/KXMARSVRAIL-50","marketProb":0.24,"modelProb":0.29,"confidence":"medium","signalQualityGrade":"B","rankScore":0,"isTradeable":false,"status":"active","sourceUpdatedAt":"2026-04-09T09:31:17.867809Z","edge":0,"confidenceInterval":[0.17,0.41],"lastUpdated":"2026-04-18T21:19:29.925Z","executionQuality":{"score":14.76,"expectedSlippageBps":531,"guidance":["Reduce size due to shallow depth","Refresh quote before execution"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":0,"amplitudePp":26,"reliability":0.212},"trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 0.00% edge · quality B · execution 15 · not tradeable","reason":"0.00% edge · quality B · execution 15 · not tradeable","edgePct":0,"execScore":14.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":0,"adjustedRankScore":0,"calibrationAdjustment":0,"calibrationNote":"No resolved outcomes yet","calibrationTrend":"unproven"},{"id":"KXNEWPOPE-70-PPAR","title":"Pietro Parolin","event":"KXNEWPOPE-70","price":5,"move":-45,"volume":6,"depth":6,"spread":0.034,"updatedAt":"2026-04-18T21:19:29.925Z","scenarioDrivers":["If Pietro Parolin becomes the first person elected Pope before Jan 1, 2070, then the market resolves to Yes."],"probabilityHistory":[0.05,0.05],"tradeUrl":"https://kalshi.com/markets/KXNEWPOPE-70-PPAR","marketProb":0.05,"modelProb":0.084,"confidence":"medium","signalQualityGrade":"B","rankScore":0,"isTradeable":false,"status":"active","sourceUpdatedAt":"2026-04-09T09:29:41.717648Z","edge":0,"confidenceInterval":[0,0.204],"lastUpdated":"2026-04-18T21:19:29.925Z","executionQuality":{"score":20.41,"expectedSlippageBps":371.7,"guidance":["Reduce size due to shallow depth","Refresh quote before execution"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":0,"amplitudePp":45,"reliability":0.292},"trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 0.00% edge · quality B · execution 20 · not tradeable","reason":"0.00% edge · quality B · execution 20 · not tradeable","edgePct":0,"execScore":20.4,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":0,"adjustedRankScore":0,"calibrationAdjustment":0,"calibrationNote":"No resolved outcomes yet","calibrationTrend":"unproven"},{"id":"KXWARMING-50","title":"Before 2050","event":"KXWARMING-50","price":77,"move":27,"volume":1,"depth":1,"spread":0.03,"updatedAt":"2026-04-18T21:19:29.925Z","scenarioDrivers":["If the annual global mean surface temperature anomaly has reached or exceeded +2.0°C above pre-industrial levels (1850-1900 average) in any calendar year before Jan 1, 2050, then the market resolves to Yes.","At least two of the Source Agencies must report that we have hit the 2.0°C threshold."],"probabilityHistory":[0.77,0.77],"tradeUrl":"https://kalshi.com/markets/KXWARMING-50","marketProb":0.77,"modelProb":0.8,"confidence":"medium","signalQualityGrade":"B","rankScore":0,"isTradeable":false,"status":"active","sourceUpdatedAt":"2026-04-09T09:18:53.966868Z","edge":0,"confidenceInterval":[0.68,0.92],"lastUpdated":"2026-04-18T21:19:29.925Z","executionQuality":{"score":21.92,"expectedSlippageBps":329.7,"guidance":["Reduce size due to shallow depth","Refresh quote before execution"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":0,"amplitudePp":27,"reliability":0.313},"trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 0.00% edge · quality B · execution 22 · not tradeable","reason":"0.00% edge · quality B · execution 22 · not tradeable","edgePct":0,"execScore":21.9,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":0,"adjustedRankScore":0,"calibrationAdjustment":0,"calibrationNote":"No resolved outcomes yet","calibrationTrend":"unproven"}];
+  var morningBriefData = [{"id":"KXELONMARS-99","title":"Mars","event":"KXELONMARS-99","tradeUrl":"https://kalshi.com/markets/KXELONMARS-99","edgePct":0,"confidence":"medium","quality":"B","trendSummary":{"delta24hPp":2,"accelerationPp":2,"direction":"up","label":"Rising","badge":"+2.00pp","summary":"+2.00pp over 24h · accelerating 2.00pp","accelerationLabel":"accelerating 2.00pp"}},{"id":"KXERUPTSUPER-0-50JAN01","title":"Before Jan 1, 2050","event":"KXERUPTSUPER-0","tradeUrl":"https://kalshi.com/markets/KXERUPTSUPER-0-50JAN01","edgePct":0,"confidence":"medium","quality":"B","trendSummary":{"delta24hPp":-2.8,"accelerationPp":-2.8,"direction":"down","label":"Falling","badge":"-2.80pp","summary":"-2.80pp over 24h · cooling 2.80pp","accelerationLabel":"cooling 2.80pp"}},{"id":"KXMARSVRAIL-50","title":"Before 2050","event":"KXMARSVRAIL-50","tradeUrl":"https://kalshi.com/markets/KXMARSVRAIL-50","edgePct":0,"confidence":"medium","quality":"B","trendSummary":{"delta24hPp":0,"accelerationPp":0,"direction":"flat","label":"Flat","badge":"+0.00pp","summary":"+0.00pp over 24h · steady pace","accelerationLabel":"steady pace"}}];
+  var calibrationData = {"total":0,"wins":0,"misses":0,"winRate":0,"label":"needs calibration","buckets":[{"bucket":"high","count":0,"correct":0,"accuracy":0,"label":"high-confidence"},{"bucket":"medium","count":0,"correct":0,"accuracy":0,"label":"medium-confidence"},{"bucket":"low","count":0,"correct":0,"accuracy":0,"label":"low-confidence"}],"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"],"summaryText":"No resolved outcomes yet. Calibration feedback will appear once archive items are available."};
   var backendReadError = "";
   var backendSyncStatus = "ready";
   var backendSourceSummary = "live Kalshi API (5 markets, balance skipped)";
@@ -329,6 +329,7 @@
   var dismissOnboardingBtn = document.getElementById('dismissOnboardingBtn');
   var refreshSnapshotBtn = document.getElementById('refreshSnapshotBtn');
   var backendRefreshSnapshotBtn = document.getElementById('backendRefreshSnapshotBtn');
+  var snapshotRefreshMetaEl = document.getElementById('snapshotRefreshMeta');
   var sortChips = Array.from(document.querySelectorAll('[data-sort]'));
 
   var preTradeModal = document.getElementById('preTradeModal');
@@ -344,6 +345,14 @@
   function refreshSnapshotMetaText(){
     if(snapshotRefreshMetaEl) snapshotRefreshMetaEl.textContent = snapshotRefreshMeta();
   }
+
+  window.ffGotoView = function(tab){
+    show(tab);
+    if(tab === 'detail') renderDetail();
+  };
+  window.ffRefreshSnapshot = function(){
+    if(refreshSnapshotBtn){ refreshSnapshotBtn.click(); }
+  };
 
   function retryCurrentRead(){
     if(refreshSnapshotBtn){ refreshSnapshotBtn.click(); }

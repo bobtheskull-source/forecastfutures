@@ -90,7 +90,29 @@ test('renderApp surfaces big mover odds calibration and unique refresh controls'
   assert.match(html, /Broad scan/);
   assert.match(html, /Open alert controls/);
   assert.match(html, /Refresh data/);
+  assert.match(html, /Open top signal on Kalshi/);
   assert.match(html, /id="refreshDataBtn"/);
   assert.match(html, /id="backendRefreshSnapshotBtn"/);
   assert.equal((html.match(/id="refreshSnapshotBtn"/g) || []).length, 1);
+});
+
+test('renderApp still exposes a trade link when guardrails produce no accepted signals', () => {
+  const html = renderApp({
+    markets: [signal],
+    outliers: [],
+    archive: [],
+    rules: [],
+    edgeCases: [],
+    guardrails,
+    snapshotSource: 'loaded from ./fixtures/latest-markets.json',
+    infra: {
+      ready: true,
+      missing: [],
+      deploymentNotes: ['Keep Kalshi auth on the server side only.'],
+    },
+  });
+
+  assert.match(html, /Open top signal on Kalshi/);
+  assert.match(html, /Trade selected on Kalshi/);
+  assert.match(html, /https:\/\/kalshi\.com\/x/);
 });
