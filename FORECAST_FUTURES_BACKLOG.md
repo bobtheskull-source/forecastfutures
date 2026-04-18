@@ -34,6 +34,36 @@ AC:
 2) Sticky controls, overlays, and drawers do not cover core content on desktop or mobile.
 3) Button labels are rewritten so users can tell what each action does before clicking.
 
+CARD-106 | Ready to Deploy | Add saved compare sets and scenario board for side-by-side market review
+AC:
+1) Users can pin two or more markets into a saved compare set from list or detail surfaces.
+2) Compare sets persist locally and restore after reload without breaking URL state.
+3) The compare board stays readable on mobile and does not block the main list or detail flow.
+
+CARD-107 | Ready to Work | Add trade journal notes and reason logging from detail and archive surfaces
+AC:
+1) Users can attach a short note and reason tags to a market from detail or archive.
+2) Notes and timestamps persist locally and show up in the review flow.
+3) The journal panel is compact, readable, and does not hide the main market controls.
+
+CARD-108 | Ready to Work | Add watchlist pinning and section grouping so favorite markets stay at the top
+AC:
+1) Users can pin markets and see pinned items grouped above the rest of the watchlist.
+2) Pin state persists after reload and survives list filtering and sorting.
+3) Grouped rows remain touch-friendly and keep the existing row actions available.
+
+CARD-109 | Ready to Work | Add export and share of the active opportunity screen with calibration and odds context
+AC:
+1) Share/export text includes the current market, odds, opportunity score, and calibration summary.
+2) The export output stays consistent across list, detail, and archive surfaces.
+3) Users can trigger the export from the active screen without losing their current selection.
+
+CARD-110 | Ready to Work | Add a compact help drawer and action legend for keyboard, alerts, and trade actions
+AC:
+1) The help drawer explains the most important shortcuts, alerts, and trade actions in plain language.
+2) The drawer is compact, opens from the hero or shortcut, and does not block core content.
+3) Help content fits on mobile and keeps the main workflow reachable.
+
 ## Done
 
 CARD-033 | Deployed Done | Add first-run onboarding guidance for list, detail, and trade actions

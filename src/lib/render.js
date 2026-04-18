@@ -10,6 +10,7 @@ import { applyScanPreset, compareMarketToEventMedian, compareMarketToMedian, loa
 import { buildShareText, buildSummaryShareText, buildReviewShareText, buildOpportunityCsv, copyShareText } from './share.js';
 import { archiveAlertHistoryItem, markAlertHistoryItem, summarizeAlertHistory, upsertAlertHistoryItem } from './alerts.js';
 import { buildCalibrationFeedback, adjustOpportunityScores } from './odds-feedback.js';
+import { buildCompareScenario, compareBoardLabel, loadCompareBoard, loadCompareSet, listCompareSetNames, saveCompareBoard, saveCompareSet, toggleCompareBoardId } from './compare-sets.js';
 import { morningBriefToCsv } from './brief-export.js';
 import { forecastReviewToCsv } from './review-export.js';
 
@@ -251,6 +252,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     <h2>Forecast detail</h2>
     <div id="detailState" class="state"${detailStateHtml ? '' : ' hidden'}>${detailStateHtml}</div>
     <div id="detailPanel" class="card"></div>
+    <div id="compareBoardPanel" class="card" style="margin-top:12px"></div>
   </section>
 
   <section class="view section" data-view="trends" hidden>
@@ -357,6 +359,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var paywallSeenKey = 'ff_paywall_seen_v1';
   var snapshotRefreshKey = 'ff_snapshot_refreshed_at_v1';
   var uiStateKey = 'ff_ui_state_v1';
+  var compareBoardKey = 'ff_compare_board_v1';
+  var compareSetsKey = 'ff_compare_sets_v1';
   var halfLifeMs = 6 * 60 * 60 * 1000;
   var defaultPrefs = { minEdgePercent: 4, confidenceFloor: 'medium', quietHoursStart: 22, quietHoursEnd: 7, cooldownMinutes: 30 };
   var confRank = { low: 1, medium: 2, high: 3 };
@@ -371,6 +375,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var calibrationSnapshotEl = document.getElementById('calibrationSnapshot');
   var detailPanel = document.getElementById('detailPanel');
   var detailState = document.getElementById('detailState');
+  var compareBoardPanel = document.getElementById('compareBoardPanel');
   var mostClickedEl = document.getElementById('mostClicked');
   var mostExecutedEl = document.getElementById('mostExecuted');
   var risingInterestEl = document.getElementById('risingInterest');
@@ -469,6 +474,34 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     return list;
   }
   function isWatchlisted(id){ return loadWatchlist().includes(String(id)); }
+
+  function loadCompareBoard(){ try { return JSON.parse(localStorage.getItem(compareBoardKey) || '[]'); } catch { return []; } }
+  function saveCompareBoardState(list){ localStorage.setItem(compareBoardKey, JSON.stringify(list.slice(0, 4))); }
+  function toggleCompareBoard(id){
+    var key = String(id);
+    var list = loadCompareBoard().map(String);
+    if(list.includes(key)) list = list.filter(function(x){ return x !== key; });
+    else list.unshift(key);
+    saveCompareBoardState(list);
+    return list;
+  }
+  function loadCompareSetStore(){ try { return JSON.parse(localStorage.getItem(compareSetsKey) || '{}'); } catch { return {}; } }
+  function saveCompareSetStore(value){ localStorage.setItem(compareSetsKey, JSON.stringify(value || {})); }
+  function saveCurrentCompareSet(name, ids){
+    var key = String(name || '').trim();
+    if(!key) return null;
+    var store = loadCompareSetStore();
+    store[key] = { ids: (ids || []).map(String).filter(Boolean).slice(0, 4), updatedAt: new Date().toISOString() };
+    saveCompareSetStore(store);
+    return store[key];
+  }
+  function loadNamedCompareSet(name){
+    var store = loadCompareSetStore();
+    return store[String(name || '').trim()] || null;
+  }
+  function listCompareSetNamesLocal(){
+    return Object.keys(loadCompareSetStore()).sort(function(a, b){ return a.localeCompare(b); });
+  }
 
   function loadSavedWatchlists(){
     try { return JSON.parse(localStorage.getItem('ff_saved_watchlists_v1') || '{}'); } catch { return {}; }
@@ -598,6 +631,30 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var tradeable = saved.filter(function(item){ return item.isTradeable !== false; }).length;
     var label = medEdge >= 5 && medDepth >= 500 && medFresh <= 900 ? 'healthy' : medEdge >= 3 ? 'watch' : 'thin';
     watchlistHealthEl.innerHTML = '<div class="row"><span>'+saved.length+' saved markets</span><span class="pill">'+label+'</span></div><p class="muted">Median edge '+medEdge.toFixed(2)+'% · depth '+medDepth.toFixed(0)+' · freshness '+medFresh.toFixed(0)+'s · tradeable '+tradeable+'/'+saved.length+'</p>';
+  }
+
+  function renderCompareBoard(){
+    if(!compareBoardPanel) return;
+    var selected = data.find(function(item){ return String(item.id) === String(state.selectedId); }) || null;
+    var boardIds = loadCompareBoard();
+    var scenario = buildCompareScenario(data, state.selectedId, boardIds).filter(function(item){ return item && !item.missing; });
+    var savedNames = listCompareSetNamesLocal();
+    var compareLabel = compareBoardLabel(scenario);
+    var savedLabel = savedNames.length ? 'Saved compare sets: ' + savedNames.join(', ') : 'No saved compare sets yet.';
+    if(!selected && !scenario.length){
+      compareBoardPanel.innerHTML = '<div class="row"><strong>Scenario board</strong><span class="pill">0 markets</span></div><p class="muted">Select a market to start a comparison board.</p>';
+      return;
+    }
+    compareBoardPanel.innerHTML = '<div class="row"><strong>Scenario board</strong><span class="pill">'+esc(compareLabel)+'</span></div>'
+      + '<p class="muted">'+esc(savedLabel)+' · pin markets from the list or detail view, then save a set for later.</p>'
+      + '<div class="actions">'
+      + '<button class="btn" data-action="compare-save">Save compare set</button>'
+      + '<button class="btn" data-action="compare-restore">Restore compare set</button>'
+      + '<button class="btn" data-action="compare-clear">Clear board</button>'
+      + '</div>'
+      + '<div class="grid" style="margin-top:10px">'+scenario.map(function(item, index){
+        return '<article class="card"><div class="row"><strong>'+(index===0 ? 'Selected' : 'Compare')+'</strong><span class="pill">'+esc(item.confidence || 'n/a')+'</span></div><p class="muted">'+esc(item.title || item.id || 'Unknown market')+'</p><p class="muted">'+esc(item.event || 'No event')+'</p><p class="muted">Odds '+(Number(item.marketProb || 0)*100).toFixed(1)+'% / '+(Number(item.modelProb || 0)*100).toFixed(1)+'% · edge '+(Math.abs(Number(item.edge || 0))*100).toFixed(2)+'% · score '+Number(item.adjustedRankScore || item.rankScore || 0).toFixed(1)+'</p><div class="actions"><button class="btn" data-action="compare-pin" data-id="'+esc(item.id)+'">'+(loadCompareBoard().includes(String(item.id)) ? 'Unpin' : 'Pin')+'</button><button class="btn" data-action="view" data-id="'+esc(item.id)+'">Open detail</button></div></article>';
+      }).join('')+'</div>';
   }
 
   function risingInterestScore(marketId){
@@ -806,6 +863,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">Open detail</button>'
       + '<button class="btn" data-action="watch" data-id="'+esc(item.id)+'">'+(watchlisted ? 'Unwatch' : 'Watch')+'</button>'
       + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Copy trade link</button>'
+      + '<button class="btn" data-action="compare-pin" data-id="'+esc(item.id)+'">'+(loadCompareBoard().includes(String(item.id)) ? 'Unpin compare' : 'Pin compare')+'</button>'
       + '<button class="btn" data-action="dismiss-alert" data-id="'+esc(item.id)+'">Dismiss alert</button>'
       + '<button class="btn warn" data-action="archive-alert" data-id="'+esc(item.id)+'">Archive alert</button>'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
@@ -957,6 +1015,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     renderAlertHistory();
     renderOnboardingBanner();
     renderWatchlistHealth();
+    renderCompareBoard();
     renderFunnel();
     syncListStateToUrl('list');
   }
@@ -1057,6 +1116,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
       + '<button class="btn" data-action="share-summary" data-id="'+esc(item.id)+'">Share summary</button>'
+      + '<button class="btn" data-action="compare-pin" data-id="'+esc(item.id)+'">'+(loadCompareBoard().includes(String(item.id)) ? 'Unpin compare' : 'Pin compare')+'</button>'
       + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Copy trade link</button>'
       + '<a class="btn primary" href="'+esc(item.tradeUrl||'#')+'" target="_blank" rel="noopener" data-action="trade" data-id="'+esc(item.id)+'">Open in Kalshi</a>'
       + '</div>'
@@ -1068,6 +1128,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     stickyTradeCta.textContent = 'Trade ' + item.title + ' on Kalshi';
     saveUiState({ selectedId: state.selectedId, view: 'detail' });
     syncListStateToUrl('detail');
+    renderCompareBoard();
   }
 
 
@@ -1307,6 +1368,35 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet(item); renderFunnel(); }
     if(action==='dismiss-alert' && item){ updateAlertHistoryStatus(id, 'dismissed'); renderAlertHistory(); renderList(); }
     if(action==='archive-alert' && item){ updateAlertHistoryStatus(id, 'archived'); renderAlertHistory(); renderList(); }
+    if(action==='compare-pin' && item){
+      saveCompareBoardState(toggleCompareBoard(id));
+      renderCompareBoard();
+      renderList();
+      renderDetail();
+    }
+    if(action==='compare-save'){
+      var compareName = window.prompt('Save compare set as', 'Favorite compare set');
+      if(saveCurrentCompareSet(compareName, loadCompareBoard())){
+        renderCompareBoard();
+      }
+    }
+    if(action==='compare-restore'){
+      var compareNames = listCompareSetNamesLocal();
+      var compareChoice = window.prompt('Restore compare set name: ' + (compareNames.length ? compareNames.join(', ') : 'No saved compare sets yet.'));
+      var savedCompare = loadNamedCompareSet(compareChoice);
+      if(savedCompare){
+        saveCompareBoardState(Array.isArray(savedCompare.ids) ? savedCompare.ids : []);
+        renderCompareBoard();
+        renderList();
+        renderDetail();
+      }
+    }
+    if(action==='compare-clear'){
+      saveCompareBoardState([]);
+      renderCompareBoard();
+      renderList();
+      renderDetail();
+    }
     if(action==='trade'){
       recordClick(id);
       recordFunnel('trade', id);
