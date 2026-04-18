@@ -182,10 +182,11 @@ export async function loadLiveKalshiSnapshot({
     balance,
     marketsCount: markets.length,
     balanceUpdatedTs: balance?.updated_ts || null,
-    readError: balanceError || null,
+    balanceError: balanceError || null,
+    readError: null,
     snapshotSource: hasAuth
       ? (balanceError
-        ? `live Kalshi API (${markets.length} markets, balance skipped)`
+        ? `live Kalshi API (${markets.length} markets, balance unavailable)`
         : `live Kalshi API (${markets.length} markets, balance verified)`)
       : `live Kalshi API (${markets.length} markets, balance skipped)`,
   };

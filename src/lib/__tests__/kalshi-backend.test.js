@@ -189,7 +189,9 @@ test('loadLiveKalshiSnapshot keeps live markets when the balance call fails', as
   assert.equal(live.ready, true);
   assert.equal(live.authReady, false);
   assert.equal(live.balance, null);
-  assert.equal(live.readError.includes('unauthorized'), true);
+  assert.equal(live.balanceError.includes('unauthorized'), true);
+  assert.equal(live.readError, null);
+  assert.match(live.snapshotSource, /balance unavailable/);
   assert.equal(live.markets[0].id, 'CPI-APR');
   assert.ok(requests.some((request) => request.includes('/portfolio/balance')));
 });
