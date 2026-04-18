@@ -20,26 +20,37 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    env:
+      KALSHI_API_KEY: ${{ secrets.KALSHI_API_TOKEN }}
+      KALSHI_PRIVATE_KEY_PATH: ${{ github.workspace }}/.secrets/kalshi_private_key.pem
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
-      
+
+      - name: Prepare Kalshi private key
+        run: |
+          mkdir -p .secrets
+          printf '%s' "$KALSHI_PRIVATE_KEY" > "$KALSHI_PRIVATE_KEY_PATH"
+          chmod 600 "$KALSHI_PRIVATE_KEY_PATH"
+        env:
+          KALSHI_PRIVATE_KEY: ${{ secrets.KALSHI_PRIVATE_KEY }}
+
       - name: Build
-        run: npm run demo
-      
+        run: npm run build
+
       - name: Setup Pages
         uses: actions/configure-pages@v4
-      
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
-      
+
       - name: Deploy
         id: deployment
         uses: actions/deploy-pages@v4

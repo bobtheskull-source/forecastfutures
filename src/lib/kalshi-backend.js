@@ -105,7 +105,7 @@ async function fetchJsonWithRetry(fetchImpl, url, options = {}, attempts = 3, de
 }
 
 export async function loadLiveKalshiSnapshot({
-  apiKeyId = process.env.KALSHI_API_KEY || '',
+  apiKeyId = process.env.KALSHI_API_KEY || process.env.KALSHI_API_TOKEN || '',
   privateKeyPem,
   baseUrl = process.env.KALSHI_BASE_URL || DEFAULT_KALSHI_BASE_URL,
   fetchImpl = globalThis.fetch,

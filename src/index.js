@@ -25,7 +25,7 @@ async function main() {
   } else {
     try {
       liveSnapshot = await loadLiveKalshiSnapshot({
-        apiKeyId: process.env.KALSHI_API_KEY || '',
+        apiKeyId: process.env.KALSHI_API_KEY || process.env.KALSHI_API_TOKEN || '',
         baseUrl: config.baseUrl,
       });
     } catch (error) {

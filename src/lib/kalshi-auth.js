@@ -1,7 +1,15 @@
 import { readKalshiPrivateKey } from './kalshi-path.js';
 
+function readEnv(...names) {
+  for (const name of names) {
+    const value = process.env[name]?.trim();
+    if (value) return value;
+  }
+  return '';
+}
+
 export function loadKalshiCredentials() {
-  const apiKey = process.env.KALSHI_API_KEY || '';
+  const apiKey = readEnv('KALSHI_API_KEY', 'KALSHI_API_TOKEN');
   const { resolvedPath, privateKey } = readKalshiPrivateKey();
 
   return {

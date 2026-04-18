@@ -10,10 +10,12 @@ const SECRET_PATH = '/home/adminhermes/.config/kalshi/private-api-key';
 function withUnsetKalshiEnv(fn) {
   const snapshot = {
     KALSHI_API_KEY: process.env.KALSHI_API_KEY,
+    KALSHI_API_TOKEN: process.env.KALSHI_API_TOKEN,
     KALSHI_PRIVATE_KEY_PATH: process.env.KALSHI_PRIVATE_KEY_PATH,
     KALSHI_BASE_URL: process.env.KALSHI_BASE_URL,
   };
   delete process.env.KALSHI_API_KEY;
+  delete process.env.KALSHI_API_TOKEN;
   delete process.env.KALSHI_PRIVATE_KEY_PATH;
   delete process.env.KALSHI_BASE_URL;
   try {
@@ -43,5 +45,19 @@ test('kalshi config auto-detects the provided private key path when env is unset
     assert.equal(readiness.ready, false);
     assert.ok(missing.includes('KALSHI_API_KEY'));
     assert.ok(!missing.includes('KALSHI_PRIVATE_KEY_PATH/private key file'));
+  });
+});
+
+test('kalshi token aliases are accepted by config and secret loading', () => {
+  withUnsetKalshiEnv(() => {
+    process.env.KALSHI_API_TOKEN = 'alias-token';
+
+    const creds = loadKalshiCredentials();
+    const config = loadConfig();
+    const secrets = loadServerSecrets();
+
+    assert.equal(creds.apiKey, 'alias-token');
+    assert.equal(config.apiKey, 'alias-token');
+    assert.equal(secrets.apiKey, 'alias-token');
   });
 });
