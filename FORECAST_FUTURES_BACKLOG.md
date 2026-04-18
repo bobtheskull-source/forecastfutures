@@ -40,29 +40,35 @@ AC:
 2) Compare sets persist locally and restore after reload without breaking URL state.
 3) The compare board stays readable on mobile and does not block the main list or detail flow.
 
-CARD-107 | Ready to Work | Add trade journal notes and reason logging from detail and archive surfaces
+CARD-107 | Deployed Done | Add trade journal notes and reason logging from detail and archive surfaces
 AC:
 1) Users can attach a short note and reason tags to a market from detail or archive.
 2) Notes and timestamps persist locally and show up in the review flow.
 3) The journal panel is compact, readable, and does not hide the main market controls.
 
-CARD-108 | Ready to Work | Add watchlist pinning and section grouping so favorite markets stay at the top
+CARD-108 | Deployed Done | Add watchlist pinning and section grouping so favorite markets stay at the top
 AC:
 1) Users can pin markets and see pinned items grouped above the rest of the watchlist.
 2) Pin state persists after reload and survives list filtering and sorting.
 3) Grouped rows remain touch-friendly and keep the existing row actions available.
 
-CARD-109 | Ready to Work | Add export and share of the active opportunity screen with calibration and odds context
+CARD-109 | Deployed Done | Add export and share of the active opportunity screen with calibration and odds context
 AC:
 1) Share/export text includes the current market, odds, opportunity score, and calibration summary.
 2) The export output stays consistent across list, detail, and archive surfaces.
 3) Users can trigger the export from the active screen without losing their current selection.
 
-CARD-110 | Ready to Work | Add a compact help drawer and action legend for keyboard, alerts, and trade actions
+CARD-110 | Deployed Done | Add a compact help drawer and action legend for keyboard, alerts, and trade actions
 AC:
 1) The help drawer explains the most important shortcuts, alerts, and trade actions in plain language.
 2) The drawer is compact, opens from the hero or shortcut, and does not block core content.
 3) Help content fits on mobile and keeps the main workflow reachable.
+
+CARD-111 | Deployed Done | Add compare board management controls so saved compare sets can be renamed, deleted, and swapped quickly
+AC:
+1) Users can rename or delete saved compare sets from the compare board.
+2) The active compare board can be swapped to a saved set without losing the current selection state.
+3) Management controls stay compact and keep the compare board usable on mobile.
 
 ## Done
 

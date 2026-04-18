@@ -60,4 +60,7 @@ test('renderApp surfaces compare board controls and pin actions', () => {
   assert.match(html, /data-action="compare-save"/);
   assert.match(html, /data-action="compare-restore"/);
   assert.match(html, /data-action="compare-clear"/);
+  assert.match(html, /data-action="compare-swap"/);
+  assert.match(html, /data-action="compare-rename"/);
+  assert.match(html, /data-action="compare-delete"/);
 });

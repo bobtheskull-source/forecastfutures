@@ -120,6 +120,28 @@ export function buildSummaryShareText({ briefItems = [], selectedItem = null, co
   return lines.join('\n');
 }
 
+export function buildActiveOpportunityShareText({ selectedItem = null, compare = null, calibrationFeedback = null, journalEntry = null } = {}) {
+  const lines = ['Forecast Futures opportunity'];
+  if (selectedItem?.title) lines.push(`Selected: ${selectedItem.title}`);
+  if (selectedItem?.event) lines.push(`Event: ${selectedItem.event}`);
+  if (selectedItem?.confidence) lines.push(`Confidence: ${selectedItem.confidence}`);
+  if (selectedItem?.rankScore != null) lines.push(`Opportunity score: ${Number(selectedItem.rankScore || 0).toFixed(2)}`);
+  if (selectedItem?.marketProb != null || selectedItem?.modelProb != null) {
+    lines.push(`Odds: ${(Number(selectedItem.marketProb || 0) * 100).toFixed(1)}% market / ${(Number(selectedItem.modelProb || 0) * 100).toFixed(1)}% model`);
+  }
+  if (selectedItem?.freshnessSeconds != null) lines.push(`Freshness: ${Number(selectedItem.freshnessSeconds || 0).toFixed(0)}s`);
+  if (compare?.selected) {
+    const selected = compare.selected;
+    const median = compare.median || {};
+    lines.push(`Compare vs event median: edge ${(Math.abs(Number(selected.edge || 0)) * 100).toFixed(2)}% / ${Number(median.edge || 0).toFixed(2)}% · depth ${Number(selected.depth || 0)} / ${Number(median.depth || 0)} · freshness ${Number(selected.freshnessSeconds || 0)}s / ${Number(median.freshnessSeconds || 0)}s`);
+  }
+  if (calibrationFeedback?.summaryText) lines.push(`Calibration: ${calibrationFeedback.summaryText}`);
+  if (journalEntry?.note) lines.push(`Journal note: ${journalEntry.note}`);
+  if (journalEntry?.tags?.length) lines.push(`Tags: ${journalEntry.tags.join(', ')}`);
+  if (selectedItem?.tradeUrl) lines.push(`Trade: ${selectedItem.tradeUrl}`);
+  return lines.join('\n');
+}
+
 export function buildReviewShareText({ review = {}, archiveSummary = null } = {}) {
   const lines = ['Forecast Futures review'];
 

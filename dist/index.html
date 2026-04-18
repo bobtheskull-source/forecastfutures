@@ -61,6 +61,7 @@
           <button class="btn hero-alert-controls" type="button">Open alert controls</button>
           <button class="btn hero-refresh-snapshot" type="button">Reload snapshot</button>
           <button class="btn" type="button" data-action="open-command-palette">Open command palette · Ctrl+K</button>
+          <button class="btn" type="button" data-action="open-help-drawer">Open help drawer · ?</button>
           <button class="btn primary" data-action="view" data-id="inflation-cpi">Open top signal</button>
         </div>
         <p class="muted">Shortcut hints: Ctrl+K opens the palette; 1 list · 2 detail · 3 trends · 4 archive. Open the top signal to inspect odds and calibration.</p>
@@ -194,6 +195,11 @@
       <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>1. CPI surprise next print</strong><span class="pill">score 79.48</span></div><p class="muted">BLS CPI release · up</p><p class="muted">Thesis: Large up move with market/model edge 28.33% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>2. Fed cuts at next meeting</strong><span class="pill">score 71.35</span></div><p class="muted">FOMC decision · down</p><p class="muted">Thesis: Large down move with market/model edge -18.00% and high confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article><article class="card"><div class="row"><strong>3. Major storm makes landfall</strong><span class="pill">score 64.56</span></div><p class="muted">Weather event · up</p><p class="muted">Thesis: Large up move with market/model edge 30.00% and medium confidence.</p><p class="muted">Post-mortem prompt: Fill this in after the event resolves to compare the forecast with the outcome.</p></article></div>
     </div>
     <div class="card" style="margin-top:12px">
+      <strong>Trade journal</strong>
+      <p class="muted">Notes and reason tags follow the market into review so you can see what you planned and why.</p>
+      <div class="grid" style="margin-top:8px"><div class="muted">No journal notes yet.</div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
       <strong>Resolved archive</strong>
       <div class="grid" style="margin-top:8px"><article class="card"><div class="row"><strong>CPI surprise next print</strong><span class="pill">correct</span></div><p>Real world confirmed the move</p><p class="muted">Forecast direction: up · Outcome: up</p><p class="muted">Score 79.48 · accuracy correct</p></article><article class="card"><div class="row"><strong>Fed cuts at next meeting</strong><span class="pill">correct</span></div><p>Signal overshot and reversed</p><p class="muted">Forecast direction: down · Outcome: down</p><p class="muted">Score 71.35 · accuracy correct</p></article><article class="card"><div class="row"><strong>Major storm makes landfall</strong><span class="pill">correct</span></div><p>Event pressure kept building</p><p class="muted">Forecast direction: up · Outcome: up</p><p class="muted">Score 64.56 · accuracy correct</p></article></div>
     </div>
@@ -232,6 +238,17 @@
   <div class="modal-card" id="paywallBody"></div>
 </div>
 
+<div class="modal" id="helpModal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="row"><strong>Help and action legend</strong><button class="btn" data-close="helpModal">Close</button></div>
+    <div class="grid" style="margin-top:10px">
+      <article class="card"><strong>Keyboard</strong><p class="muted">Ctrl+K opens the command palette. 1 list · 2 detail · 3 trends · 4 archive. ? opens this drawer.</p></article>
+      <article class="card"><strong>Alerts</strong><p class="muted">Use alert controls to set edge, confidence, quiet hours, and cooldown. Eligible items surface without changing ranking.</p></article>
+      <article class="card"><strong>Trade actions</strong><p class="muted">Open detail, pre-trade check, compare board, share summary, and open in Kalshi are all linked to concrete handlers.</p></article>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="commandPaletteModal" aria-hidden="true" role="dialog" aria-modal="true">
   <div class="modal-card">
     <div class="row"><strong>Command palette</strong><button class="btn" data-close="commandPaletteModal">Close</button></div>
@@ -256,7 +273,7 @@
 
 <script>
 (function(){
-  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-18T02:34:55.885Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":81.48,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-18T02:34:55.885Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Elevated","direction":"up","driftPp":11,"amplitudePp":11,"reliability":0.911},"trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 28.33% edge · quality B · execution 82","reason":"28.33% edge · quality B · execution 82","edgePct":28.33,"execScore":81.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":79.48471541130587,"adjustedRankScore":81.48,"calibrationAdjustment":2,"calibrationNote":"1/1 resolved correctly for this event","calibrationTrend":"improving"},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-18T02:36:55.885Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":73.35,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-18T02:36:55.885Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":-16,"amplitudePp":16,"reliability":0.675},"trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 18.00% edge · quality A · execution 69","reason":"18.00% edge · quality A · execution 69","edgePct":18,"execScore":69.1,"quality":"A"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":71.35157967159027,"adjustedRankScore":73.35,"calibrationAdjustment":2,"calibrationNote":"1/1 resolved correctly for this event","calibrationTrend":"improving"},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-18T02:29:55.885Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":66.56,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-18T02:29:55.885Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":16,"amplitudePp":16,"reliability":0.378},"trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 30.00% edge · quality C · execution 39","reason":"30.00% edge · quality C · execution 39","edgePct":30,"execScore":38.6,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":64.55656080200019,"adjustedRankScore":66.56,"calibrationAdjustment":2,"calibrationNote":"1/1 resolved correctly for this event","calibrationTrend":"improving"}];
+  var data = [{"id":"inflation-cpi","title":"CPI surprise next print","price":42,"move":7,"volume":1200,"depth":820,"spread":0.028,"event":"BLS CPI release","updatedAt":"2026-04-18T03:04:06.069Z","scenarioDrivers":["Energy print drift","Shelter stickiness","Core goods rebound"],"probabilityHistory":[0.31,0.34,0.37,0.39,0.42],"tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","score":21.57949759221515,"direction":"up","rank":"C","reason":"watchlist drift with some momentum","confidence":"medium","edgeCase":null,"freshnessSeconds":360,"marketProb":0.42,"modelProb":0.7033,"edge":0.2833,"rankScore":81.48,"isTradeable":true,"uncertaintyHalfBand":0.086,"confidenceInterval":[0.5833,0.8233],"signalQualityGrade":"B","scoreBreakdown":{"move":6.3,"volumeAnomaly":10,"modelEdge":30,"liquidity":14.98,"recency":9,"confidence":9,"spreadQuality":6.5,"tradeabilityPenalty":0},"processingLatencyMs":76.68,"lastUpdated":"2026-04-18T03:04:06.069Z","executionQuality":{"score":81.75,"expectedSlippageBps":52.9,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Elevated","direction":"up","driftPp":11,"amplitudePp":11,"reliability":0.911},"trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 28.33% edge · quality B · execution 82","reason":"28.33% edge · quality B · execution 82","edgePct":28.33,"execScore":81.8,"quality":"B"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":79.48471541130587,"adjustedRankScore":81.48,"calibrationAdjustment":2,"calibrationNote":"1/1 resolved correctly for this event","calibrationTrend":"improving"},{"id":"fed-cut","title":"Fed cuts at next meeting","price":18,"move":-11,"volume":980,"depth":560,"spread":0.036,"event":"FOMC decision","updatedAt":"2026-04-18T03:06:06.069Z","scenarioDrivers":["Payroll cooling","Services disinflation","Forward-guidance pivot"],"probabilityHistory":[0.34,0.3,0.27,0.22,0.18],"tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","score":32.951987140573046,"direction":"down","rank":"A","reason":"credible move with real participation","confidence":"high","edgeCase":null,"freshnessSeconds":240,"marketProb":0.18,"modelProb":0,"edge":-0.18,"rankScore":73.35,"isTradeable":true,"uncertaintyHalfBand":0.024,"confidenceInterval":[0,0.12],"signalQualityGrade":"A","scoreBreakdown":{"move":9.9,"volumeAnomaly":7.07,"modelEdge":21.6,"liquidity":14.35,"recency":9.33,"confidence":13.5,"spreadQuality":5.5,"tradeabilityPenalty":0},"processingLatencyMs":75.04,"lastUpdated":"2026-04-18T03:06:06.069Z","executionQuality":{"score":69.08,"expectedSlippageBps":172,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"down","driftPp":-16,"amplitudePp":16,"reliability":0.675},"trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"},"riskSizing":{"tier":"medium","label":"Medium","multiplier":0.5,"summary":"Medium size · 18.00% edge · quality A · execution 69","reason":"18.00% edge · quality A · execution 69","edgePct":18,"execScore":69.1,"quality":"A"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":71.35157967159027,"adjustedRankScore":73.35,"calibrationAdjustment":2,"calibrationNote":"1/1 resolved correctly for this event","calibrationTrend":"improving"},{"id":"storm-track","title":"Major storm makes landfall","price":63,"move":9,"volume":540,"depth":310,"spread":0.055,"event":"Weather event","updatedAt":"2026-04-18T02:59:06.069Z","scenarioDrivers":["Track confidence","Sea-surface heat","Late-cycle intensification"],"probabilityHistory":[0.47,0.51,0.56,0.6,0.63],"tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","score":24.663264205448193,"direction":"up","rank":"B","reason":"credible move with real participation","confidence":"medium","edgeCase":null,"freshnessSeconds":660,"marketProb":0.63,"modelProb":0.93,"edge":0.3,"rankScore":66.56,"isTradeable":true,"uncertaintyHalfBand":0.091,"confidenceInterval":[0.81,1],"signalQualityGrade":"C","scoreBreakdown":{"move":8.1,"volumeAnomaly":1.2,"modelEdge":30,"liquidity":13.06,"recency":8.17,"confidence":9,"spreadQuality":3.13,"tradeabilityPenalty":0},"processingLatencyMs":107.07,"lastUpdated":"2026-04-18T02:59:06.069Z","executionQuality":{"score":38.63,"expectedSlippageBps":415.6,"guidance":["Execution conditions look healthy"]},"movementFlag":{"label":"Breakout","direction":"up","driftPp":16,"amplitudePp":16,"reliability":0.378},"trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"},"riskSizing":{"tier":"watch","label":"Watch only","multiplier":0,"summary":"Watch only size · 30.00% edge · quality C · execution 39","reason":"30.00% edge · quality C · execution 39","edgePct":30,"execScore":38.6,"quality":"C"},"paywallHeadlineHint":"Start your trial for advanced market intel","baseRankScore":64.55656080200019,"adjustedRankScore":66.56,"calibrationAdjustment":2,"calibrationNote":"1/1 resolved correctly for this event","calibrationTrend":"improving"}];
   var morningBriefData = [{"id":"inflation-cpi","title":"CPI surprise next print","event":"BLS CPI release","tradeUrl":"https://kalshi.com/markets/kxcpinext/cpi-next-print","edgePct":28.33,"confidence":"medium","quality":"B","trendSummary":{"delta24hPp":11,"accelerationPp":1,"direction":"up","label":"Rising","badge":"+11.00pp","summary":"+11.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"fed-cut","title":"Fed cuts at next meeting","event":"FOMC decision","tradeUrl":"https://kalshi.com/markets/kxfedcut/fed-rate-cut-next-meeting","edgePct":18,"confidence":"high","quality":"A","trendSummary":{"delta24hPp":-16,"accelerationPp":1,"direction":"down","label":"Falling","badge":"-16.00pp","summary":"-16.00pp over 24h · accelerating 1.00pp","accelerationLabel":"accelerating 1.00pp"}},{"id":"storm-track","title":"Major storm makes landfall","event":"Weather event","tradeUrl":"https://kalshi.com/markets/kxstorm/major-storm-landfall","edgePct":30,"confidence":"medium","quality":"C","trendSummary":{"delta24hPp":16,"accelerationPp":-1,"direction":"up","label":"Rising","badge":"+16.00pp","summary":"+16.00pp over 24h · cooling 1.00pp","accelerationLabel":"cooling 1.00pp"}}];
   var calibrationData = {"total":3,"wins":3,"misses":0,"winRate":1,"label":"well calibrated","buckets":[{"bucket":"high","count":0,"correct":0,"accuracy":0,"label":"high-confidence"},{"bucket":"medium","count":3,"correct":3,"accuracy":1,"label":"medium-confidence"},{"bucket":"low","count":0,"correct":0,"accuracy":0,"label":"low-confidence"}],"methodology":["Model vs market probability dislocation","Execution-quality filters before surfacing","Confidence and uncertainty band on every signal"],"summaryText":"Historical outcomes: 3 wins, 0 misses (win rate 100.0%). medium-confidence 100.0% correct (3) Feedback: well calibrated."};
   var backendReadError = "";
@@ -304,6 +321,7 @@
   var preTradeBody = document.getElementById('preTradeBody');
   var alertModal = document.getElementById('alertModal');
   var paywallModal = document.getElementById('paywallModal');
+  var helpModal = document.getElementById('helpModal');
   var commandPaletteModal = document.getElementById('commandPaletteModal');
   var paywallBody = document.getElementById('paywallBody');
   var stickyTradeCta = document.getElementById('stickyTradeCta');
@@ -386,8 +404,74 @@
   }
   function isWatchlisted(id){ return loadWatchlist().includes(String(id)); }
 
-  function loadCompareBoard(){ try { return JSON.parse(localStorage.getItem(compareBoardKey) || '[]'); } catch { return []; } }
-  function saveCompareBoardState(list){ localStorage.setItem(compareBoardKey, JSON.stringify(list.slice(0, 4))); }
+  function loadPinnedWatchlistState(){ try { return JSON.parse(localStorage.getItem('ff_watchlist_pins_v1') || '[]'); } catch { return []; } }
+  function savePinnedWatchlistState(list){ localStorage.setItem('ff_watchlist_pins_v1', JSON.stringify(list.slice(0, 50))); }
+  function togglePinnedWatchlistState(id){
+    var key = String(id);
+    var list = loadPinnedWatchlistState();
+    if(list.includes(key)) list = list.filter(function(x){ return x !== key; });
+    else list.unshift(key);
+    savePinnedWatchlistState(list);
+    return list;
+  }
+  function isPinnedWatchlistState(id){ return loadPinnedWatchlistState().includes(String(id)); }
+  function groupMarketsByPinState(items){
+    var pins = new Set(loadPinnedWatchlistState());
+    var pinned = [];
+    var unpinned = [];
+    (items || []).forEach(function(item){ (pins.has(String(item.id)) ? pinned : unpinned).push(item); });
+    return { pinned: pinned, unpinned: unpinned };
+  }
+
+  function loadTradeJournalState(){ try { return JSON.parse(localStorage.getItem('ff_trade_journal_v1') || '[]'); } catch { return []; } }
+  function saveTradeJournalState(entries){ localStorage.setItem('ff_trade_journal_v1', JSON.stringify((entries || []).slice(0, 100))); }
+  function upsertTradeJournalState(entry){
+    var list = loadTradeJournalState();
+    var normalized = { marketId: String(entry.marketId || entry.id || '').trim(), title: String(entry.title || entry.market || entry.id || ''), event: String(entry.event || ''), note: String(entry.note || ''), tags: Array.isArray(entry.tags) ? entry.tags.map(function(tag){ return String(tag || '').trim(); }).filter(Boolean).slice(0, 6) : String(entry.tags || '').split(',').map(function(tag){ return String(tag || '').trim(); }).filter(Boolean).slice(0, 6), updatedAt: new Date().toISOString() };
+    list = list.filter(function(item){ return String(item.marketId) !== normalized.marketId; });
+    if(normalized.marketId) list.unshift(normalized);
+    saveTradeJournalState(list);
+    return list;
+  }
+  function findTradeJournalState(marketId){
+    return loadTradeJournalState().find(function(entry){ return String(entry.marketId) === String(marketId || ''); }) || null;
+  }
+  function summarizeTradeJournalState(){
+    var list = loadTradeJournalState();
+    var tags = list.flatMap(function(entry){ return String(entry.tags || '').split(',').filter(Boolean); });
+    var tagCounts = tags.reduce(function(acc, tag){ acc[tag] = (acc[tag] || 0) + 1; return acc; }, {});
+    return { total: list.length, recent: list.slice(0, 5), topTags: Object.entries(tagCounts).sort(function(a, b){ return b[1] - a[1]; }).slice(0, 3) };
+  }
+  function buildJournalPromptState(entry){
+    return { marketId: entry.marketId, title: entry.title, event: entry.event, note: entry.note, tags: entry.tags || [], updatedAt: entry.updatedAt };
+  }
+  function buildActiveOpportunityShareText(args){
+    var selectedItem = args && args.selectedItem ? args.selectedItem : null;
+    var compare = args && args.compare ? args.compare : null;
+    var calibrationFeedback = args && args.calibrationFeedback ? args.calibrationFeedback : null;
+    var journalEntry = args && args.journalEntry ? args.journalEntry : null;
+    var lines = ['Forecast Futures opportunity'];
+    if(selectedItem && selectedItem.title) lines.push('Selected: ' + selectedItem.title);
+    if(selectedItem && selectedItem.event) lines.push('Event: ' + selectedItem.event);
+    if(selectedItem && selectedItem.confidence) lines.push('Confidence: ' + selectedItem.confidence);
+    if(selectedItem && selectedItem.rankScore != null) lines.push('Opportunity score: ' + Number(selectedItem.rankScore || 0).toFixed(2));
+    if(selectedItem && (selectedItem.marketProb != null || selectedItem.modelProb != null)) lines.push('Odds: ' + (Number(selectedItem.marketProb || 0) * 100).toFixed(1) + '% market / ' + (Number(selectedItem.modelProb || 0) * 100).toFixed(1) + '% model');
+    if(selectedItem && selectedItem.freshnessSeconds != null) lines.push('Freshness: ' + Number(selectedItem.freshnessSeconds || 0).toFixed(0) + 's');
+    if(compare && compare.selected){
+      var selected = compare.selected;
+      var median = compare.median || {};
+      lines.push('Compare vs event median: edge ' + (Math.abs(Number(selected.edge || 0)) * 100).toFixed(2) + '% / ' + Number(median.edge || 0).toFixed(2) + '% · depth ' + Number(selected.depth || 0) + ' / ' + Number(median.depth || 0) + ' · freshness ' + Number(selected.freshnessSeconds || 0).toFixed(0) + 's / ' + Number(median.freshnessSeconds || 0).toFixed(0) + 's');
+    }
+    if(calibrationFeedback && calibrationFeedback.summaryText) lines.push('Calibration: ' + calibrationFeedback.summaryText);
+    if(journalEntry && journalEntry.note) lines.push('Journal note: ' + journalEntry.note);
+    if(journalEntry && journalEntry.tags && journalEntry.tags.length) lines.push('Tags: ' + journalEntry.tags.join(', '));
+    if(selectedItem && selectedItem.tradeUrl) lines.push('Trade: ' + selectedItem.tradeUrl);
+    return lines.join('
+');
+  }
+
+  function loadSavedWatchlists(){
+
   function toggleCompareBoard(id){
     var key = String(id);
     var list = loadCompareBoard().map(String);
@@ -412,6 +496,27 @@
   }
   function listCompareSetNamesLocal(){
     return Object.keys(loadCompareSetStore()).sort(function(a, b){ return a.localeCompare(b); });
+  }
+  function renameCompareSetState(fromName, toName){
+    var source = String(fromName || '').trim();
+    var target = String(toName || '').trim();
+    if(!source || !target || source === target) return loadNamedCompareSet(source);
+    var store = loadCompareSetStore();
+    var existing = store[source];
+    if(!existing) return null;
+    delete store[source];
+    store[target] = { ids: Array.isArray(existing.ids) ? existing.ids.slice(0, 4) : [], updatedAt: new Date().toISOString() };
+    saveCompareSetStore(store);
+    return store[target];
+  }
+  function deleteCompareSetState(name){
+    var key = String(name || '').trim();
+    if(!key) return false;
+    var store = loadCompareSetStore();
+    if(!store[key]) return false;
+    delete store[key];
+    saveCompareSetStore(store);
+    return true;
   }
 
   function loadSavedWatchlists(){
@@ -563,6 +668,7 @@
       + '<button class="btn" data-action="compare-restore">Restore compare set</button>'
       + '<button class="btn" data-action="compare-clear">Clear board</button>'
       + '</div>'
+      + '<details class="drawer" style="margin-top:10px"><summary>Manage saved compare sets</summary><div class="grid" style="margin-top:8px">'+(savedNames.length ? savedNames.map(function(name){ var saved = loadNamedCompareSet(name) || { ids: [] }; return '<article class="card"><div class="row"><strong>'+esc(name)+'</strong><span class="pill">'+esc(Array.isArray(saved.ids) ? saved.ids.length : 0)+' markets</span></div><p class="muted">Updated '+esc(saved.updatedAt || '')+'</p><div class="actions"><button class="btn" data-action="compare-swap" data-name="'+esc(name)+'">Swap in</button><button class="btn" data-action="compare-rename" data-name="'+esc(name)+'">Rename</button><button class="btn warn" data-action="compare-delete" data-name="'+esc(name)+'">Delete</button></div></article>'; }).join('') : '<div class="muted">No saved compare sets yet.</div>')+'</div></details>'
       + '<div class="grid" style="margin-top:10px">'+scenario.map(function(item, index){
         return '<article class="card"><div class="row"><strong>'+(index===0 ? 'Selected' : 'Compare')+'</strong><span class="pill">'+esc(item.confidence || 'n/a')+'</span></div><p class="muted">'+esc(item.title || item.id || 'Unknown market')+'</p><p class="muted">'+esc(item.event || 'No event')+'</p><p class="muted">Odds '+(Number(item.marketProb || 0)*100).toFixed(1)+'% / '+(Number(item.modelProb || 0)*100).toFixed(1)+'% · edge '+(Math.abs(Number(item.edge || 0))*100).toFixed(2)+'% · score '+Number(item.adjustedRankScore || item.rankScore || 0).toFixed(1)+'</p><div class="actions"><button class="btn" data-action="compare-pin" data-id="'+esc(item.id)+'">'+(loadCompareBoard().includes(String(item.id)) ? 'Unpin' : 'Pin')+'</button><button class="btn" data-action="view" data-id="'+esc(item.id)+'">Open detail</button></div></article>';
       }).join('')+'</div>';
@@ -760,6 +866,7 @@
     var eligible = isAlertEligible(item, prefs || loadAlertPrefs());
     var alertEntry = alertEntryMap ? alertEntryMap[String(item.id)] : alertHistoryEntryFor(item.id);
     var watchlisted = isWatchlisted(item.id);
+    var pinned = isPinnedWatchlistState(item.id);
     var movement = item.movementFlag || { label: 'Normal', driftPp: 0, reliability: 0 };
     var trend = sparkline((item.probabilityHistory || []).slice(-5));
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
@@ -773,6 +880,7 @@
       + '<div class="market-row-actions">'
       + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">Open detail</button>'
       + '<button class="btn" data-action="watch" data-id="'+esc(item.id)+'">'+(watchlisted ? 'Unwatch' : 'Watch')+'</button>'
+      + '<button class="btn" data-action="pin-watchlist" data-id="'+esc(item.id)+'">'+(pinned ? 'Unpin favorite' : 'Pin favorite')+'</button>'
       + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Copy trade link</button>'
       + '<button class="btn" data-action="compare-pin" data-id="'+esc(item.id)+'">'+(loadCompareBoard().includes(String(item.id)) ? 'Unpin compare' : 'Pin compare')+'</button>'
       + '<button class="btn" data-action="dismiss-alert" data-id="'+esc(item.id)+'">Dismiss alert</button>'
@@ -913,9 +1021,12 @@
     var alertPrefs = loadAlertPrefs();
     var alertHistory = loadAlertHistory();
     var alertEntryMap = alertHistory.reduce(function(map, entry){ map[String(entry.marketId)] = entry; return map; }, {});
-    listResults.innerHTML = groupSignalsByEvent(sorted).map(function(group){
+    var pinnedGroups = groupMarketsByPinState(sorted);
+    var pinnedMarkup = pinnedGroups.pinned.length ? '<section class="card"><div class="row"><strong>Pinned favorites</strong><span class="pill">'+pinnedGroups.pinned.length+' markets</span></div><div class="grid" style="margin-top:10px">'+pinnedGroups.pinned.map(function(item){ return signalCard(item, alertPrefs, alertEntryMap); }).join('')+'</div></section>' : '';
+    var unpinnedMarkup = groupSignalsByEvent(pinnedGroups.unpinned).map(function(group){
       return '<section class="card"><div class="row"><strong>'+esc(group.event)+'</strong><span class="pill">'+group.items.length+' markets</span></div><div class="grid" style="margin-top:10px">'+group.items.map(function(item){ return signalCard(item, alertPrefs, alertEntryMap); }).join('')+'</div></section>';
     }).join('');
+    listResults.innerHTML = pinnedMarkup + unpinnedMarkup;
     sorted.forEach(function(item){
       recordFunnel('impression', item.id);
       if(isAlertEligible(item, alertPrefs) && !alertEntryMap[String(item.id)]){
@@ -1000,7 +1111,10 @@
     var edgeDelta = compare.deltas ? Number(compare.deltas.edge || 0).toFixed(2) : '0.00';
     var depthDelta = compare.deltas ? Number(compare.deltas.depth || 0).toFixed(0) : '0';
     var freshnessDelta = compare.deltas ? Number(compare.deltas.freshnessSeconds || 0).toFixed(0) : '0';
-    var shareText = buildShareText(item);
+    var journalEntry = findTradeJournalState(item.id);
+    var journalSummary = summarizeTradeJournalState();
+    var journalPrompt = buildJournalPromptState(journalEntry || { marketId: item.id, title: item.title, event: item.event, note: '', tags: [] });
+    var shareText = buildActiveOpportunityShareText({ selectedItem: item, compare: compare, calibrationFeedback: calibrationFeedback, journalEntry: journalEntry });
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
     var chartWindow = state.chartRange === 'all' ? (item.probabilityHistory || []) : (item.probabilityHistory || []).slice(-(Number(state.chartRange) || 20));
     var chartWindowLabel = state.chartRange === 'all' ? 'all points' : 'last ' + Number(state.chartRange || 20) + ' points';
@@ -1023,6 +1137,7 @@
       + '<aside class="card drawer drawer-surface">'
       + '<div class="row"><strong>Drawer surface</strong><span class="pill">compare + history</span></div>'
       + '<div class="card" style="margin-top:10px"><strong>Compare vs event median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median (Δ '+edgeDelta+'pp) · Depth '+selectedDepth+' vs '+medianDepth+' median (Δ '+depthDelta+') · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median (Δ '+freshnessDelta+'s)</p></div>'
+      + '<div class="card" style="margin-top:10px"><strong>Trade journal</strong><p class="muted">Saved notes '+journalSummary.total+' · top tags '+(journalSummary.topTags.length ? journalSummary.topTags.map(function(entry){ return entry[0] + ' (' + entry[1] + ')'; }).join(', ') : 'none yet')+'</p><div class="inputs"><label>Note<textarea id="journalNoteInput" rows="4" style="padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb">'+esc(journalPrompt.note || '')+'</textarea></label><label>Reason tags<input id="journalTagsInput" type="text" value="'+esc((journalPrompt.tags || []).join(', '))+'" placeholder="rates, inflation, breakout" /></label></div><div class="actions"><button class="btn primary" data-action="save-journal" data-id="'+esc(item.id)+'">Save journal</button></div></div>'
       + '<div class="card" style="margin-top:10px"><strong>Share summary</strong><p class="muted">'+esc(shareText)+'</p></div>'
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
@@ -1065,6 +1180,10 @@
     openModal(commandPaletteModal, document.activeElement);
   }
 
+  function openHelpDrawer(){
+    openModal(helpModal, document.activeElement);
+  }
+
   function openModal(modal, trigger){
     if(!modal) return;
     activeModalTrigger = trigger || document.activeElement || null;
@@ -1086,7 +1205,7 @@
   }
 
   function currentOpenModal(){
-    return [preTradeModal, alertModal, paywallModal, commandPaletteModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
+    return [preTradeModal, alertModal, paywallModal, helpModal, commandPaletteModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
   }
 
   function trapModalTabKey(event){
@@ -1112,6 +1231,7 @@
       return;
     }
     if(!event.ctrlKey && !event.metaKey && !event.altKey && !/input|textarea|select/i.test((event.target && event.target.tagName) || '')){
+      if(event.key === '?'){ event.preventDefault(); openHelpDrawer(); return; }
       if(event.key === '1'){ show('list'); return; }
       if(event.key === '2'){ show('detail'); renderDetail(); return; }
       if(event.key === '3'){ show('trends'); return; }
@@ -1119,6 +1239,7 @@
     }
     if(event.key === 'Escape'){
       if(commandPaletteModal.classList.contains('show')){ closeModal('commandPaletteModal'); return; }
+      if(helpModal.classList.contains('show')){ closeModal('helpModal'); return; }
       if(paywallModal.classList.contains('show')){ closeModal('paywallModal'); return; }
       if(alertModal.classList.contains('show')){ closeModal('alertModal'); return; }
       if(preTradeModal.classList.contains('show')){ closeModal('preTradeModal'); return; }
@@ -1221,7 +1342,7 @@
   });
   document.getElementById('shareBriefSummaryBtn').addEventListener('click', function(){
     var selected = data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null;
-    var payload = buildSummaryShareText({ briefItems: morningBriefData, selectedItem: selected, compare: compareMarketToMedian(data, state.selectedId) });
+    var payload = buildActiveOpportunityShareText({ selectedItem: selected, compare: compareMarketToMedian(data, state.selectedId), calibrationFeedback: calibrationFeedback, journalEntry: findTradeJournalState(state.selectedId) });
     Promise.resolve(copyShareText(payload)).then(function(done){
       if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(payload); }
       if(!done){ window.prompt('Copy summary', payload); }
@@ -1308,6 +1429,35 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
       renderList();
       renderDetail();
     }
+    if(action==='compare-swap'){
+      var swapSet = loadNamedCompareSet(target.getAttribute('data-name'));
+      if(swapSet){
+        saveCompareBoardState(Array.isArray(swapSet.ids) ? swapSet.ids : []);
+        renderCompareBoard(); renderList(); renderDetail();
+      }
+    }
+    if(action==='compare-rename'){
+      var renameFrom = target.getAttribute('data-name');
+      var renameTo = window.prompt('Rename compare set', renameFrom || '');
+      if(renameCompareSetState(renameFrom, renameTo)){ renderCompareBoard(); }
+    }
+    if(action==='compare-delete'){
+      if(window.confirm('Delete compare set?')){ deleteCompareSetState(target.getAttribute('data-name')); renderCompareBoard(); }
+    }
+    if(action==='pin-watchlist' && item){
+      savePinnedWatchlistState(togglePinnedWatchlistState(id));
+      renderList();
+    }
+    if(action==='save-journal' && item){
+      var noteValue = String(document.getElementById('journalNoteInput')?.value || '').trim();
+      var tagsValue = String(document.getElementById('journalTagsInput')?.value || '').split(',').map(function(tag){ return String(tag || '').trim(); }).filter(Boolean);
+      saveTradeJournalState(upsertTradeJournalState({ marketId: id, title: item.title, event: item.event, note: noteValue, tags: tagsValue }));
+      renderDetail();
+      renderList();
+    }
+    if(action==='open-help-drawer'){
+      openHelpDrawer();
+    }
     if(action==='trade'){
       recordClick(id);
       recordFunnel('trade', id);
@@ -1322,7 +1472,7 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
       }
     }
     if(action==='share' && item){
-      var payload = buildShareText(item);
+      var payload = buildActiveOpportunityShareText({ selectedItem: item || data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null, compare: compareMarketToMedian(data, state.selectedId), calibrationFeedback: calibrationFeedback, journalEntry: findTradeJournalState((item && item.id) || state.selectedId) });
       Promise.resolve(copyShareText(payload)).then(function(done){
         if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(payload); }
         if(!done){ window.prompt('Copy trade link', payload); }
@@ -1330,7 +1480,7 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
     }
     if(action==='share-summary'){
       var summaryItem = item || data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null;
-      var summaryPayload = buildSummaryShareText({ briefItems: morningBriefData, selectedItem: summaryItem, compare: compareMarketToMedian(data, state.selectedId) });
+      var summaryPayload = buildActiveOpportunityShareText({ selectedItem: summaryItem, compare: compareMarketToMedian(data, state.selectedId), calibrationFeedback: calibrationFeedback, journalEntry: findTradeJournalState(summaryItem && summaryItem.id) });
       Promise.resolve(copyShareText(summaryPayload)).then(function(done){
         if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(summaryPayload); }
         if(!done){ window.prompt('Copy summary', summaryPayload); }

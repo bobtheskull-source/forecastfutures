@@ -4,9 +4,11 @@ import assert from 'node:assert/strict';
 import {
   buildCompareScenario,
   compareBoardLabel,
+  deleteCompareSet,
   loadCompareBoard,
   loadCompareSet,
   listCompareSetNames,
+  renameCompareSet,
   saveCompareBoard,
   saveCompareSet,
   toggleCompareBoardId,
@@ -35,8 +37,11 @@ test('saved compare sets round-trip and list in sorted order', () => {
   const storage = makeStorage();
   saveCompareSet(storage, 'Morning', ['m1', 'm2']);
   saveCompareSet(storage, 'Evening', ['m3']);
-  assert.deepEqual(listCompareSetNames(storage), ['Evening', 'Morning']);
-  assert.deepEqual(loadCompareSet(storage, 'Morning').ids, ['m1', 'm2']);
+  renameCompareSet(storage, 'Morning', 'Sunrise');
+  assert.deepEqual(listCompareSetNames(storage), ['Evening', 'Sunrise']);
+  assert.deepEqual(loadCompareSet(storage, 'Sunrise').ids, ['m1', 'm2']);
+  assert.equal(deleteCompareSet(storage, 'Evening'), true);
+  assert.deepEqual(listCompareSetNames(storage), ['Sunrise']);
 });
 
 test('compare scenario builds side-by-side markets with a readable label', () => {

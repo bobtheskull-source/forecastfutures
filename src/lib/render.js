@@ -7,10 +7,12 @@ import { summarizeProbabilityTrend } from './trend.js';
 import { computeRiskSizingGuidance } from './risk-sizing.js';
 import { computePaywallIntent, paywallHeadlineByIntent } from './paywall-intent.js';
 import { applyScanPreset, compareMarketToEventMedian, compareMarketToMedian, loadScanPreset, saveScanPreset } from './scan-presets.js';
-import { buildShareText, buildSummaryShareText, buildReviewShareText, buildOpportunityCsv, copyShareText } from './share.js';
+import { buildShareText, buildSummaryShareText, buildReviewShareText, buildOpportunityCsv, copyShareText, buildActiveOpportunityShareText } from './share.js';
 import { archiveAlertHistoryItem, markAlertHistoryItem, summarizeAlertHistory, upsertAlertHistoryItem } from './alerts.js';
 import { buildCalibrationFeedback, adjustOpportunityScores } from './odds-feedback.js';
-import { buildCompareScenario, compareBoardLabel, loadCompareBoard, loadCompareSet, listCompareSetNames, saveCompareBoard, saveCompareSet, toggleCompareBoardId } from './compare-sets.js';
+import { buildCompareScenario, compareBoardLabel, loadCompareBoard, loadCompareSet, listCompareSetNames, saveCompareBoard, saveCompareSet, toggleCompareBoardId, renameCompareSet, deleteCompareSet } from './compare-sets.js';
+import { loadTradeJournal, saveTradeJournal, upsertTradeJournalEntry, findTradeJournalEntry, journalSummary, buildJournalPrompt } from './journal.js';
+import { loadPinnedWatchlist, savePinnedWatchlist, togglePinnedWatchlist, isPinnedWatchlist, groupMarketsByPin } from './watchlist-pins.js';
 import { morningBriefToCsv } from './brief-export.js';
 import { forecastReviewToCsv } from './review-export.js';
 
@@ -28,6 +30,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   const summary = archiveSummary(archiveData);
   let morningBrief = [];
   const calibrationFeedback = buildCalibrationFeedback(archiveData);
+  const tradeJournalSummary = journalSummary(loadTradeJournal());
   const signalData = signalSource.map((s) => ({
     ...s,
     marketProb: Number((s.marketProb ?? (s.price / 100)).toFixed(4)),
@@ -150,6 +153,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
           <button class="btn hero-alert-controls" type="button">Open alert controls</button>
           <button class="btn hero-refresh-snapshot" type="button">Reload snapshot</button>
           <button class="btn" type="button" data-action="open-command-palette">Open command palette · Ctrl+K</button>
+          <button class="btn" type="button" data-action="open-help-drawer">Open help drawer · ?</button>
           ${primarySignal ? `<button class="btn primary" data-action="view" data-id="${escapeHtml(primarySignal.id)}">Open top signal</button>` : ''}
         </div>
         <p class="muted">Shortcut hints: Ctrl+K opens the palette; 1 list · 2 detail · 3 trends · 4 archive. Open the top signal to inspect odds and calibration.</p>
@@ -283,6 +287,11 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       <div class="grid" style="margin-top:8px">${reviewItems.length ? reviewItems.map((item, index) => `<article class="card"><div class="row"><strong>${index + 1}. ${escapeHtml(item.market || item.title || 'Forecast')}</strong><span class="pill">score ${Number(item.score || 0).toFixed(2)}</span></div><p class="muted">${escapeHtml(item.event || 'No event')} · ${escapeHtml(item.direction || 'n/a')}</p><p class="muted">Thesis: ${escapeHtml(item.thesis || 'No thesis')}</p><p class="muted">Post-mortem prompt: ${escapeHtml(item.postMortem || 'No post-mortem prompt')}</p></article>`).join('') : '<div class="muted">No forecast review items yet.</div>'}</div>
     </div>
     <div class="card" style="margin-top:12px">
+      <strong>Trade journal</strong>
+      <p class="muted">Notes and reason tags follow the market into review so you can see what you planned and why.</p>
+      <div class="grid" style="margin-top:8px">${tradeJournalSummary.recent.length ? tradeJournalSummary.recent.map((item) => `<article class="card"><div class="row"><strong>${escapeHtml(item.title || item.marketId)}</strong><span class="pill">${escapeHtml(item.updatedAt || '')}</span></div><p class="muted">${escapeHtml(item.event || 'No event')} · tags ${escapeHtml(String(item.tags || '').replaceAll(',', ', ') || 'none')}</p><p class="muted">${escapeHtml(item.note || 'No note')}</p></article>`).join('') : '<div class="muted">No journal notes yet.</div>'}</div>
+    </div>
+    <div class="card" style="margin-top:12px">
       <strong>Resolved archive</strong>
       <div class="grid" style="margin-top:8px">${archiveData.length ? archiveData.map((item) => `<article class="card"><div class="row"><strong>${escapeHtml(item.market)}</strong><span class="pill">${escapeHtml(item.correct ? 'correct' : 'missed')}</span></div><p>${escapeHtml(item.outcome.label)}</p><p class="muted">Forecast direction: ${escapeHtml(item.direction)} · Outcome: ${escapeHtml(item.outcome.direction)}</p><p class="muted">Score ${Number(item.score || 0).toFixed(2)} · accuracy ${escapeHtml(item.accuracyLabel || (item.correct ? 'correct' : 'missed'))}</p>${item.freshnessSeconds != null ? `<div class="row" style="margin-top:8px;flex-wrap:wrap">${freshnessBadgeHtml(item.freshnessSeconds)}</div>` : ''}</article>`).join('') : '<div class="muted">No resolved archive items yet.</div>'}</div>
     </div>
@@ -319,6 +328,17 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 
 <div class="modal" id="paywallModal" aria-hidden="true" role="dialog" aria-modal="true">
   <div class="modal-card" id="paywallBody"></div>
+</div>
+
+<div class="modal" id="helpModal" aria-hidden="true" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="row"><strong>Help and action legend</strong><button class="btn" data-close="helpModal">Close</button></div>
+    <div class="grid" style="margin-top:10px">
+      <article class="card"><strong>Keyboard</strong><p class="muted">Ctrl+K opens the command palette. 1 list · 2 detail · 3 trends · 4 archive. ? opens this drawer.</p></article>
+      <article class="card"><strong>Alerts</strong><p class="muted">Use alert controls to set edge, confidence, quiet hours, and cooldown. Eligible items surface without changing ranking.</p></article>
+      <article class="card"><strong>Trade actions</strong><p class="muted">Open detail, pre-trade check, compare board, share summary, and open in Kalshi are all linked to concrete handlers.</p></article>
+    </div>
+  </div>
 </div>
 
 <div class="modal" id="commandPaletteModal" aria-hidden="true" role="dialog" aria-modal="true">
@@ -393,6 +413,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var preTradeBody = document.getElementById('preTradeBody');
   var alertModal = document.getElementById('alertModal');
   var paywallModal = document.getElementById('paywallModal');
+  var helpModal = document.getElementById('helpModal');
   var commandPaletteModal = document.getElementById('commandPaletteModal');
   var paywallBody = document.getElementById('paywallBody');
   var stickyTradeCta = document.getElementById('stickyTradeCta');
@@ -475,8 +496,73 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   }
   function isWatchlisted(id){ return loadWatchlist().includes(String(id)); }
 
-  function loadCompareBoard(){ try { return JSON.parse(localStorage.getItem(compareBoardKey) || '[]'); } catch { return []; } }
-  function saveCompareBoardState(list){ localStorage.setItem(compareBoardKey, JSON.stringify(list.slice(0, 4))); }
+  function loadPinnedWatchlistState(){ try { return JSON.parse(localStorage.getItem('ff_watchlist_pins_v1') || '[]'); } catch { return []; } }
+  function savePinnedWatchlistState(list){ localStorage.setItem('ff_watchlist_pins_v1', JSON.stringify(list.slice(0, 50))); }
+  function togglePinnedWatchlistState(id){
+    var key = String(id);
+    var list = loadPinnedWatchlistState();
+    if(list.includes(key)) list = list.filter(function(x){ return x !== key; });
+    else list.unshift(key);
+    savePinnedWatchlistState(list);
+    return list;
+  }
+  function isPinnedWatchlistState(id){ return loadPinnedWatchlistState().includes(String(id)); }
+  function groupMarketsByPinState(items){
+    var pins = new Set(loadPinnedWatchlistState());
+    var pinned = [];
+    var unpinned = [];
+    (items || []).forEach(function(item){ (pins.has(String(item.id)) ? pinned : unpinned).push(item); });
+    return { pinned: pinned, unpinned: unpinned };
+  }
+
+  function loadTradeJournalState(){ try { return JSON.parse(localStorage.getItem('ff_trade_journal_v1') || '[]'); } catch { return []; } }
+  function saveTradeJournalState(entries){ localStorage.setItem('ff_trade_journal_v1', JSON.stringify((entries || []).slice(0, 100))); }
+  function upsertTradeJournalState(entry){
+    var list = loadTradeJournalState();
+    var normalized = { marketId: String(entry.marketId || entry.id || '').trim(), title: String(entry.title || entry.market || entry.id || ''), event: String(entry.event || ''), note: String(entry.note || ''), tags: Array.isArray(entry.tags) ? entry.tags.map(function(tag){ return String(tag || '').trim(); }).filter(Boolean).slice(0, 6) : String(entry.tags || '').split(',').map(function(tag){ return String(tag || '').trim(); }).filter(Boolean).slice(0, 6), updatedAt: new Date().toISOString() };
+    list = list.filter(function(item){ return String(item.marketId) !== normalized.marketId; });
+    if(normalized.marketId) list.unshift(normalized);
+    saveTradeJournalState(list);
+    return list;
+  }
+  function findTradeJournalState(marketId){
+    return loadTradeJournalState().find(function(entry){ return String(entry.marketId) === String(marketId || ''); }) || null;
+  }
+  function summarizeTradeJournalState(){
+    var list = loadTradeJournalState();
+    var tags = list.flatMap(function(entry){ return String(entry.tags || '').split(',').filter(Boolean); });
+    var tagCounts = tags.reduce(function(acc, tag){ acc[tag] = (acc[tag] || 0) + 1; return acc; }, {});
+    return { total: list.length, recent: list.slice(0, 5), topTags: Object.entries(tagCounts).sort(function(a, b){ return b[1] - a[1]; }).slice(0, 3) };
+  }
+  function buildJournalPromptState(entry){
+    return { marketId: entry.marketId, title: entry.title, event: entry.event, note: entry.note, tags: entry.tags || [], updatedAt: entry.updatedAt };
+  }
+  function buildActiveOpportunityShareText(args){
+    var selectedItem = args && args.selectedItem ? args.selectedItem : null;
+    var compare = args && args.compare ? args.compare : null;
+    var calibrationFeedback = args && args.calibrationFeedback ? args.calibrationFeedback : null;
+    var journalEntry = args && args.journalEntry ? args.journalEntry : null;
+    var lines = ['Forecast Futures opportunity'];
+    if(selectedItem && selectedItem.title) lines.push('Selected: ' + selectedItem.title);
+    if(selectedItem && selectedItem.event) lines.push('Event: ' + selectedItem.event);
+    if(selectedItem && selectedItem.confidence) lines.push('Confidence: ' + selectedItem.confidence);
+    if(selectedItem && selectedItem.rankScore != null) lines.push('Opportunity score: ' + Number(selectedItem.rankScore || 0).toFixed(2));
+    if(selectedItem && (selectedItem.marketProb != null || selectedItem.modelProb != null)) lines.push('Odds: ' + (Number(selectedItem.marketProb || 0) * 100).toFixed(1) + '% market / ' + (Number(selectedItem.modelProb || 0) * 100).toFixed(1) + '% model');
+    if(selectedItem && selectedItem.freshnessSeconds != null) lines.push('Freshness: ' + Number(selectedItem.freshnessSeconds || 0).toFixed(0) + 's');
+    if(compare && compare.selected){
+      var selected = compare.selected;
+      var median = compare.median || {};
+      lines.push('Compare vs event median: edge ' + (Math.abs(Number(selected.edge || 0)) * 100).toFixed(2) + '% / ' + Number(median.edge || 0).toFixed(2) + '% · depth ' + Number(selected.depth || 0) + ' / ' + Number(median.depth || 0) + ' · freshness ' + Number(selected.freshnessSeconds || 0).toFixed(0) + 's / ' + Number(median.freshnessSeconds || 0).toFixed(0) + 's');
+    }
+    if(calibrationFeedback && calibrationFeedback.summaryText) lines.push('Calibration: ' + calibrationFeedback.summaryText);
+    if(journalEntry && journalEntry.note) lines.push('Journal note: ' + journalEntry.note);
+    if(journalEntry && journalEntry.tags && journalEntry.tags.length) lines.push('Tags: ' + journalEntry.tags.join(', '));
+    if(selectedItem && selectedItem.tradeUrl) lines.push('Trade: ' + selectedItem.tradeUrl);
+    return lines.join('\n');
+  }
+
+  function loadSavedWatchlists(){
+
   function toggleCompareBoard(id){
     var key = String(id);
     var list = loadCompareBoard().map(String);
@@ -501,6 +587,27 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   }
   function listCompareSetNamesLocal(){
     return Object.keys(loadCompareSetStore()).sort(function(a, b){ return a.localeCompare(b); });
+  }
+  function renameCompareSetState(fromName, toName){
+    var source = String(fromName || '').trim();
+    var target = String(toName || '').trim();
+    if(!source || !target || source === target) return loadNamedCompareSet(source);
+    var store = loadCompareSetStore();
+    var existing = store[source];
+    if(!existing) return null;
+    delete store[source];
+    store[target] = { ids: Array.isArray(existing.ids) ? existing.ids.slice(0, 4) : [], updatedAt: new Date().toISOString() };
+    saveCompareSetStore(store);
+    return store[target];
+  }
+  function deleteCompareSetState(name){
+    var key = String(name || '').trim();
+    if(!key) return false;
+    var store = loadCompareSetStore();
+    if(!store[key]) return false;
+    delete store[key];
+    saveCompareSetStore(store);
+    return true;
   }
 
   function loadSavedWatchlists(){
@@ -652,6 +759,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<button class="btn" data-action="compare-restore">Restore compare set</button>'
       + '<button class="btn" data-action="compare-clear">Clear board</button>'
       + '</div>'
+      + '<details class="drawer" style="margin-top:10px"><summary>Manage saved compare sets</summary><div class="grid" style="margin-top:8px">'+(savedNames.length ? savedNames.map(function(name){ var saved = loadNamedCompareSet(name) || { ids: [] }; return '<article class="card"><div class="row"><strong>'+esc(name)+'</strong><span class="pill">'+esc(Array.isArray(saved.ids) ? saved.ids.length : 0)+' markets</span></div><p class="muted">Updated '+esc(saved.updatedAt || '')+'</p><div class="actions"><button class="btn" data-action="compare-swap" data-name="'+esc(name)+'">Swap in</button><button class="btn" data-action="compare-rename" data-name="'+esc(name)+'">Rename</button><button class="btn warn" data-action="compare-delete" data-name="'+esc(name)+'">Delete</button></div></article>'; }).join('') : '<div class="muted">No saved compare sets yet.</div>')+'</div></details>'
       + '<div class="grid" style="margin-top:10px">'+scenario.map(function(item, index){
         return '<article class="card"><div class="row"><strong>'+(index===0 ? 'Selected' : 'Compare')+'</strong><span class="pill">'+esc(item.confidence || 'n/a')+'</span></div><p class="muted">'+esc(item.title || item.id || 'Unknown market')+'</p><p class="muted">'+esc(item.event || 'No event')+'</p><p class="muted">Odds '+(Number(item.marketProb || 0)*100).toFixed(1)+'% / '+(Number(item.modelProb || 0)*100).toFixed(1)+'% · edge '+(Math.abs(Number(item.edge || 0))*100).toFixed(2)+'% · score '+Number(item.adjustedRankScore || item.rankScore || 0).toFixed(1)+'</p><div class="actions"><button class="btn" data-action="compare-pin" data-id="'+esc(item.id)+'">'+(loadCompareBoard().includes(String(item.id)) ? 'Unpin' : 'Pin')+'</button><button class="btn" data-action="view" data-id="'+esc(item.id)+'">Open detail</button></div></article>';
       }).join('')+'</div>';
@@ -849,6 +957,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var eligible = isAlertEligible(item, prefs || loadAlertPrefs());
     var alertEntry = alertEntryMap ? alertEntryMap[String(item.id)] : alertHistoryEntryFor(item.id);
     var watchlisted = isWatchlisted(item.id);
+    var pinned = isPinnedWatchlistState(item.id);
     var movement = item.movementFlag || { label: 'Normal', driftPp: 0, reliability: 0 };
     var trend = sparkline((item.probabilityHistory || []).slice(-5));
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
@@ -862,6 +971,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<div class="market-row-actions">'
       + '<button class="btn" data-action="view" data-id="'+esc(item.id)+'">Open detail</button>'
       + '<button class="btn" data-action="watch" data-id="'+esc(item.id)+'">'+(watchlisted ? 'Unwatch' : 'Watch')+'</button>'
+      + '<button class="btn" data-action="pin-watchlist" data-id="'+esc(item.id)+'">'+(pinned ? 'Unpin favorite' : 'Pin favorite')+'</button>'
       + '<button class="btn" data-action="share" data-id="'+esc(item.id)+'">Copy trade link</button>'
       + '<button class="btn" data-action="compare-pin" data-id="'+esc(item.id)+'">'+(loadCompareBoard().includes(String(item.id)) ? 'Unpin compare' : 'Pin compare')+'</button>'
       + '<button class="btn" data-action="dismiss-alert" data-id="'+esc(item.id)+'">Dismiss alert</button>'
@@ -1002,9 +1112,12 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var alertPrefs = loadAlertPrefs();
     var alertHistory = loadAlertHistory();
     var alertEntryMap = alertHistory.reduce(function(map, entry){ map[String(entry.marketId)] = entry; return map; }, {});
-    listResults.innerHTML = groupSignalsByEvent(sorted).map(function(group){
+    var pinnedGroups = groupMarketsByPinState(sorted);
+    var pinnedMarkup = pinnedGroups.pinned.length ? '<section class="card"><div class="row"><strong>Pinned favorites</strong><span class="pill">'+pinnedGroups.pinned.length+' markets</span></div><div class="grid" style="margin-top:10px">'+pinnedGroups.pinned.map(function(item){ return signalCard(item, alertPrefs, alertEntryMap); }).join('')+'</div></section>' : '';
+    var unpinnedMarkup = groupSignalsByEvent(pinnedGroups.unpinned).map(function(group){
       return '<section class="card"><div class="row"><strong>'+esc(group.event)+'</strong><span class="pill">'+group.items.length+' markets</span></div><div class="grid" style="margin-top:10px">'+group.items.map(function(item){ return signalCard(item, alertPrefs, alertEntryMap); }).join('')+'</div></section>';
     }).join('');
+    listResults.innerHTML = pinnedMarkup + unpinnedMarkup;
     sorted.forEach(function(item){
       recordFunnel('impression', item.id);
       if(isAlertEligible(item, alertPrefs) && !alertEntryMap[String(item.id)]){
@@ -1089,7 +1202,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var edgeDelta = compare.deltas ? Number(compare.deltas.edge || 0).toFixed(2) : '0.00';
     var depthDelta = compare.deltas ? Number(compare.deltas.depth || 0).toFixed(0) : '0';
     var freshnessDelta = compare.deltas ? Number(compare.deltas.freshnessSeconds || 0).toFixed(0) : '0';
-    var shareText = buildShareText(item);
+    var journalEntry = findTradeJournalState(item.id);
+    var journalSummary = summarizeTradeJournalState();
+    var journalPrompt = buildJournalPromptState(journalEntry || { marketId: item.id, title: item.title, event: item.event, note: '', tags: [] });
+    var shareText = buildActiveOpportunityShareText({ selectedItem: item, compare: compare, calibrationFeedback: calibrationFeedback, journalEntry: journalEntry });
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
     var chartWindow = state.chartRange === 'all' ? (item.probabilityHistory || []) : (item.probabilityHistory || []).slice(-(Number(state.chartRange) || 20));
     var chartWindowLabel = state.chartRange === 'all' ? 'all points' : 'last ' + Number(state.chartRange || 20) + ' points';
@@ -1112,6 +1228,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<aside class="card drawer drawer-surface">'
       + '<div class="row"><strong>Drawer surface</strong><span class="pill">compare + history</span></div>'
       + '<div class="card" style="margin-top:10px"><strong>Compare vs event median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median (Δ '+edgeDelta+'pp) · Depth '+selectedDepth+' vs '+medianDepth+' median (Δ '+depthDelta+') · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median (Δ '+freshnessDelta+'s)</p></div>'
+      + '<div class="card" style="margin-top:10px"><strong>Trade journal</strong><p class="muted">Saved notes '+journalSummary.total+' · top tags '+(journalSummary.topTags.length ? journalSummary.topTags.map(function(entry){ return entry[0] + ' (' + entry[1] + ')'; }).join(', ') : 'none yet')+'</p><div class="inputs"><label>Note<textarea id="journalNoteInput" rows="4" style="padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb">'+esc(journalPrompt.note || '')+'</textarea></label><label>Reason tags<input id="journalTagsInput" type="text" value="'+esc((journalPrompt.tags || []).join(', '))+'" placeholder="rates, inflation, breakout" /></label></div><div class="actions"><button class="btn primary" data-action="save-journal" data-id="'+esc(item.id)+'">Save journal</button></div></div>'
       + '<div class="card" style="margin-top:10px"><strong>Share summary</strong><p class="muted">'+esc(shareText)+'</p></div>'
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
@@ -1154,6 +1271,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     openModal(commandPaletteModal, document.activeElement);
   }
 
+  function openHelpDrawer(){
+    openModal(helpModal, document.activeElement);
+  }
+
   function openModal(modal, trigger){
     if(!modal) return;
     activeModalTrigger = trigger || document.activeElement || null;
@@ -1175,7 +1296,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   }
 
   function currentOpenModal(){
-    return [preTradeModal, alertModal, paywallModal, commandPaletteModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
+    return [preTradeModal, alertModal, paywallModal, helpModal, commandPaletteModal].find(function(modal){ return modal && modal.classList.contains('show'); }) || null;
   }
 
   function trapModalTabKey(event){
@@ -1201,6 +1322,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       return;
     }
     if(!event.ctrlKey && !event.metaKey && !event.altKey && !/input|textarea|select/i.test((event.target && event.target.tagName) || '')){
+      if(event.key === '?'){ event.preventDefault(); openHelpDrawer(); return; }
       if(event.key === '1'){ show('list'); return; }
       if(event.key === '2'){ show('detail'); renderDetail(); return; }
       if(event.key === '3'){ show('trends'); return; }
@@ -1208,6 +1330,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     }
     if(event.key === 'Escape'){
       if(commandPaletteModal.classList.contains('show')){ closeModal('commandPaletteModal'); return; }
+      if(helpModal.classList.contains('show')){ closeModal('helpModal'); return; }
       if(paywallModal.classList.contains('show')){ closeModal('paywallModal'); return; }
       if(alertModal.classList.contains('show')){ closeModal('alertModal'); return; }
       if(preTradeModal.classList.contains('show')){ closeModal('preTradeModal'); return; }
@@ -1310,7 +1433,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   });
   document.getElementById('shareBriefSummaryBtn').addEventListener('click', function(){
     var selected = data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null;
-    var payload = buildSummaryShareText({ briefItems: morningBriefData, selectedItem: selected, compare: compareMarketToMedian(data, state.selectedId) });
+    var payload = buildActiveOpportunityShareText({ selectedItem: selected, compare: compareMarketToMedian(data, state.selectedId), calibrationFeedback: calibrationFeedback, journalEntry: findTradeJournalState(state.selectedId) });
     Promise.resolve(copyShareText(payload)).then(function(done){
       if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(payload); }
       if(!done){ window.prompt('Copy summary', payload); }
@@ -1397,6 +1520,35 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
       renderList();
       renderDetail();
     }
+    if(action==='compare-swap'){
+      var swapSet = loadNamedCompareSet(target.getAttribute('data-name'));
+      if(swapSet){
+        saveCompareBoardState(Array.isArray(swapSet.ids) ? swapSet.ids : []);
+        renderCompareBoard(); renderList(); renderDetail();
+      }
+    }
+    if(action==='compare-rename'){
+      var renameFrom = target.getAttribute('data-name');
+      var renameTo = window.prompt('Rename compare set', renameFrom || '');
+      if(renameCompareSetState(renameFrom, renameTo)){ renderCompareBoard(); }
+    }
+    if(action==='compare-delete'){
+      if(window.confirm('Delete compare set?')){ deleteCompareSetState(target.getAttribute('data-name')); renderCompareBoard(); }
+    }
+    if(action==='pin-watchlist' && item){
+      savePinnedWatchlistState(togglePinnedWatchlistState(id));
+      renderList();
+    }
+    if(action==='save-journal' && item){
+      var noteValue = String(document.getElementById('journalNoteInput')?.value || '').trim();
+      var tagsValue = String(document.getElementById('journalTagsInput')?.value || '').split(',').map(function(tag){ return String(tag || '').trim(); }).filter(Boolean);
+      saveTradeJournalState(upsertTradeJournalState({ marketId: id, title: item.title, event: item.event, note: noteValue, tags: tagsValue }));
+      renderDetail();
+      renderList();
+    }
+    if(action==='open-help-drawer'){
+      openHelpDrawer();
+    }
     if(action==='trade'){
       recordClick(id);
       recordFunnel('trade', id);
@@ -1411,7 +1563,7 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
       }
     }
     if(action==='share' && item){
-      var payload = buildShareText(item);
+      var payload = buildActiveOpportunityShareText({ selectedItem: item || data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null, compare: compareMarketToMedian(data, state.selectedId), calibrationFeedback: calibrationFeedback, journalEntry: findTradeJournalState((item && item.id) || state.selectedId) });
       Promise.resolve(copyShareText(payload)).then(function(done){
         if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(payload); }
         if(!done){ window.prompt('Copy trade link', payload); }
@@ -1419,7 +1571,7 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
     }
     if(action==='share-summary'){
       var summaryItem = item || data.find(function(x){ return x.id === state.selectedId; }) || data[0] || null;
-      var summaryPayload = buildSummaryShareText({ briefItems: morningBriefData, selectedItem: summaryItem, compare: compareMarketToMedian(data, state.selectedId) });
+      var summaryPayload = buildActiveOpportunityShareText({ selectedItem: summaryItem, compare: compareMarketToMedian(data, state.selectedId), calibrationFeedback: calibrationFeedback, journalEntry: findTradeJournalState(summaryItem && summaryItem.id) });
       Promise.resolve(copyShareText(summaryPayload)).then(function(done){
         if(!done && navigator.clipboard && navigator.clipboard.writeText){ return navigator.clipboard.writeText(summaryPayload); }
         if(!done){ window.prompt('Copy summary', summaryPayload); }

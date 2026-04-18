@@ -56,6 +56,29 @@ export function saveCompareSet(storage, name, ids = []) {
   return store[key];
 }
 
+export function renameCompareSet(storage, fromName, toName) {
+  const source = String(fromName || '').trim();
+  const target = String(toName || '').trim();
+  if (!source || !target || source === target) return loadCompareSet(storage, source);
+  const store = loadCompareSets(storage);
+  const existing = store[source];
+  if (!existing) return null;
+  delete store[source];
+  store[target] = { ...existing, updatedAt: new Date().toISOString() };
+  storage?.setItem(COMPARE_SETS_STORAGE_KEY, JSON.stringify(store));
+  return store[target];
+}
+
+export function deleteCompareSet(storage, name) {
+  const key = String(name || '').trim();
+  if (!key) return false;
+  const store = loadCompareSets(storage);
+  if (!store[key]) return false;
+  delete store[key];
+  storage?.setItem(COMPARE_SETS_STORAGE_KEY, JSON.stringify(store));
+  return true;
+}
+
 export function loadCompareSet(storage, name) {
   const key = String(name || '').trim();
   if (!key) return null;
