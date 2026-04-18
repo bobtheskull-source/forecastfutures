@@ -8,6 +8,7 @@ import {
   loadCompareBoard,
   loadCompareSet,
   listCompareSetNames,
+  listCompareSnapshotSummaries,
   renameCompareSet,
   saveCompareBoard,
   saveCompareSet,
@@ -42,6 +43,12 @@ test('saved compare sets round-trip and list in sorted order', () => {
   assert.deepEqual(listCompareSetNames(storage), ['Snapshot', 'Sunrise']);
   assert.deepEqual(loadCompareSet(storage, 'Sunrise').ids, ['m1', 'm2']);
   assert.equal(loadCompareSet(storage, 'Snapshot').note, 'Watch the spread');
+  assert.deepEqual(listCompareSnapshotSummaries(storage)[0], {
+    name: 'Snapshot',
+    ids: ['m3', 'm4'],
+    note: 'Watch the spread',
+    updatedAt: loadCompareSet(storage, 'Snapshot').updatedAt,
+  });
   assert.equal(deleteCompareSet(storage, 'Snapshot'), true);
   assert.deepEqual(listCompareSetNames(storage), ['Sunrise']);
 });

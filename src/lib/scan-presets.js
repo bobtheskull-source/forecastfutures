@@ -9,6 +9,12 @@ const DEFAULTS = {
   maxResolveHours: null,
   breakoutOnly: false,
   executionReadyOnly: false,
+  rankFilter: null,
+  directionFilter: null,
+  journalQuery: '',
+  journalTag: '',
+  collapsePinned: false,
+  collapseUnpinned: false,
 };
 
 const PRESET_MAP = {
@@ -26,6 +32,12 @@ export function applyScanPreset(state = {}, presetName = 'clear') {
     maxResolveHours: null,
     breakoutOnly: false,
     executionReadyOnly: false,
+    rankFilter: null,
+    directionFilter: null,
+    journalQuery: '',
+    journalTag: '',
+    collapsePinned: false,
+    collapseUnpinned: false,
   };
   if (presetName === 'clear') return cleared;
   return { ...cleared, ...(PRESET_MAP[presetName] || {}) };

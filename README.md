@@ -20,6 +20,7 @@ Prediction forecasting app for Kalshi market moves and post-facto accuracy revie
 - Keep secrets out of git
 - Use server-side auth only
 - Load `KALSHI_API_KEY` from env and the private key from `KALSHI_PRIVATE_KEY_PATH`
+- Default API base URL is `https://api.elections.kalshi.com/trade-api/v2` unless overridden with `KALSHI_BASE_URL`
 - If unset, the app auto-detects `/home/adminhermes/.config/kalshi/private-api-key` on this machine, then falls back to `./secrets/kalshi_private_key.pem`
 - Treat API keys as sensitive and rotate if exposed
 

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { buildJournalPrompt, deleteTradeJournalEntry, findTradeJournalEntry, journalSummary, loadTradeJournal, saveTradeJournal, upsertTradeJournalEntry } from '../journal.js';
+import { buildJournalPrompt, deleteTradeJournalEntry, findTradeJournalEntry, journalSummary, loadTradeJournal, saveTradeJournal, upsertTradeJournalEntry, searchTradeJournalEntries } from '../journal.js';
 import { groupMarketsByPin, isPinnedWatchlist, loadPinnedWatchlist, movePinnedWatchlist, savePinnedWatchlist, togglePinnedWatchlist } from '../watchlist-pins.js';
 
 function makeStorage() {
@@ -24,6 +24,8 @@ test('journal entries round-trip and summarize tags', () => {
   assert.equal(summary.total, 1);
   assert.deepEqual(summary.topTags[0][0], 'inflation');
   assert.deepEqual(buildJournalPrompt(entry).tags.includes('inflation'), true);
+  assert.deepEqual(searchTradeJournalEntries(loadTradeJournal(storage), 'energy', 'macro').map((item) => item.marketId), ['cpi']);
+  assert.deepEqual(searchTradeJournalEntries(loadTradeJournal(storage), '', 'rates'), []);
 });
 
 test('journal entries can be deleted without disturbing the rest of the journal', () => {

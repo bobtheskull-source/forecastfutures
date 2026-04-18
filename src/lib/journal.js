@@ -70,6 +70,19 @@ export function journalSummary(entries = []) {
   };
 }
 
+export function searchTradeJournalEntries(entries = [], query = '', tag = '') {
+  const q = String(query || '').trim().toLowerCase();
+  const activeTag = String(tag || '').trim().toLowerCase();
+  return (Array.isArray(entries) ? entries : [])
+    .map(normalizeEntry)
+    .filter((entry) => {
+      const haystack = [entry.title, entry.event, entry.note, entry.tags].join(' ').toLowerCase();
+      const queryOk = !q || haystack.includes(q);
+      const tagOk = !activeTag || String(entry.tags || '').toLowerCase().split(',').includes(activeTag);
+      return queryOk && tagOk;
+    });
+}
+
 export function buildJournalPrompt(entry = {}) {
   const normalized = normalizeEntry(entry);
   const tags = String(normalized.tags || '').split(',').filter(Boolean);

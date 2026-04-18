@@ -6,12 +6,13 @@ import { classifyMovement } from './movement-flags.js';
 import { summarizeProbabilityTrend } from './trend.js';
 import { computeRiskSizingGuidance } from './risk-sizing.js';
 import { computePaywallIntent, paywallHeadlineByIntent } from './paywall-intent.js';
+import { filterMarkets, buildActiveFilterSummary } from './filters.js';
 import { applyScanPreset, compareMarketToEventMedian, compareMarketToMedian, loadScanPreset, saveScanPreset } from './scan-presets.js';
 import { buildShareText, buildSummaryShareText, buildReviewShareText, buildOpportunityCsv, copyShareText, buildActiveOpportunityShareText } from './share.js';
 import { archiveAlertHistoryItem, markAlertHistoryItem, summarizeAlertHistory, upsertAlertHistoryItem } from './alerts.js';
 import { buildCalibrationFeedback, adjustOpportunityScores } from './odds-feedback.js';
-import { buildCompareScenario, compareBoardLabel, loadCompareBoard, loadCompareSet, listCompareSetNames, saveCompareBoard, saveCompareSet, saveCompareSnapshot, toggleCompareBoardId, renameCompareSet, deleteCompareSet } from './compare-sets.js';
-import { loadTradeJournal, saveTradeJournal, upsertTradeJournalEntry, deleteTradeJournalEntry, findTradeJournalEntry, journalSummary, buildJournalPrompt } from './journal.js';
+import { buildCompareScenario, compareBoardLabel, loadCompareBoard, loadCompareSet, listCompareSetNames, listCompareSnapshotSummaries, saveCompareBoard, saveCompareSet, saveCompareSnapshot, toggleCompareBoardId, renameCompareSet, deleteCompareSet } from './compare-sets.js';
+import { loadTradeJournal, saveTradeJournal, upsertTradeJournalEntry, deleteTradeJournalEntry, findTradeJournalEntry, journalSummary, searchTradeJournalEntries, buildJournalPrompt } from './journal.js';
 import { loadPinnedWatchlist, savePinnedWatchlist, movePinnedWatchlist, togglePinnedWatchlist, isPinnedWatchlist, groupMarketsByPin } from './watchlist-pins.js';
 import { morningBriefToCsv } from './brief-export.js';
 import { forecastReviewToCsv } from './review-export.js';
@@ -182,6 +183,15 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
         <button class="chip" data-sort="recency">Sort: freshest</button>
         <button class="chip" data-sort="mostClicked">Sort: trader interest</button>
       </div>
+      <div class="seg" style="margin-top:8px">
+        <button class="chip" data-action="filter-rank" data-rank="A">Rank A</button>
+        <button class="chip" data-action="filter-rank" data-rank="B">Rank B</button>
+        <button class="chip" data-action="filter-rank" data-rank="C">Rank C</button>
+        <button class="chip" data-action="filter-direction" data-direction="up">Direction up</button>
+        <button class="chip" data-action="filter-direction" data-direction="down">Direction down</button>
+        <button class="chip" data-action="clear-list-filters">Clear active filters</button>
+      </div>
+      <p class="muted" id="activeFilterSummary" style="margin-top:8px">No active filters</p>
       <details class="drawer" style="margin-top:8px">
         <summary>More list controls</summary>
         <div class="seg" style="margin-top:8px">
@@ -190,6 +200,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
           <button class="chip" id="restoreWatchlistBtn">Restore saved watchlist</button>
           <button class="chip" id="alertControlsBtn">Open alert controls</button>
           <button class="chip" id="refreshSnapshotBtn">Reload snapshot</button>
+          <button class="chip" data-action="toggle-pinned-section">Pinned: on</button>
+          <button class="chip" data-action="toggle-unpinned-section">Grouped: on</button>
         </div>
       </details>
       <details class="drawer" style="margin-top:8px">
@@ -386,11 +398,12 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   var halfLifeMs = 6 * 60 * 60 * 1000;
   var defaultPrefs = { minEdgePercent: 4, confidenceFloor: 'medium', quietHoursStart: 22, quietHoursEnd: 7, cooldownMinutes: 30 };
   var confRank = { low: 1, medium: 2, high: 3 };
-  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null, breakoutOnly: false, executionReadyOnly: false, chartRange: 20 };
+  var state = { query: '', sort: 'score', selectedId: data[0] ? data[0].id : null, tradeClicks: 0, watchlistOnly: false, feedMode: 'now', minEdgePreset: null, maxResolveHours: null, breakoutOnly: false, executionReadyOnly: false, chartRange: 20, rankFilter: null, directionFilter: null, journalQuery: '', journalTag: '', collapsePinned: false, collapseUnpinned: false };
 
   var buttons = Array.from(document.querySelectorAll('.nav button'));
   var views = Array.from(document.querySelectorAll('.view'));
   var searchInput = document.getElementById('marketSearch');
+  var activeFilterSummaryEl = document.getElementById('activeFilterSummary');
   var listResults = document.getElementById('listResults');
   var listState = document.getElementById('listState');
   var morningBriefEl = document.getElementById('morningBrief');
@@ -697,6 +710,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       maxResolveHours: params.get('resolve') != null && params.get('resolve') !== '' ? Number(params.get('resolve')) : null,
       breakoutOnly: params.get('breakout') === '1',
       executionReadyOnly: params.get('exec') === '1',
+      rankFilter: params.get('rank') || null,
+      directionFilter: params.get('direction') || null,
       selectedProvided: params.has('selected'),
     };
   }
@@ -711,6 +726,8 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     if(state.maxResolveHours != null) params.set('resolve', String(state.maxResolveHours));
     if(state.breakoutOnly) params.set('breakout', '1');
     if(state.executionReadyOnly) params.set('exec', '1');
+    if(state.rankFilter) params.set('rank', state.rankFilter);
+    if(state.directionFilter) params.set('direction', state.directionFilter);
     var search = params.toString();
     var hash = tab || (location.hash || '').replace('#', '') || 'list';
     var next = location.pathname + (search ? '?' + search : '') + '#' + hash;
@@ -788,13 +805,15 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var selected = data.find(function(item){ return String(item.id) === String(state.selectedId); }) || null;
     var boardIds = loadCompareBoard();
     var scenario = buildCompareScenario(data, state.selectedId, boardIds).filter(function(item){ return item && !item.missing; });
+    var recentSnapshots = listCompareSnapshotSummaries(window.localStorage).slice(0, 3);
+    var snapshotStrip = recentSnapshots.length ? '<div class="card" style="margin-top:10px"><div class="row"><strong>Recent snapshots</strong><span class="pill">'+recentSnapshots.length+' saved</span></div><div class="grid" style="margin-top:8px">'+recentSnapshots.map(function(snapshot){ return '<article class="card"><div class="row"><strong>'+esc(snapshot.name)+'</strong><span class="pill">'+esc(Array.isArray(snapshot.ids) ? snapshot.ids.length : 0)+' markets</span></div><p class="muted">'+esc(snapshot.note || 'No note')+'</p><p class="muted">'+esc(snapshot.updatedAt || '')+'</p><div class="actions"><button class="btn" data-action="compare-swap" data-name="'+esc(snapshot.name)+'">Restore</button><button class="btn" data-action="compare-rename" data-name="'+esc(snapshot.name)+'">Rename</button><button class="btn warn" data-action="compare-delete" data-name="'+esc(snapshot.name)+'">Delete</button></div></article>'; }).join('')+'</div></div>' : '<div class="muted" style="margin-top:10px">No recent snapshots yet.</div>';
     var savedNames = listCompareSetNamesLocal();
     var compareLabel = compareBoardLabel(scenario);
     var savedLabel = savedNames.length ? 'Saved compare sets: ' + savedNames.join(', ') : 'No saved compare sets yet.';
-    var compareSnapshot = loadCurrentCompareSnapshot();
-    var snapshotLabel = compareSnapshot && compareSnapshot.name ? 'Last snapshot: ' + compareSnapshot.name + (compareSnapshot.note ? ' · ' + compareSnapshot.note : '') + ' · ' + (compareSnapshot.updatedAt || '') : 'No snapshot saved yet.';
+    var compareSnapshot = recentSnapshots[0] || null;
+    var snapshotLabel = compareSnapshot ? 'Last snapshot: ' + compareSnapshot.name + (compareSnapshot.note ? ' · ' + compareSnapshot.note : '') + ' · ' + (compareSnapshot.updatedAt || '') : 'No snapshot saved yet.';
     if(!selected && !scenario.length){
-      compareBoardPanel.innerHTML = '<div class="row"><strong>Scenario board</strong><span class="pill">0 markets</span></div><p class="muted">Select a market to start a comparison board.</p>';
+      compareBoardPanel.innerHTML = '<div class="row"><strong>Scenario board</strong><span class="pill">0 markets</span></div><p class="muted">Select a market to start a comparison board.</p>' + snapshotStrip;
       return;
     }
     compareBoardPanel.innerHTML = '<div class="row"><strong>Scenario board</strong><span class="pill">'+esc(compareLabel)+'</span></div>'
@@ -805,6 +824,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<button class="btn" data-action="compare-clear">Clear board</button>'
       + '<button class="btn" data-action="compare-undo"'+(loadCompareUndoState() ? '' : ' disabled')+'>Undo clear</button>'
       + '</div>'
+      + snapshotStrip
       + '<details class="drawer" style="margin-top:10px"><summary>Manage saved compare sets</summary><div class="grid" style="margin-top:8px">'+(savedNames.length ? savedNames.map(function(name){ var saved = loadNamedCompareSet(name) || { ids: [] }; return '<article class="card"><div class="row"><strong>'+esc(name)+'</strong><span class="pill">'+esc(Array.isArray(saved.ids) ? saved.ids.length : 0)+' markets</span></div><p class="muted">Updated '+esc(saved.updatedAt || '')+(saved.note ? ' · note '+esc(saved.note) : '')+'</p><div class="actions"><button class="btn" data-action="compare-swap" data-name="'+esc(name)+'">Swap in</button><button class="btn" data-action="compare-rename" data-name="'+esc(name)+'">Rename</button><button class="btn warn" data-action="compare-delete" data-name="'+esc(name)+'">Delete</button></div></article>'; }).join('') : '<div class="muted">No saved compare sets yet.</div>')+'</div></details>'
       + '<div class="grid" style="margin-top:10px">'+scenario.map(function(item, index){
         return '<article class="card"><div class="row"><strong>'+(index===0 ? 'Selected' : 'Compare')+'</strong><span class="pill">'+esc(item.confidence || 'n/a')+'</span></div><p class="muted">'+esc(item.title || item.id || 'Unknown market')+'</p><p class="muted">'+esc(item.event || 'No event')+'</p><p class="muted">Odds '+(Number(item.marketProb || 0)*100).toFixed(1)+'% / '+(Number(item.modelProb || 0)*100).toFixed(1)+'% · edge '+(Math.abs(Number(item.edge || 0))*100).toFixed(2)+'% · score '+Number(item.adjustedRankScore || item.rankScore || 0).toFixed(1)+'</p><div class="actions"><button class="btn" data-action="compare-pin" data-id="'+esc(item.id)+'">'+(loadCompareBoard().includes(String(item.id)) ? 'Unpin' : 'Pin')+'</button><button class="btn" data-action="view" data-id="'+esc(item.id)+'">Open detail</button></div></article>';
@@ -1115,10 +1135,17 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
 
   function renderList(){
     var q = String(state.query||'').toLowerCase();
-    var filtered = data.filter(function(item){return !q || (item.title+' '+item.event).toLowerCase().includes(q);});
+    var filtered = filterMarkets(data, q, { rank: state.rankFilter, direction: state.directionFilter });
 
     var watchBtn = document.getElementById('watchlistBtn');
     if(watchBtn) watchBtn.textContent = 'Watchlist only: ' + (state.watchlistOnly ? 'on' : 'off');
+    var pinnedToggle = document.querySelector('[data-action="toggle-pinned-section"]');
+    if(pinnedToggle) pinnedToggle.textContent = 'Pinned: ' + (state.collapsePinned ? 'off' : 'on');
+    var groupedToggle = document.querySelector('[data-action="toggle-unpinned-section"]');
+    if(groupedToggle) groupedToggle.textContent = 'Grouped: ' + (state.collapseUnpinned ? 'off' : 'on');
+    if(activeFilterSummaryEl) activeFilterSummaryEl.textContent = buildActiveFilterSummary(state);
+    document.querySelectorAll('[data-action="filter-rank"]').forEach(function(btn){ btn.classList.toggle('active', String(btn.getAttribute('data-rank') || '') === String(state.rankFilter || '')); });
+    document.querySelectorAll('[data-action="filter-direction"]').forEach(function(btn){ btn.classList.toggle('active', String(btn.getAttribute('data-direction') || '') === String(state.directionFilter || '')); });
 
     if(state.feedMode === 'now') {
       filtered = filtered.filter(function(item){
@@ -1159,10 +1186,10 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var alertHistory = loadAlertHistory();
     var alertEntryMap = alertHistory.reduce(function(map, entry){ map[String(entry.marketId)] = entry; return map; }, {});
     var pinnedGroups = groupMarketsByPinState(sorted);
-    var pinnedMarkup = pinnedGroups.pinned.length ? '<section class="card"><div class="row"><strong>Pinned favorites</strong><span class="pill">'+pinnedGroups.pinned.length+' markets</span></div><div class="grid" style="margin-top:10px">'+pinnedGroups.pinned.map(function(item){ return signalCard(item, alertPrefs, alertEntryMap); }).join('')+'</div></section>' : '';
-    var unpinnedMarkup = groupSignalsByEvent(pinnedGroups.unpinned).map(function(group){
+    var pinnedMarkup = !state.collapsePinned && pinnedGroups.pinned.length ? '<section class="card"><div class="row"><strong>Pinned favorites</strong><span class="pill">'+pinnedGroups.pinned.length+' markets</span></div><div class="grid" style="margin-top:10px">'+pinnedGroups.pinned.map(function(item){ return signalCard(item, alertPrefs, alertEntryMap); }).join('')+'</div></section>' : (state.collapsePinned ? '<section class="card"><div class="row"><strong>Pinned favorites</strong><span class="pill">collapsed</span></div><p class="muted" style="margin-top:8px">Pinned markets are hidden. Expand the section controls to show them.</p></section>' : '');
+    var unpinnedMarkup = !state.collapseUnpinned ? groupSignalsByEvent(pinnedGroups.unpinned).map(function(group){
       return '<section class="card"><div class="row"><strong>'+esc(group.event)+'</strong><span class="pill">'+group.items.length+' markets</span></div><div class="grid" style="margin-top:10px">'+group.items.map(function(item){ return signalCard(item, alertPrefs, alertEntryMap); }).join('')+'</div></section>';
-    }).join('');
+    }).join('') : '<section class="card"><div class="row"><strong>Grouped markets</strong><span class="pill">collapsed</span></div><p class="muted" style="margin-top:8px">Grouped markets are hidden. Expand the section controls to show them.</p></section>';
     listResults.innerHTML = pinnedMarkup + unpinnedMarkup;
     sorted.forEach(function(item){
       recordFunnel('impression', item.id);
@@ -1255,7 +1282,9 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
     var trendSummary = item.trendSummary || summarizeProbabilityTrend(item);
     var chartWindow = state.chartRange === 'all' ? (item.probabilityHistory || []) : (item.probabilityHistory || []).slice(-(Number(state.chartRange) || 20));
     var chartWindowLabel = state.chartRange === 'all' ? 'all points' : 'last ' + Number(state.chartRange || 20) + ' points';
-    var journalEntriesMarkup = tradeJournalSummary.recent.length ? '<div class="grid" style="margin-top:8px">'+tradeJournalSummary.recent.map(function(entry){ return '<article class="card"><div class="row"><strong>'+esc(entry.title || entry.marketId)+'</strong><span class="pill">'+esc(entry.updatedAt || '')+'</span></div><p class="muted">'+esc(entry.event || 'No event')+' · tags '+esc(String(entry.tags || '').replaceAll(',', ', ') || 'none')+'</p><p class="muted">'+esc(entry.note || 'No note yet')+'</p><div class="actions"><button class="btn" data-action="edit-journal" data-id="'+esc(entry.marketId)+'">Edit</button><button class="btn warn" data-action="delete-journal" data-id="'+esc(entry.marketId)+'">Delete</button></div></article>'; }).join('')+'</div>' : '<div class="muted" style="margin-top:8px">No saved journal entries yet.</div>';
+    var allJournalEntries = searchTradeJournalEntries(loadTradeJournal(), state.journalQuery, state.journalTag);
+    var journalTags = journalSummary.topTags.length ? journalSummary.topTags.map(function(entry){ return '<button class="chip" data-action="journal-tag" data-tag="'+esc(entry[0])+'">'+esc(entry[0])+' ('+entry[1]+')</button>'; }).join('') : '<span class="muted">No tags yet</span>';
+    var journalEntriesMarkup = allJournalEntries.length ? '<div class="grid" style="margin-top:8px">'+allJournalEntries.slice(0, 5).map(function(entry){ return '<article class="card"><div class="row"><strong>'+esc(entry.title || entry.marketId)+'</strong><span class="pill">'+esc(entry.updatedAt || '')+'</span></div><p class="muted">'+esc(entry.event || 'No event')+' · tags '+esc(String(entry.tags || '').replaceAll(',', ', ') || 'none')+'</p><p class="muted">'+esc(entry.note || 'No note yet')+'</p><div class="actions"><button class="btn" data-action="edit-journal" data-id="'+esc(entry.marketId)+'">Edit</button><button class="btn warn" data-action="delete-journal" data-id="'+esc(entry.marketId)+'">Delete</button></div></article>'; }).join('')+'</div>' : '<div class="muted" style="margin-top:8px">No saved journal entries match these filters.</div>';
     detailPanel.innerHTML = '<section class="chart-workspace">'
       + '<article class="card detail-stack">'
       + '<div class="row"><strong>'+esc(item.title)+'</strong><span class="pill">'+esc(item.confidence)+' · quality '+esc(item.signalQualityGrade || 'C')+'</span></div>'
@@ -1275,7 +1304,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
       + '<aside class="card drawer drawer-surface">'
       + '<div class="row"><strong>Drawer surface</strong><span class="pill">compare + history</span></div>'
       + '<div class="card" style="margin-top:10px"><strong>Compare vs event median</strong><p class="muted">Edge '+selectedEdge.toFixed(2)+'% vs '+medianEdge+'% median (Δ '+edgeDelta+'pp) · Depth '+selectedDepth+' vs '+medianDepth+' median (Δ '+depthDelta+') · Freshness '+selectedFreshness+'s vs '+medianFreshness+'s median (Δ '+freshnessDelta+'s)</p></div>'
-      + '<div class="card" style="margin-top:10px"><strong>Trade journal</strong><p class="muted">Saved notes '+journalSummary.total+' · top tags '+(journalSummary.topTags.length ? journalSummary.topTags.map(function(entry){ return entry[0] + ' (' + entry[1] + ')'; }).join(', ') : 'none yet')+'</p><div class="inputs"><label>Note<textarea id="journalNoteInput" rows="4" style="padding:10px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:#111827;color:#e5e7eb">'+esc(journalPrompt.note || '')+'</textarea></label><label>Reason tags<input id="journalTagsInput" type="text" value="'+esc((journalPrompt.tags || []).join(', '))+'" placeholder="rates, inflation, breakout" /></label></div><div class="actions"><button class="btn primary" data-action="save-journal" data-id="'+esc(item.id)+'">Save journal</button></div>'+journalEntriesMarkup+'</div>'
+      + '<div class="card" style="margin-top:10px"><strong>Trade journal</strong><p class="muted">Saved notes '+journalSummary.total+' · top tags '+(journalSummary.topTags.length ? journalSummary.topTags.map(function(entry){ return entry[0] + ' (' + entry[1] + ')'; }).join(', ') : 'none yet')+'</p><div class="inputs"><label>Search notes<input id="journalSearchInput" type="search" value="'+esc(state.journalQuery || '')+'" placeholder="Search note text, title, or tags" /></label><label>Reason tags<input id="journalTagsInput" type="text" value="'+esc((journalPrompt.tags || []).join(', '))+'" placeholder="rates, inflation, breakout" /></label></div><div class="actions"><button class="btn" data-action="clear-journal-filter">Clear journal filter</button></div><div class="seg" style="margin-top:8px">'+journalTags+'</div><div class="actions" style="margin-top:8px"><button class="btn primary" data-action="save-journal" data-id="'+esc(item.id)+'">Save journal</button></div>'+journalEntriesMarkup+'</div>'
       + '<div class="card" style="margin-top:10px"><strong>Share summary</strong><p class="muted">'+esc(shareText)+'</p></div>'
       + '<div class="actions">'
       + '<button class="btn warn" data-action="pretrade" data-id="'+esc(item.id)+'">Pre-trade check</button>'
@@ -1397,6 +1426,31 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   buttons.forEach(function(button){button.addEventListener('click', function(){show(button.dataset.tab); if(button.dataset.tab==='detail') renderDetail();});});
   searchInput.addEventListener('input', function(e){state.query=e.target.value||''; renderList();});
   sortChips.forEach(function(chip){chip.addEventListener('click', function(){state.sort = chip.dataset.sort || 'score'; renderList();});});
+  document.querySelectorAll('[data-action="filter-rank"]').forEach(function(button){ button.addEventListener('click', function(){ state.rankFilter = state.rankFilter === button.getAttribute('data-rank') ? null : button.getAttribute('data-rank'); renderList(); }); });
+  document.querySelectorAll('[data-action="filter-direction"]').forEach(function(button){ button.addEventListener('click', function(){ state.directionFilter = state.directionFilter === button.getAttribute('data-direction') ? null : button.getAttribute('data-direction'); renderList(); }); });
+  var clearListFiltersBtn = document.querySelector('[data-action="clear-list-filters"]');
+  if(clearListFiltersBtn){
+    clearListFiltersBtn.addEventListener('click', function(){
+      state.query = '';
+      state.sort = 'score';
+      state.watchlistOnly = false;
+      state.feedMode = 'now';
+      state.minEdgePreset = null;
+      state.maxResolveHours = null;
+      state.breakoutOnly = false;
+      state.executionReadyOnly = false;
+      state.rankFilter = null;
+      state.directionFilter = null;
+      if(searchInput) searchInput.value = '';
+      renderList();
+    });
+  }
+  document.body.addEventListener('input', function(event){
+    if(event.target && event.target.id === 'journalSearchInput'){
+      state.journalQuery = event.target.value || '';
+      renderDetail();
+    }
+  });
 
   document.getElementById('alertControlsBtn').addEventListener('click', openAlertPrefsModal);
   Array.from(document.querySelectorAll('.hero-alert-controls')).forEach(function(button){
@@ -1471,7 +1525,7 @@ export function renderApp({ markets, outliers, review = {}, archive, rules = [],
   document.getElementById('savePresetBtn').addEventListener('click', function(){ saveScanPreset(window.localStorage, 'last', state); this.textContent = 'Preset saved'; setTimeout(() => { this.textContent = 'Save preset'; }, 1200); });
   document.getElementById('restorePresetBtn').addEventListener('click', function(){ var preset = loadScanPreset(window.localStorage, 'last'); if(preset){ state = Object.assign(state, preset); renderList(); this.textContent = 'Preset restored'; setTimeout(() => { this.textContent = 'Restore preset'; }, 1200); } });
   document.getElementById('presetExpiringBtn').addEventListener('click', function(){ state.maxResolveHours = 168; state.breakoutOnly = false; state.executionReadyOnly = false; renderList(); });
-  document.getElementById('resetPresetBtn').addEventListener('click', function(){ state.minEdgePreset = null; state.maxResolveHours = null; state.breakoutOnly = false; state.executionReadyOnly = false; state.watchlistOnly = false; state.feedMode = 'now'; renderList(); });
+  document.getElementById('resetPresetBtn').addEventListener('click', function(){ state.minEdgePreset = null; state.maxResolveHours = null; state.breakoutOnly = false; state.executionReadyOnly = false; state.watchlistOnly = false; state.feedMode = 'now'; state.rankFilter = null; state.directionFilter = null; renderList(); });
   document.getElementById('exportCsvBtn').addEventListener('click', function(){
     downloadTextFile('forecast-opportunities.csv', buildOpportunityCsv(sortSignals(data)), 'text/csv;charset=utf-8');
   });
@@ -1604,6 +1658,24 @@ if(action==='pretrade' && item){ recordFunnel('pretrade', id); openPreTradeSheet
       var direction = target.getAttribute('data-dir') === 'down' ? 1 : -1;
       savePinnedWatchlistState(movePinnedWatchlist(id, direction));
       renderList();
+    }
+    if(action==='toggle-pinned-section'){
+      state.collapsePinned = !state.collapsePinned;
+      renderList();
+    }
+    if(action==='toggle-unpinned-section'){
+      state.collapseUnpinned = !state.collapseUnpinned;
+      renderList();
+    }
+    if(action==='clear-journal-filter'){
+      state.journalQuery = '';
+      state.journalTag = '';
+      renderDetail();
+    }
+    if(action==='journal-tag'){
+      var tag = target.getAttribute('data-tag') || '';
+      state.journalTag = state.journalTag === tag ? '' : tag;
+      renderDetail();
     }
     if(action==='save-journal' && item){
       var noteValue = String(document.getElementById('journalNoteInput')?.value || '').trim();

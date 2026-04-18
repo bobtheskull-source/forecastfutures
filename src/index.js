@@ -9,52 +9,91 @@ import { serverReadinessReport } from './lib/infrastructure.js';
 import { MOVE_RULES, EDGE_CASES } from './lib/rules.js';
 import { renderApp } from './lib/render.js';
 import { applyLatencyAndStaleGuardrails } from './lib/guardrails.js';
+import { loadLiveKalshiSnapshot } from './lib/kalshi-backend.js';
 
 const demo = process.argv.includes('--demo');
 const snapshotArgIndex = process.argv.indexOf('--snapshot');
 const snapshotPath = snapshotArgIndex >= 0 ? process.argv[snapshotArgIndex + 1] : '';
-const config = loadConfig();
-const markets = snapshotPath ? loadMarketSnapshots(snapshotPath) : loadSampleMarkets();
 
-const rankedSignals = detectOutliers(markets);
-const guardrails = applyLatencyAndStaleGuardrails(rankedSignals, {
-  freshnessThresholdSeconds: 900,
-  minDepth: 250,
-  minVolume: 200,
-  maxSpread: 0.06,
+async function main() {
+  const config = loadConfig();
+  let liveSnapshot;
+  if (snapshotPath) {
+    liveSnapshot = { ready: false, source: 'snapshot-file', markets: loadMarketSnapshots(snapshotPath), balance: null, snapshotSource: describeSnapshotSource(snapshotPath) };
+  } else if (demo) {
+    liveSnapshot = { ready: false, source: 'demo-mode', markets: loadSampleMarkets(), balance: null, snapshotSource: 'using bundled sample markets' };
+  } else {
+    try {
+      liveSnapshot = await loadLiveKalshiSnapshot({
+        apiKeyId: process.env.KALSHI_API_KEY || '',
+        baseUrl: config.baseUrl,
+      });
+    } catch (error) {
+      liveSnapshot = {
+        ready: false,
+        source: 'live-kalshi-backend-failed',
+        readError: error instanceof Error ? error.message : String(error),
+        markets: null,
+        balance: null,
+      };
+    }
+  }
+
+  const markets = Array.isArray(liveSnapshot.markets) && liveSnapshot.markets.length
+    ? liveSnapshot.markets
+    : (snapshotPath ? loadMarketSnapshots(snapshotPath) : loadSampleMarkets());
+
+  const rankedSignals = detectOutliers(markets);
+  const guardrails = applyLatencyAndStaleGuardrails(rankedSignals, {
+    freshnessThresholdSeconds: 900,
+    minDepth: 250,
+    minVolume: 200,
+    maxSpread: 0.06,
+  });
+  const outliers = guardrails.acceptedSignals;
+
+  const review = buildForecastReview(outliers);
+  const archive = buildAccuracyArchive(review);
+  const infra = {
+    ...serverReadinessReport(),
+    liveSource: liveSnapshot.source,
+    liveSnapshotBalance: liveSnapshot.balance || null,
+    readError: liveSnapshot.readError || null,
+    ready: Boolean(liveSnapshot.ready && serverReadinessReport().ready),
+  };
+  const html = renderApp({
+    markets,
+    outliers,
+    review,
+    archive,
+    infra,
+    rules: MOVE_RULES,
+    edgeCases: EDGE_CASES,
+    snapshotSource: liveSnapshot.snapshotSource || describeSnapshotSource(snapshotPath),
+    guardrails,
+  });
+
+  const distDir = new URL('../dist/', import.meta.url);
+  mkdirSync(distDir, { recursive: true });
+  writeFileSync(new URL('../dist/index.html', import.meta.url), html);
+  writeFileSync(new URL('../index.html', import.meta.url), html);
+
+  console.log('# Forecast Futures');
+  console.log('Mode:', demo ? 'demo' : 'local');
+  console.log('Base URL:', config.baseUrl);
+  console.log('Markets loaded:', markets.length);
+  console.log('Snapshot source:', liveSnapshot.snapshotSource || describeSnapshotSource(snapshotPath));
+  console.log('Outliers detected:', outliers.length);
+  console.log('Guardrails stale drops:', guardrails.metrics.staleDropCount);
+  console.log('Guardrails latency p50/p95:', `${guardrails.metrics.p50LatencyMs}ms / ${guardrails.metrics.p95LatencyMs}ms`);
+  console.log('Rendered:', 'dist/index.html');
+  console.log('Server ready:', infra.ready ? 'yes' : 'no');
+  console.log('Missing:', infra.missing.join(', ') || 'none');
+  console.log('');
+  console.log(JSON.stringify({ review, archive, infra, rules: MOVE_RULES, edgeCases: EDGE_CASES, snapshotSource: liveSnapshot.snapshotSource || describeSnapshotSource(snapshotPath), guardrails }, null, 2));
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
 });
-const outliers = guardrails.acceptedSignals;
-
-const review = buildForecastReview(outliers);
-const archive = buildAccuracyArchive(review);
-const infra = serverReadinessReport();
-const html = renderApp({
-  markets,
-  outliers,
-  review,
-  archive,
-  infra,
-  rules: MOVE_RULES,
-  edgeCases: EDGE_CASES,
-  snapshotSource: describeSnapshotSource(snapshotPath),
-  guardrails,
-});
-
-const distDir = new URL('../dist/', import.meta.url);
-mkdirSync(distDir, { recursive: true });
-writeFileSync(new URL('../dist/index.html', import.meta.url), html);
-writeFileSync(new URL('../index.html', import.meta.url), html);
-
-console.log('# Forecast Futures');
-console.log('Mode:', demo ? 'demo' : 'local');
-console.log('Base URL:', config.baseUrl);
-console.log('Markets loaded:', markets.length);
-console.log('Snapshot source:', describeSnapshotSource(snapshotPath));
-console.log('Outliers detected:', outliers.length);
-console.log('Guardrails stale drops:', guardrails.metrics.staleDropCount);
-console.log('Guardrails latency p50/p95:', `${guardrails.metrics.p50LatencyMs}ms / ${guardrails.metrics.p95LatencyMs}ms`);
-console.log('Rendered:', 'dist/index.html');
-console.log('Server ready:', infra.ready ? 'yes' : 'no');
-console.log('Missing:', infra.missing.join(', ') || 'none');
-console.log('');
-console.log(JSON.stringify({ review, archive, infra, rules: MOVE_RULES, edgeCases: EDGE_CASES, snapshotSource: describeSnapshotSource(snapshotPath), guardrails }, null, 2));

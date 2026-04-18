@@ -99,6 +99,17 @@ export function listCompareSetNames(storage) {
   return Object.keys(loadCompareSets(storage)).sort((a, b) => a.localeCompare(b));
 }
 
+export function listCompareSnapshotSummaries(storage) {
+  return Object.entries(loadCompareSets(storage))
+    .map(([name, value]) => ({
+      name,
+      ids: uniqueIds(value?.ids || []),
+      note: String(value?.note || '').trim(),
+      updatedAt: String(value?.updatedAt || ''),
+    }))
+    .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+}
+
 export function loadCompareSets(storage) {
   return safeParse(storage?.getItem(COMPARE_SETS_STORAGE_KEY), {});
 }

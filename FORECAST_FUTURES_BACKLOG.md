@@ -100,6 +100,36 @@ AC:
 2) Share, export, and help launch the correct surface-specific handlers from the tray.
 3) The tray remains keyboard accessible and does not cover the main market workspace.
 
+CARD-117 | Deployed Done | Add rank and direction filter chips plus an active-filter summary in the list view
+AC:
+1) Users can filter the list by rank and direction using visible chips.
+2) The active filter summary shows which chips are on and how to clear them.
+3) The filter state survives reloads through URL or preset restore.
+
+CARD-118 | Deployed Done | Extend scan presets so the current list filters save and restore together
+AC:
+1) Saving a preset captures search, sort, rank, direction, and watchlist state.
+2) Restoring a preset re-applies the full filter state without losing the selected market.
+3) The existing scan presets drawer can still save, restore, and clear filters.
+
+CARD-119 | Deployed Done | Add journal search and tag chips so notes are easier to scan
+AC:
+1) Users can search journal entries by title, note text, or tags.
+2) Top journal tags appear as quick filter chips in the journal panel.
+3) Search and filter controls do not block editing or deleting notes.
+
+CARD-120 | Deployed Done | Add a compact recent compare snapshot browser with preview and quick restore actions
+AC:
+1) Recent compare snapshots show the saved name, note, and timestamp.
+2) Users can restore a snapshot directly from the preview row.
+3) Snapshot previews stay compact on mobile and do not cover the compare board.
+
+CARD-121 | Deployed Done | Add collapsible pinned and grouped watchlist sections so long lists can be compacted
+AC:
+1) Users can collapse pinned favorites or unpinned groups independently.
+2) Collapsing sections preserves the underlying watchlist ordering and pin state.
+3) Section toggles remain accessible and do not cover list content.
+
 ## Done
 
 CARD-033 | Deployed Done | Add first-run onboarding guidance for list, detail, and trade actions
@@ -142,3 +172,8 @@ CARD-097 | Deployed Done | Surface backend fetch, retry, and error states withou
 CARD-098 | Deployed Done | Add backend provenance and sync status to the compact settings drawer
 CARD-099 | Deployed Done | Audit and remove any remaining overlay or sticky buttons that block content sections
 CARD-100 | Deployed Done | Add regression tests for backend wiring, retry states, and blocker-free layout
+CARD-147 | Deployed Done | Add a live Kalshi backend client that signs private-key requests and assembles the snapshot payload
+CARD-148 | Deployed Done | Wire app bootstrap to load live backend data with demo fallback when credentials are missing
+CARD-149 | Deployed Done | Update backend config, readiness reporting, and docs for Kalshi trade-api v2 and server-side auth
+CARD-150 | Deployed Done | Add regression tests for request signing, live snapshot loading, and credential auto-detection
+CARD-151 | Deployed Done | Keep generated demo output and Pages artifacts stable when the backend is unavailable

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import { applyScanPreset, compareMarketToMedian, compareMarketToEventMedian, loadScanPreset, saveScanPreset } from '../scan-presets.js';
+import { buildActiveFilterSummary } from '../filters.js';
 
 function makeStorage() {
   const store = new Map();
@@ -12,18 +13,35 @@ function makeStorage() {
 }
 
 test('applyScanPreset toggles breakout scan controls', () => {
-  const state = applyScanPreset({}, 'breakout');
+  const state = applyScanPreset({ rankFilter: 'A', directionFilter: 'down', journalQuery: 'rates', journalTag: 'inflation' }, 'breakout');
   assert.equal(state.breakoutOnly, true);
   assert.equal(state.executionReadyOnly, true);
   assert.equal(state.minEdgePreset, 5);
+  assert.equal(state.rankFilter, null);
+  assert.equal(state.directionFilter, null);
+  assert.equal(state.journalQuery, '');
+  assert.equal(state.journalTag, '');
 });
 
 test('saved scan preset round-trips through storage', () => {
   const storage = makeStorage();
-  saveScanPreset(storage, 'mobile', { watchlistOnly: true, maxResolveHours: 72 });
+  saveScanPreset(storage, 'mobile', {
+    watchlistOnly: true,
+    maxResolveHours: 72,
+    rankFilter: 'B',
+    directionFilter: 'up',
+    journalQuery: 'inflation',
+  });
   const preset = loadScanPreset(storage, 'mobile');
   assert.equal(preset.watchlistOnly, true);
   assert.equal(preset.maxResolveHours, 72);
+  assert.equal(preset.rankFilter, 'B');
+  assert.equal(preset.directionFilter, 'up');
+  assert.equal(preset.journalQuery, 'inflation');
+});
+
+test('active filter summary includes rank, direction, and scan context', () => {
+  assert.equal(buildActiveFilterSummary({ query: 'cpi', rank: 'A', direction: 'down', watchlistOnly: true, feedMode: 'discover', minEdgePreset: 5, maxResolveHours: 72, breakoutOnly: true, executionReadyOnly: true }), 'Search: cpi · Rank: A · Direction: down · Watchlist only · Feed: discover · Edge ≥ 5% · Resolve ≤ 72h · Breakouts · Tradeable only');
 });
 
 test('compareMarketToMedian returns selected item and median metrics', () => {

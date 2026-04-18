@@ -3,7 +3,7 @@ import { readKalshiPrivateKey } from './kalshi-path.js';
 export function loadServerSecrets() {
   const env = {
     apiKey: process.env.KALSHI_API_KEY || '',
-    baseUrl: process.env.KALSHI_BASE_URL || 'https://api.kalshi.com',
+    baseUrl: process.env.KALSHI_BASE_URL || 'https://api.elections.kalshi.com/trade-api/v2',
   };
 
   const { resolvedPath: resolvedKeyPath, privateKey } = readKalshiPrivateKey();
