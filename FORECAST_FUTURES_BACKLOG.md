@@ -4,6 +4,36 @@ This file tracks the Forecast Futures backlog for the Dev & Donut topic. Keep wo
 
 ## Ready to Work
 
+CARD-152 | Ready to Work | Add authenticated account summary card (balance + open positions) with graceful fallback when private endpoints fail
+AC:
+1) When auth is available, the UI shows account balance and open positions in a compact card.
+2) If private endpoints fail, the card shows a non-blocking fallback state and preserves public market rendering.
+3) The account summary state is covered by regression tests for success and failure modes.
+
+CARD-153 | Ready to Work | Add live market search + server-side pagination controls to reduce front-end overload on larger feeds
+AC:
+1) Users can search markets by symbol/title and page through results without freezing the UI.
+2) Pagination/search state persists across refresh and remains compatible with existing list/detail routing.
+3) Tests validate pagination boundaries and search filtering behavior.
+
+CARD-154 | Ready to Work | Add stale-data threshold controls and freshness alert chips tied to snapshot age
+AC:
+1) Users can set or select freshness thresholds (e.g., 5m, 15m, 30m).
+2) Markets and summary surfaces show alert chips when data age exceeds threshold.
+3) Threshold logic is deterministic and test-covered outside the renderer.
+
+CARD-155 | Ready to Work | Add end-to-end smoke checks for GitHub Pages build output and core UI actions
+AC:
+1) CI runs a smoke suite against generated static output and verifies primary surfaces render.
+2) Smoke checks cover at least refresh, open-detail, and share/export action paths.
+3) Failing smoke checks block deploy status from being marked done.
+
+CARD-156 | Ready to Work | Add release/version stamp and compact changelog drawer so deployed updates are visible in-app
+AC:
+1) The app displays a version stamp sourced from build metadata/commit hash.
+2) A compact changelog drawer lists latest shipped card IDs and short notes.
+3) Version/changelog UI is mobile-safe and does not block main workflows.
+
 CARD-101 | Deployed Done | Create a trade-insight command center that wires backend metrics into the front end for big movers, outcome odds, and current opportunity score
 AC:
 1) The home surface shows a clear top summary with big movers, current odds, and an opportunity score.
