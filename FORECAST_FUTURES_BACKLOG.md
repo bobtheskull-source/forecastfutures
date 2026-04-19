@@ -4,31 +4,31 @@ This file tracks the Forecast Futures backlog for the Dev & Donut topic. Keep wo
 
 ## Ready to Work
 
-CARD-101 | Ready to Deploy | Create a trade-insight command center that wires backend metrics into the front end for big movers, outcome odds, and current opportunity score
+CARD-101 | Deployed Done | Create a trade-insight command center that wires backend metrics into the front end for big movers, outcome odds, and current opportunity score
 AC:
 1) The home surface shows a clear top summary with big movers, current odds, and an opportunity score.
 2) The data shown comes from the same backend snapshot used by list/detail views.
 3) The new hero/summary area remains readable on mobile and does not block other sections.
 
-CARD-102 | Ready to Deploy | Connect live action buttons for list, detail, and trade surfaces so every primary control launches a real backend or UI handler
+CARD-102 | Deployed Done | Connect live action buttons for list, detail, and trade surfaces so every primary control launches a real backend or UI handler
 AC:
 1) Every visible primary button has an explicit action and a working click handler.
 2) Buttons either navigate, refresh, open detail, or launch the correct backend-linked action.
 3) Buttons that are decorative or redundant are removed or demoted so the UI is not misleading.
 
-CARD-103 | Ready to Deploy | Add historical calibration feedback showing how accurate estimated odds were versus resolved outcomes
+CARD-103 | Deployed Done | Add historical calibration feedback showing how accurate estimated odds were versus resolved outcomes
 AC:
 1) The app shows a calibration summary comparing estimated odds versus actual resolved outcomes.
 2) Historical accuracy is visible in a concise panel and can be reviewed from the detail or archive flow.
 3) The copy clearly explains how accurate prior estimates were without exposing internal secrets.
 
-CARD-104 | Ready to Deploy | Add adaptive odds adjustment feedback that updates opportunity ranking from successful forecast outcomes
+CARD-104 | Deployed Done | Add adaptive odds adjustment feedback that updates opportunity ranking from successful forecast outcomes
 AC:
 1) Historical success and failure outcomes influence displayed ranking or confidence feedback.
 2) The adjustment logic is deterministic and testable, not hidden in the renderer.
 3) The app explains why an opportunity moved up or down in a way a user can understand.
 
-CARD-105 | Ready to Deploy | Redesign the front end to reduce clutter, clarify button purpose, and keep sticky controls from blocking content
+CARD-105 | Deployed Done | Redesign the front end to reduce clutter, clarify button purpose, and keep sticky controls from blocking content
 AC:
 1) The primary surfaces are reorganized into a simpler hierarchy with fewer competing sections.
 2) Sticky controls, overlays, and drawers do not cover core content on desktop or mobile.
